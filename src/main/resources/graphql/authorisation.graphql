@@ -1,0 +1,57 @@
+"""
+Core API for the X-Clone social media platform.
+
+AUTHENTICATION:
+All mutations except userLogin, createUser, and refreshToken require authentication.
+Include JWT token in Authorization header:
+  Authorization: Bearer <access_token>
+
+Unauthenticated requests return error code "UNAUTHENTICATED".
+"""
+
+extend type Mutation {
+    userLogin(username: String!, password: String!): AuthResponse!
+    userLogout: AuthResponse!
+    createUser(username: String!, password: String!): AuthResponse!
+
+    """
+    Update the authenticated user's password.
+    
+    Authentication: Required
+    Validates old password before setting new password.
+    
+    Password requirements:
+    - Minimum 8 characters
+    - At least one number
+    - At least one special character
+    
+    Returns error if old password is incorrect.
+    """
+    updatePassword(oldPassword: String!, newPassword: String!): AuthResponse! 
+
+    """
+    Exchange a refresh token for a new access token.
+
+    The refresh token should be sent as a parameter.
+    Refresh tokens are long-lived (7 days) and can be used
+    to obtain new access tokens when the current one expires.
+
+    Does NOT require Authorization header.
+    """
+    refreshToken(refreshToken: String!): AuthResponse!
+}
+
+type AuthResponse implements MutationResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+    data: AuthenticatedUser
+    errors: [Error!]
+}
+
+type AuthenticatedUser {
+    user: User!
+    accessToken: String!
+    refreshToken: String!
+    expiresAt: Int!
+}

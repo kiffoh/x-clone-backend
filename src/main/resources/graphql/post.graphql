@@ -1,0 +1,123 @@
+type Post {
+    id: ID!
+    author: User!
+    messageContent: String # Optional — null for pure reposts (and useful for media when introduced)
+
+    # Core fields
+    createdAt: DateTime! 
+    updatedAt: DateTime
+    status: Status # Changed visible to STATUS enum
+    # Deleted posts will display as something like 'this content isn't available anymore' -> Comment threads are still visible
+
+    # Likes functionality
+    likeCount: Int!
+    likedByMe: Boolean!
+    likes(first: Int, after: String): UserConnection! # Who liked this
+
+    # Comments functionality
+    parent: Post 
+    comments(first: Int, after: String): PostConnection!
+    commentCount: Int!
+
+    # Repost functionality
+    # Idea here was to separate between when somebody reposts with a comment (quote) vs a simple repost
+    # REPOST MODEL:
+    # - Pure repost: Creates Post with messageContent=null, quotedPost=originalPost
+    # - Quote: Creates Post with messageContent + quotedPost=originalPost
+    # - repostedBy returns Users who created either type
+    repostCount: Int! # Pure reposts + quotes combined
+    repostedByMe: Boolean!
+    quotedPost: Post
+    repostedBy(first: Int, after: String): UserConnection!
+    quotes(first: Int, after: String): PostConnection!
+
+    mentions: [User!] # Users tagged in post
+}
+# In a later iteration I will add media content
+
+extend type Query {
+    # TODO - searchPosts
+    getPost(id: ID!): PostResponse!
+    feed(first: Int, after: String): PostConnection!
+}
+
+# I want updatedAt to update but I imagine I do this in the postgres end?
+# Should I put all my updates in the same mutation?
+extend type Mutation {
+    # Create
+    createPost(input: CreatePostInput!): PostResponse!
+    createComment(input: CreateCommentInput!): PostResponse!
+    createRepost(input: CreateRepostInput!): PostResponse!
+    createQuote(input: CreateQuoteInput!): PostResponse!
+
+    # Update (works for posts/comments/quotes)
+    updatePostContent(input: UpdatePostInput!): PostResponse!
+
+    # Delete (works for all post types)
+    deletePost(input: DeletePostInput!): PostResponse!
+
+    # Likes
+    likePost(input: UpdatePostLikesInput): PostResponse!
+    unlikePost(input: UpdatePostLikesInput): PostResponse!
+}
+
+input CreatePostInput {
+    messageContent: String!
+    mentionedUserIds: [ID!]
+}
+
+input UpdatePostInput {
+    id: ID!
+    messageContent: String!
+    mentionedUserIds: [ID!]
+}
+
+input DeletePostInput {
+    id: ID!
+}
+
+input UpdatePostLikesInput {
+    id: ID!
+}
+
+input CreateCommentInput {
+    parentId: ID!
+    messageContent: String!
+    mentionedUserIds: [ID!]
+}
+
+input CreateRepostInput {
+    postId: ID!
+}
+
+input CreateQuoteInput {
+    quotedPostId: ID!
+    messageContent: String!
+    mentionedUserIds: [ID!]
+}
+
+type PostResponse implements MutationResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+    post: Post
+    errors: [Error!]
+}
+
+# Subscription for:
+# C/U/D post
+# Likes/unlikes
+# C/U/D Comment
+# C/U/D Repost
+
+extend type Subscription {
+    postEngagement(postId: ID!): EngagementEvent!
+    # Real-time feed updates for the authenticated user
+    # Emits when someone you follow creates a post
+    # Backed by Redis Pub/Sub feed queue
+    newPostInFeed: Post!
+}
+
+# Can I do a live notification with subscription or 
+# do I need separate implementation with Websockets?
+# Note: GraphQL subscriptions use WebSockets (Spring Boot GraphQL handles this automatically)

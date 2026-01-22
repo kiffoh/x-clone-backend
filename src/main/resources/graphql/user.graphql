@@ -1,0 +1,72 @@
+type User {
+    id: ID!
+    displayName: String!
+    handle: String! # uniqueId
+    bio: String
+    profileImage: String
+    createdAt: DateTime
+    status: UserStatus
+
+    posts(first: Int, after: String): PostConnection!
+
+    followers(first: Int, after: String): UserConnection!
+    followerCount: Int!
+    following(first: Int, after: String): UserConnection!
+    followingCount: Int!
+    isFollowing: Boolean!
+}
+# Following yourself should fail
+# Double follow -> # Idempotent: returns success, no duplicate created
+# Look to claude chat for edge cases!
+
+enum UserStatus {
+    ACTIVE
+    SUSPENDED
+    DELETED
+}
+
+extend type Query {
+    me: User!
+    userByHandle(handle: String!): User
+    userById(id: ID!): User
+    searchUsers(query: String!, first: Int, after: String): UserConnection!
+    suggestedUsers(first: Int, after: String): UserConnection!
+}
+
+# create User in authorisation type
+extend type Mutation {
+    """
+    Update user profile information.
+    
+    Authentication: Required (user can only update their own profile)
+    Admin can update any user by using adminUpdateUser mutation.
+    """
+    updateMyProfile(input: UpdateUserInput!): UserResponse!
+    """
+    Delete the authenticated user's account.
+    Soft delete - sets status to DELETED.
+    
+    Authentication: Required
+    Cannot be undone (for MVP - could add restore later)
+    """
+    deleteMyAccount: UserResponse!
+
+    followUser(userId: ID!): UserResponse!
+    unfollowUser(userId: ID!): UserResponse!
+}
+
+input UpdateUserInput {
+    displayName: String,
+    handle: String,
+    bio: String,
+    profileImage: String
+}
+
+type UserResponse implements MutationResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+    user: User
+    errors: [Error!]
+}
+

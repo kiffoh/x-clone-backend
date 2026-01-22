@@ -1,0 +1,49 @@
+type Notification {
+    id: ID!
+    post: Post # Made nullable - if type == FOLLOW then actor will be used for the reference
+    type: NotificationType!
+    read: Boolean!
+    createdAt: DateTime!
+    updatedAt: DateTime
+    actors: [User!]! # Multiple users may create the same notification, this allows for grouping, Preview of first 3 users
+    actorCount: Int! # How many more beyond the preview
+}
+
+enum NotificationType {
+    LIKE
+    COMMENT
+    REPOST
+    QUOTE
+    FOLLOW
+    MENTION
+}
+
+extend type Query {
+    """
+    Get paginated notifications for the authenticated user.
+    Returns notifications ordered by creation time (newest first).
+    """
+    getNotifications(first: Int, after: String): NotificationResponse
+
+    """
+    Mark a notification as read.
+    Returns the updated notification with read: true.
+    
+    Throws error if notification doesn't belong to authenticated user.
+    """
+    readNotification(notificationId: ID!): Notification
+}
+
+type NotificationResponse implements MutationResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+    notifications: NotificationConnection
+    errors: [Error!]
+}
+
+extend type Subscription {
+    # Returns notifications for the authenticated user only
+    # Automatically filtered by WebSocket auth context
+    notificationUpdated: Notification!
+}

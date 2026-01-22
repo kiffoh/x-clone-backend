@@ -1,0 +1,77 @@
+# Scalars
+scalar DateTime
+
+# Pagination (Relay pattern)
+type PageInfo {
+    hasNextPage: Boolean!
+    hasPreviousPage: Boolean!
+    startCursor: String
+    endCursor: String
+}
+
+type PostConnection {
+    edges: [PostEdge!]!
+    pageInfo: PageInfo!
+    totalCount: Int
+}
+
+type PostEdge {
+    node: Post!
+    cursor: String!
+}
+
+type UserConnection {
+    edges: [UserEdge!]!
+    pageInfo: PageInfo!
+    totalCount: Int
+}
+
+type UserEdge {
+    node: User!
+    cursor: String!
+}
+
+type NotificationConnection {
+    edges: [NotificationEdge!]!
+    pageInfo: PageInfo!
+    totalCount: Int
+}
+
+type NotificationEdge {
+    node: Notification!
+    cursor: String!
+}
+
+# Mutation responses
+interface MutationResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+    errors: [Error!]
+}
+
+type EngagementEvent {
+    type: EngagementType!
+    post: Post!
+    user: User!  # Who performed the action
+    timestamp: DateTime!
+}
+
+enum EngagementType {
+    LIKE
+    REPLY
+    REPOST
+    QUOTE
+}
+
+
+enum Status {
+    ACTIVE
+    DELETED
+    HIDDEN
+}
+
+type Error {
+    field: String
+    message: String!
+}
