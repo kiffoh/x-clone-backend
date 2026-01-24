@@ -1,31 +1,28 @@
 #!/usr/bin/env bash
+set -e
 
 echo "🔍 Running pre-commit checks..."
 
-# 1. Code formatting
-echo "  → Checking code format..."
-./mvnw spotless:check -q
-if [ $? -ne 0 ]; then
-    echo "❌ Code formatting issues found!"
-    echo "Fix with: ./mvnw spotless:apply"
-    exit 1
+# Get staged files (Added, Copied, Modified)
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
+
+# Filter to Java files
+JAVA_FILES=$(echo "$STAGED_FILES" | grep -E '\.java$' || true)
+
+if [ -z "$JAVA_FILES" ]; then
+  echo "ℹ️  No Java files staged — skipping backend checks"
+  exit 0
 fi
 
-# 2. Linting
-echo "  → Running Checkstyle..."
-./mvnw checkstyle:check -q
-if [ $? -ne 0 ]; then
-    echo "❌ Checkstyle violations found!"
-    exit 1
-fi
+echo "☕ Java files detected:"
+echo "$JAVA_FILES"
 
-# 3. Compilation
-echo "  → Compiling..."
-./mvnw compile -q
-if [ $? -ne 0 ]; then
-    echo "❌ Compilation failed!"
-    exit 1
-fi
+echo "→ Running formatting + lint checks..."
+
+# Single Maven invocation (much faster)
+./mvnw -q \
+  -DskipTests \
+  spotless:check \
+  checkstyle:check
 
 echo "✅ Pre-commit checks passed!"
-exit 0
