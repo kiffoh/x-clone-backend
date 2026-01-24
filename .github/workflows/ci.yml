@@ -39,6 +39,9 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
         cache: maven
+
+    - name: Make Maven Wrapper executable
+      run: chmod +x ./mvnw
     
     - name: Code formatting check
       run: ./mvnw spotless:check
