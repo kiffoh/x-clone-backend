@@ -1,13 +1,11 @@
-"""
-Core API for the X-Clone social media platform.
+# Core API for the X-Clone social media platform.
 
-AUTHENTICATION:
-All mutations except userLogin, createUser, and refreshToken require authentication.
-Include JWT token in Authorization header:
-  Authorization: Bearer <access_token>
+# AUTHENTICATION:
+# All mutations except userLogin, createUser, and refreshToken require authentication.
+# Include JWT token in Authorization header:
+#   Authorization: Bearer <access_token>
 
-Unauthenticated requests return error code "UNAUTHENTICATED".
-"""
+# Unauthenticated requests return error code "UNAUTHENTICATED".
 
 extend type Mutation {
     userLogin(username: String!, password: String!): AuthResponse!
