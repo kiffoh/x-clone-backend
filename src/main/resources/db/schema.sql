@@ -65,7 +65,6 @@ CREATE TABLE post_mentions (
 );
 -- Check for no self mention in application code
 
-
 CREATE TYPE notification_type AS ENUM ('LIKE', 'COMMENT', 'REPOST', 'QUOTE', 'FOLLOW', 'MENTION');
 
 CREATE TABLE notifications (
@@ -101,6 +100,7 @@ CREATE INDEX idx_follows_following ON follows(following_id);
 CREATE INDEX idx_posts_author ON posts(author_id);
 CREATE INDEX idx_posts_parent ON posts(parent_id);
 CREATE INDEX idx_posts_quoted_post ON posts(quoted_post_id);
+CREATE INDEX idx_posts_pure_reposts ON posts(quoted_post_id) WHERE message_content IS NULL AND status = 'ACTIVE';
 CREATE INDEX idx_posts_created_at ON posts(created_at);
 CREATE INDEX idx_posts_status ON posts(status);
 -- Why do we want an index on status?
