@@ -1,5 +1,6 @@
 
 CREATE TYPE user_status AS ENUM ('ACTIVE', 'SUSPENDED', 'DELETED');
+CREATE TYPE user_role AS ENUM ('USER', 'ADMIN');
 
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -10,7 +11,8 @@ CREATE TABLE users (
     profile_image VARCHAR(500),
     status user_status NOT NULL DEFAULT 'ACTIVE',
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP
+    updated_at TIMESTAMP,
+    role user_role NOT NULL DEFAULT 'USER'
 );
 
 CREATE TABLE follows (
