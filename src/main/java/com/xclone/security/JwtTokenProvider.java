@@ -7,7 +7,7 @@ import javax.crypto.SecretKey;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-/** Generates and validates JWT tokens */
+/** Generates and validates JWT tokens. */
 @Service
 public class JwtTokenProvider {
   private final SecretKey jwtSigningKey;

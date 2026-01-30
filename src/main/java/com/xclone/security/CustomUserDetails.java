@@ -9,7 +9,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-/** Maps User entity to UserDetails */
+/** Maps User entity to UserDetails. */
 public class CustomUserDetails implements UserDetails {
   private final User user;
 
@@ -24,9 +24,7 @@ public class CustomUserDetails implements UserDetails {
 
   @Override
   public String getUsername() {
-    return user.getId()
-        .toString(); // The databases are linked with id, handle is more metadata even though it's
-    // unique
+    return user.getId().toString();
   }
 
   @Override

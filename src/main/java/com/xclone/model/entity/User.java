@@ -2,7 +2,9 @@ package com.xclone.model.entity;
 
 import com.xclone.model.enums.UserRole;
 import com.xclone.model.enums.UserStatus;
-import jakarta.persistence.*;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.Getter;
@@ -11,7 +13,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-/** Entity for users table */
+/** Entity for users table. */
 @Getter
 @Setter
 @Entity
@@ -37,9 +39,6 @@ public class User {
 
   @Column(name = "profile_image", length = 500)
   private String profileImage;
-
-  // Where do the enums live? In this class?
-  // Should the enum values be protected so I can access in other classes e.g. CustomUserDetails
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
