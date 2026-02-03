@@ -9,7 +9,9 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-/** Maps User entity to UserDetails. */
+/**
+ * Maps User entity to UserDetails.
+ */
 public class CustomUserDetails implements UserDetails {
   private final User user;
 

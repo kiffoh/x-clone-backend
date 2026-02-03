@@ -7,7 +7,9 @@ import javax.crypto.SecretKey;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-/** Generates and validates JWT tokens. */
+/**
+ * Generates and validates JWT tokens.
+ */
 @Service
 public class JwtTokenProvider {
   private final SecretKey jwtSigningKey;
@@ -20,16 +22,14 @@ public class JwtTokenProvider {
     this.jwtExpiration = jwtExpiration;
   }
 
+  /**
+   * Generates a JWT Token.
+   */
   public String createToken(String userId, String role) {
     Date now = new Date();
     Date expiration = new Date(now.getTime() + this.jwtExpiration);
-    return Jwts.builder()
-        .subject(userId)
-        .issuedAt(now)
-        .expiration(expiration)
-        .claim("role", role)
-        .signWith(this.jwtSigningKey)
-        .compact();
+    return Jwts.builder().subject(userId).issuedAt(now).expiration(expiration).claim("role", role)
+        .signWith(this.jwtSigningKey).compact();
   }
 
   public Claims parseToken(String jws) {
@@ -37,14 +37,13 @@ public class JwtTokenProvider {
   }
 
   public String getUserIdFromToken(String jws) {
-    return Jwts.parser()
-        .verifyWith(this.jwtSigningKey)
-        .build()
-        .parseSignedClaims(jws)
-        .getPayload()
+    return Jwts.parser().verifyWith(this.jwtSigningKey).build().parseSignedClaims(jws).getPayload()
         .getSubject();
   }
 
+  /**
+   * Validates a JWT Token.
+   */
   public boolean validToken(String jws) {
     try {
       Claims token = parseToken(jws);

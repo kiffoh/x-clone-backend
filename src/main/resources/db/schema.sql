@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS users, follows, posts, likes, post_mentions, notifications, notification_actors;
 
 CREATE TYPE user_status AS ENUM ('ACTIVE', 'SUSPENDED', 'DELETED');
 CREATE TYPE user_role AS ENUM ('USER', 'ADMIN');

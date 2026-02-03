@@ -5,19 +5,18 @@ spring:
   # Database Configuration
   datasource:
     url: jdbc:postgresql://localhost:5432/xclone
-    username: xclone
-    password: dev_password
+    username: xclone_user
+    password: xclone_password
     driver-class-name: org.postgresql.Driver
-  
+
   jpa:
     hibernate:
-      ddl-auto: validate  # Use 'create' initially, then 'validate' with migrations
+      ddl-auto: update  # Use 'create' initially, then 'validate' with migrations
     show-sql: true
     properties:
       hibernate:
         format_sql: true
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-  
+
   # Redis Configuration
   data:
     redis:
@@ -45,7 +44,8 @@ server:
 
 # JWT Configuration (you'll add this later)
 jwt:
-  secret: ${JWT_SECRET:your-secret-key-change-in-production}
+  secret: ${JWT_SECRET:DLAFZBVVg4tKQcYcM5MqPZjasrFBVUnk}
+  #  secret:
   expiration: 900000  # 15 minutes in milliseconds
   refresh-expiration: 604800000  # 7 days
 

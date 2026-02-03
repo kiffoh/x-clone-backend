@@ -5,7 +5,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
-/** Main Spring Boot application for X-Clone backend. */
+/**
+ * Main Spring Boot application for X-Clone backend.
+ */
 @SpringBootApplication
 @EnableJpaAuditing
 @EnableJpaRepositories(basePackages = "com.xclone.repository")

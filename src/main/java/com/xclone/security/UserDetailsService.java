@@ -5,7 +5,9 @@ import com.xclone.repository.UserRepository;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-/** Load user from DB for authentication */
+/**
+ * Load user from DB for authentication.
+ */
 @Service
 public class UserDetailsService {
   private final UserRepository userRepository;
@@ -14,7 +16,9 @@ public class UserDetailsService {
     this.userRepository = userRepository;
   }
 
-  /** userId is a UUID string */
+  /**
+   * userId is a UUID string.
+   */
   public CustomUserDetails getUserById(String userId) {
     try {
       User user = this.userRepository.findById(userId).orElseThrow();

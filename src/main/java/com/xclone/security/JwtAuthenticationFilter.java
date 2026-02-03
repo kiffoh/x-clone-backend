@@ -11,13 +11,18 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-/** Intercepts requests to extract/validate tokens. */
+/**
+ * Intercepts requests to extract/validate tokens.
+ */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
   private final JwtTokenProvider jwtTokenProvider;
   private final UserDetailsService userDetailsService;
   private final String bearer;
 
+  /**
+   * Constructor; assigns components for internal use.
+   */
   public JwtAuthenticationFilter(
       JwtTokenProvider jwtTokenProvider, UserDetailsService userDetailsService) {
     this.jwtTokenProvider = jwtTokenProvider;
