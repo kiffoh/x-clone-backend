@@ -17,16 +17,16 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
   private final JwtTokenProvider jwtTokenProvider;
-  private final UserDetailsService userDetailsService;
+  private final JwtUserDetailsService jwtUserDetailsService;
   private final String bearer;
 
   /**
    * Constructor; assigns components for internal use.
    */
   public JwtAuthenticationFilter(
-      JwtTokenProvider jwtTokenProvider, UserDetailsService userDetailsService) {
+      JwtTokenProvider jwtTokenProvider, JwtUserDetailsService jwtUserDetailsService) {
     this.jwtTokenProvider = jwtTokenProvider;
-    this.userDetailsService = userDetailsService;
+    this.jwtUserDetailsService = jwtUserDetailsService;
     this.bearer = "Bearer ";
   }
 
@@ -38,7 +38,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     if (jwtTokenProvider.validToken(token)) {
       String userId = jwtTokenProvider.getUserIdFromToken(token);
       // UserDetails service next
-      UserDetails userDetails = userDetailsService.getUserById(userId);
+      UserDetails userDetails = jwtUserDetailsService.getUserById(userId);
       // Set authentication in SecurityContext
       UsernamePasswordAuthenticationToken auth =
           new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
