@@ -1,17 +1,29 @@
 package com.xclone.security;
 
+import com.xclone.security.dto.AuthResponse;
+import com.xclone.security.dto.AuthServiceDto;
+import com.xclone.security.dto.LoginRequest;
+import com.xclone.security.service.AuthenticationService;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Router for authentication REST API calls.
  */
 @RestController
-public class AuthenticationController extends RuntimeException {
-  //       private final UserRepository userRepository;
+@RequestMapping("api/auth")
+public class AuthenticationController {
+  private final AuthenticationService authenticationService;
 
-  //      AuthenticationController(UserRepository userRepository) {
-  //          this.userRepository = userRepository;
-  //      }
+  AuthenticationController(AuthenticationService authenticationService) {
+    this.authenticationService = authenticationService;
+  }
 
   //      // All routes will have /auth here - can I set this at a higher level?
   //      // How is validation done in Spring Boot? Is there something like zod (validation
@@ -42,10 +54,23 @@ public class AuthenticationController extends RuntimeException {
   //          return userRepository.exists(user);
   //      }
 
-  //       @PostMapping("/log-in")
-  //      public Optional<User> logIn(HttpServletRequest request, HttpServletResponse response) {
-
-  //      }
+  /**
+   * Controller layer for login requests.
+   * Calls the relevant controllers to validate and log a user in.
+   * Assigns a new access and refresh token as part of response.
+   *
+   * @param request  HTTP request object
+   * @param response HTTP response object
+   * @return {@link AuthResponse} dto
+   */
+  @PostMapping("/login")
+  public ResponseEntity<AuthResponse> logIn(
+      @RequestBody @Valid LoginRequest request,
+      HttpServletResponse response) {
+    AuthServiceDto authServiceDto = authenticationService.login(request);
+    response.addCookie(new Cookie("refreshToken", authServiceDto.refreshToken()));
+    return ResponseEntity.ok(authServiceDto.toAuthResponse());
+  }
 
   //      @PostMapping("/log-out")
   //      public void logOut(HttpServletRequest request, HttpServletResponse response) {
