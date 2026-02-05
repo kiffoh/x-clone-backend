@@ -15,11 +15,12 @@ public class JwtTokenProvider {
   private final SecretKey jwtSigningKey;
 
   @Value("${jwt.expiration}")
-  private final long jwtExpiration;
+  private final long jwtExpirationMs;
 
-  public JwtTokenProvider(SecretKey jwtSigningKey, @Value("${jwt.expiration}") long jwtExpiration) {
+  public JwtTokenProvider(SecretKey jwtSigningKey,
+                          @Value("${jwt.expiration}") long jwtExpirationMs) {
     this.jwtSigningKey = jwtSigningKey;
-    this.jwtExpiration = jwtExpiration;
+    this.jwtExpirationMs = jwtExpirationMs;
   }
 
   /**
@@ -27,7 +28,7 @@ public class JwtTokenProvider {
    */
   public String createToken(String userId, String role) {
     Date now = new Date();
-    Date expiration = new Date(now.getTime() + this.jwtExpiration);
+    Date expiration = new Date(now.getTime() + this.jwtExpirationMs);
     return Jwts.builder().subject(userId).issuedAt(now).expiration(expiration).claim("role", role)
         .signWith(this.jwtSigningKey).compact();
   }
