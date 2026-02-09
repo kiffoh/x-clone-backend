@@ -1,8 +1,8 @@
-package com.xclone.security;
+package com.xclone.security.user;
 
-import com.xclone.model.entity.User;
-import com.xclone.model.enums.UserRole;
-import com.xclone.model.enums.UserStatus;
+import com.xclone.user.model.entity.User;
+import com.xclone.user.model.enums.UserRole;
+import com.xclone.user.model.enums.UserStatus;
 import java.util.Collection;
 import java.util.List;
 import org.springframework.security.core.GrantedAuthority;

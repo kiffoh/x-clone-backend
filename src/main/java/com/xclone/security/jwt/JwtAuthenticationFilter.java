@@ -1,5 +1,6 @@
-package com.xclone.security;
+package com.xclone.security.jwt;
 
+import com.xclone.security.user.JwtUserDetailsService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

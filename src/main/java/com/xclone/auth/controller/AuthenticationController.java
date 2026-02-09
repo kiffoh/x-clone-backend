@@ -1,9 +1,9 @@
-package com.xclone.security;
+package com.xclone.auth.controller;
 
-import com.xclone.security.dto.AuthResponse;
-import com.xclone.security.dto.AuthServiceDto;
-import com.xclone.security.dto.LoginRequest;
-import com.xclone.security.service.AuthenticationService;
+import com.xclone.auth.dto.AuthResponse;
+import com.xclone.auth.dto.AuthTokens;
+import com.xclone.auth.dto.LoginRequest;
+import com.xclone.auth.service.AuthenticationService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -67,9 +67,9 @@ public class AuthenticationController {
   public ResponseEntity<AuthResponse> logIn(
       @RequestBody @Valid LoginRequest request,
       HttpServletResponse response) {
-    AuthServiceDto authServiceDto = authenticationService.login(request);
-    response.addCookie(new Cookie("refreshToken", authServiceDto.refreshToken()));
-    return ResponseEntity.ok(authServiceDto.toAuthResponse());
+    AuthTokens authTokens = authenticationService.login(request);
+    response.addCookie(new Cookie("refreshToken", authTokens.refreshToken()));
+    return ResponseEntity.ok(authTokens.toAuthResponse());
   }
 
   //      @PostMapping("/log-out")

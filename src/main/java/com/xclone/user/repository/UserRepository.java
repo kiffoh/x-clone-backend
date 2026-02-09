@@ -1,6 +1,6 @@
-package com.xclone.repository;
+package com.xclone.user.repository;
 
-import com.xclone.model.entity.User;
+import com.xclone.user.model.entity.User;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

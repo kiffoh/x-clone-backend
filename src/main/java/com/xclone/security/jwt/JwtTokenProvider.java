@@ -1,4 +1,4 @@
-package com.xclone.security;
+package com.xclone.security.jwt;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;

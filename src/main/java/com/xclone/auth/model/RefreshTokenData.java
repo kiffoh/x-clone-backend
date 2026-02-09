@@ -1,4 +1,4 @@
-package com.xclone.security.dto;
+package com.xclone.auth.model;
 
 import java.util.Date;
 

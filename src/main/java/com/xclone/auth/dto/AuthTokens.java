@@ -1,4 +1,4 @@
-package com.xclone.security.dto;
+package com.xclone.auth.dto;
 
 /**
  * DTO which contains auth tokens.
@@ -9,7 +9,7 @@ package com.xclone.security.dto;
  * @param displayName
  * @param handle
  */
-public record AuthServiceDto(
+public record AuthTokens(
     String refreshToken,
     String accessToken,
     String userId,
@@ -18,7 +18,7 @@ public record AuthServiceDto(
 ) {
 
   /**
-   * Converts {@link AuthServiceDto} to {@link AuthResponse} DTO.
+   * Converts {@link AuthTokens} to {@link AuthResponse} DTO.
    *
    * @return {@link AuthResponse}
    */

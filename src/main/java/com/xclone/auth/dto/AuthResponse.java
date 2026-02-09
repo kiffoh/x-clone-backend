@@ -1,4 +1,4 @@
-package com.xclone.security.dto;
+package com.xclone.auth.dto;
 
 /**
  * DTO to return authentication data to client.

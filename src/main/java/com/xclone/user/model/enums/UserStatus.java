@@ -1,4 +1,4 @@
-package com.xclone.model.enums;
+package com.xclone.user.model.enums;
 
 /**
  * Enum for User Account status.

@@ -1,7 +1,7 @@
-package com.xclone.model.entity;
+package com.xclone.user.model.entity;
 
-import com.xclone.model.enums.UserRole;
-import com.xclone.model.enums.UserStatus;
+import com.xclone.user.model.enums.UserRole;
+import com.xclone.user.model.enums.UserStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;

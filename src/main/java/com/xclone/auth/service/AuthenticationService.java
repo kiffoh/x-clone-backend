@@ -1,10 +1,10 @@
-package com.xclone.security.service;
+package com.xclone.auth.service;
 
-import com.xclone.model.entity.User;
-import com.xclone.repository.UserRepository;
-import com.xclone.security.JwtTokenProvider;
-import com.xclone.security.dto.AuthServiceDto;
-import com.xclone.security.dto.LoginRequest;
+import com.xclone.auth.dto.AuthTokens;
+import com.xclone.auth.dto.LoginRequest;
+import com.xclone.security.jwt.JwtTokenProvider;
+import com.xclone.user.model.entity.User;
+import com.xclone.user.repository.UserRepository;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -32,9 +32,9 @@ public class AuthenticationService {
 
   /**
    * Gets user from database.
-   * Returns {@link AuthServiceDto} which contains a valid access token and refresh token.
+   * Returns {@link AuthTokens} which contains a valid access token and refresh token.
    */
-  public AuthServiceDto login(LoginRequest request) {
+  public AuthTokens login(LoginRequest request) {
     // Get user from database. Create access token from user information and return access token?
 
     // Get full User entity
@@ -53,7 +53,7 @@ public class AuthenticationService {
             user.getRole().toString()
         );
     String refreshToken = refreshTokenService.createToken();
-    return new AuthServiceDto(
+    return new AuthTokens(
         accessToken,
         refreshToken,
         user.getId().toString(),

@@ -1,7 +1,8 @@
-package com.xclone.security;
+package com.xclone.security.user;
 
-import com.xclone.model.entity.User;
-import com.xclone.repository.UserRepository;
+import com.xclone.security.jwt.JwtAuthenticationFilter;
+import com.xclone.user.model.entity.User;
+import com.xclone.user.repository.UserRepository;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;

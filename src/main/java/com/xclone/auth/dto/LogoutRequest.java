@@ -1,4 +1,4 @@
-package com.xclone.security.dto;
+package com.xclone.auth.dto;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;

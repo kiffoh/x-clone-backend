@@ -1,7 +1,7 @@
-package com.xclone.security.dto;
+package com.xclone.auth.dto;
 
-import com.xclone.model.entity.User;
-import com.xclone.repository.UserRepository;
+import com.xclone.user.model.entity.User;
+import com.xclone.user.repository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.Arrays;

@@ -1,13 +1,20 @@
-package com.xclone.security.service;
+package com.xclone.auth.service;
 
+import com.xclone.auth.model.RefreshTokenData;
 import org.springframework.stereotype.Service;
 
 /**
- * Redis CRUD for refresh tokens.
+ * Provides redis CRUD for refresh tokens.
  */
 @Service
 public class RefreshTokenService {
 
+  /**
+   * Creates a UUID string (tokenId) and stores token metadata ({@link RefreshTokenData}) in Redis.
+   * TODO: to refactor this javadoc comment.
+   *
+   * @return UUID string (tokenId)
+   */
   public String createToken() {
     return "Implementation will come soon";
   }
