@@ -3,13 +3,19 @@ package com.xclone.auth.controller;
 import com.xclone.auth.dto.AuthResponse;
 import com.xclone.auth.dto.AuthTokens;
 import com.xclone.auth.dto.LoginRequest;
+import com.xclone.auth.dto.SignupRequest;
 import com.xclone.auth.service.AuthenticationService;
-import jakarta.servlet.http.Cookie;
+import com.xclone.config.AuthProperties;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -18,45 +24,39 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("api/auth")
+@Slf4j
 public class AuthenticationController {
   private final AuthenticationService authenticationService;
+  private final AuthProperties authProperties;
 
-  AuthenticationController(AuthenticationService authenticationService) {
+  AuthenticationController(AuthenticationService authenticationService,
+                           AuthProperties authProperties) {
     this.authenticationService = authenticationService;
+    this.authProperties = authProperties;
   }
 
-  //      // All routes will have /auth here - can I set this at a higher level?
-  //      // How is validation done in Spring Boot? Is there something like zod (validation
-  //    // middleware) which can be used so that I can treat the values as non null?
-  //      @PostMapping("/sign-up")
-  //      public User createUser(HttpServletRequest request, HttpServletResponse response) {
-  //          // Take the information username and password
-  //          -> hash the password and pass it to the datbase.
-  //          // What is the industry standard, to hash on server side?
-  //          Otherwise we are trusting the client information?
-
-  //          String handle = Arrays.toString(request.getParameterValues("handle"));
-  //          if (handleIsUnique(handle)) {
-  //              String password = Arrays.toString(request.getParameterValues("password"));
-  //              User user = new User();
-  //              user.setHandle(handle);
-  //              // Can I encode the password with passwordEncoder in SecurityConfig?
-  //              user.setPasswordHash(password); // Will have to encrypt at some point
-  //              userRepository.save(user);
-  //              return user;
-  //          }
-  //          throw new IllegalAccessError("Not a unique handle"); // Not unique error
-  //      }
-
-  //      public boolean handleIsUnique(String handle) {
-  //          User user = new User();
-  //          user.setHandle(handle);
-  //          return userRepository.exists(user);
-  //      }
+  /**
+   * Controller layer for signup requests.
+   * Calls the signup service function to validate and register a user.
+   * Assigns a new access and refresh token as part of response.
+   *
+   * @param request  HTTP request object
+   * @param response HTTP response object
+   * @return {@link AuthResponse} dto
+   */
+  @PostMapping("/signup")
+  public ResponseEntity<AuthResponse> signup(
+      @RequestBody @Valid SignupRequest request,
+      HttpServletResponse response) {
+    AuthTokens authTokens = authenticationService.signup(request);
+    setRefreshTokenCookie(response, authTokens.refreshToken());
+    return ResponseEntity.ok(
+        authTokens.toAuthResponse());
+  }
 
   /**
    * Controller layer for login requests.
-   * Calls the relevant controllers to validate and log a user in.
+   * Calls the login service function to validate and log a user in.
    * Assigns a new access and refresh token as part of response.
    *
    * @param request  HTTP request object
@@ -64,17 +64,87 @@ public class AuthenticationController {
    * @return {@link AuthResponse} dto
    */
   @PostMapping("/login")
-  public ResponseEntity<AuthResponse> logIn(
+  public ResponseEntity<AuthResponse> login(
       @RequestBody @Valid LoginRequest request,
       HttpServletResponse response) {
     AuthTokens authTokens = authenticationService.login(request);
-    response.addCookie(new Cookie("refreshToken", authTokens.refreshToken()));
+    setRefreshTokenCookie(response, authTokens.refreshToken());
+    return ResponseEntity.ok(authTokens.toAuthResponse()); // Why is this erroring?
+  }
+
+  /**
+   * Controller layer for logout requests.
+   * Calls the logout service function to validate and log out a user.
+   * Overwrites the existing refresh token as part of response.
+   *
+   * @param response HTTP response object
+   */
+  @PostMapping("/logout")
+  public ResponseEntity<Void> logout(
+      @CookieValue("refreshToken") String refreshToken,
+      @RequestHeader("Authorization") String authHeaders,
+      HttpServletResponse response
+  ) {
+    log.info("Logout request received");
+
+    try {
+      String accessToken = authHeaders.replace("Bearer ", "");
+      authenticationService.logout(accessToken, refreshToken);
+      clearRefreshTokenCookie(response);
+
+      log.info("Logout successful");
+      return ResponseEntity.noContent().build();
+    } catch (BadCredentialsException e) {
+      log.warn("Logout failed: {}", e.getMessage()); // Expected failure
+      return ResponseEntity.status(401).build();
+
+    } catch (Exception e) {
+      log.error("Logout failed unexpectedly", e); // Unexpected failure
+      return ResponseEntity.status(500).build();
+    }
+  }
+
+  /**
+   * Controller layer for refresh requests.
+   * Calls the logout service function to validate and log out a user.
+   * Overwrites the existing refresh token as part of response.
+   *
+   * @param response HTTP response object
+   */
+  @PostMapping("/refresh")
+  public ResponseEntity<AuthResponse> refresh(
+      @CookieValue("refreshToken") String refreshToken,
+      HttpServletResponse response
+  ) {
+    AuthTokens authTokens = authenticationService.refresh(refreshToken);
+    String newRefreshTokenId = authTokens.refreshToken();
+    setRefreshTokenCookie(response, newRefreshTokenId);
     return ResponseEntity.ok(authTokens.toAuthResponse());
   }
 
-  //      @PostMapping("/log-out")
-  //      public void logOut(HttpServletRequest request, HttpServletResponse response) {
-  //          AccessToken token = SecurityContextHolder.getContext().getAuthentication();
-  //          // Send an empty response which also resets the clients http cookies
-  //      }
+  private void setRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
+    ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken)
+        .httpOnly(true)
+        .secure(this.authProperties.isSecureCookies())
+        .path("/api/auth")
+        .maxAge(authProperties.getRefreshTokenDurationSeconds())
+        .sameSite("Strict")
+        .build();
+
+    response.addHeader("Set-Cookie", cookie.toString());
+  }
+
+  private void clearRefreshTokenCookie(HttpServletResponse response) {
+    ResponseCookie cookie = ResponseCookie.from("refreshToken", "")
+        .httpOnly(true)
+        .secure(this.authProperties.isSecureCookies())
+        .path("/api/auth")
+        .maxAge(0)
+        .sameSite("Strict")
+        .build();
+
+    response.addHeader("Set-Cookie", cookie.toString());
+  }
+
+
 }

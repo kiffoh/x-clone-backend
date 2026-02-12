@@ -6,6 +6,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import org.jspecify.annotations.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -25,7 +26,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
    * Constructor; assigns components for internal use.
    */
   public JwtAuthenticationFilter(
-      JwtTokenProvider jwtTokenProvider, JwtUserDetailsService jwtUserDetailsService) {
+      JwtTokenProvider jwtTokenProvider,
+      JwtUserDetailsService jwtUserDetailsService
+  ) {
     this.jwtTokenProvider = jwtTokenProvider;
     this.jwtUserDetailsService = jwtUserDetailsService;
     this.bearer = "Bearer ";
@@ -33,7 +36,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
   @Override
   protected void doFilterInternal(
-      HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+      @NonNull HttpServletRequest request,
+      @NonNull HttpServletResponse response,
+      @NonNull FilterChain filterChain)
       throws ServletException, IOException {
     String token = extractTokenFromHeader(request);
     if (jwtTokenProvider.validToken(token)) {

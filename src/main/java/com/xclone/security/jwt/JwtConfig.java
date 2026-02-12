@@ -1,9 +1,9 @@
 package com.xclone.security.jwt;
 
+import com.xclone.config.JwtProperties;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
 import javax.crypto.SecretKey;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -12,12 +12,16 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class JwtConfig {
+  private final JwtProperties jwtProperties;
 
-  @Value("${jwt.secret}")
-  private String jwtSecret;
+  JwtConfig(JwtProperties jwtProperties) {
+    this.jwtProperties = jwtProperties;
+  }
 
   @Bean
   public SecretKey jwtSigningKey() {
-    return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+    return Keys.hmacShaKeyFor(
+        this.jwtProperties.getJwtSecret().getBytes(StandardCharsets.UTF_8)
+    );
   }
 }
