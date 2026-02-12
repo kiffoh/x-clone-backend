@@ -1,28 +1,7 @@
 spring:
   application:
     name: x-clone-backend
-  
-  # Database Configuration
-  datasource:
-    url: jdbc:postgresql://localhost:5432/xclone
-    username: xclone_user
-    password: xclone_password
-    driver-class-name: org.postgresql.Driver
 
-  jpa:
-    hibernate:
-      ddl-auto: update  # Use 'create' initially, then 'validate' with migrations
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-
-  # Redis Configuration
-  data:
-    redis:
-      host: localhost
-      port: 6379
-  
   # GraphQL Configuration
   graphql:
     graphiql:
@@ -35,19 +14,11 @@ spring:
     websocket:
       path: /graphql-ws
 
-# Server Configuration
-server:
-  port: 8080
-  error:
-    include-message: always
-    include-binding-errors: always
-
 # JWT Configuration (you'll add this later)
 jwt:
   secret: ${JWT_SECRET:DLAFZBVVg4tKQcYcM5MqPZjasrFBVUnk}
-  #  secret:
-  expiration: 900000  # 15 minutes in milliseconds
-  refresh-expiration: 604800000  # 7 days
+  algorithm: HS256
+  issuer: x-clone
 
 # Logging
 logging:
@@ -55,3 +26,9 @@ logging:
     com.xclone: DEBUG
     org.springframework.graphql: DEBUG
     org.springframework.security: DEBUG
+
+app:
+  auth:
+    access-token-duration-seconds: 900 # 15 mins
+    refresh-token-duration-seconds: 2592000 # 30 days
+    secure-cookies: true
