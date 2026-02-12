@@ -19,6 +19,22 @@ public class RefreshTokenService {
     return "Implementation will come soon";
   }
 
+  public void removeToken(String refreshTokenId) {
+  }
+
+  public boolean tokenValid(RefreshTokenData refreshToken) {
+  }
+
+  public String rotateToken(String userId) {
+    return null;
+  }
+
+  public String getUserId(String refreshToken) {
+  }
+
+  public RefreshTokenData getTokenData(String refreshToken) {
+  }
+
 
 //  /**
 //   * Generates and validates refresh tokens.
