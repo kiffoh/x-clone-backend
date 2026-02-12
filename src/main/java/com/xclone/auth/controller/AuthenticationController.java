@@ -11,7 +11,6 @@ import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -86,22 +85,12 @@ public class AuthenticationController {
       HttpServletResponse response
   ) {
     log.info("Logout request received");
+    String accessToken = authHeaders.replace("Bearer ", "");
+    authenticationService.logout(accessToken, refreshToken);
+    clearRefreshTokenCookie(response);
 
-    try {
-      String accessToken = authHeaders.replace("Bearer ", "");
-      authenticationService.logout(accessToken, refreshToken);
-      clearRefreshTokenCookie(response);
-
-      log.info("Logout successful");
-      return ResponseEntity.noContent().build();
-    } catch (BadCredentialsException e) {
-      log.warn("Logout failed: {}", e.getMessage()); // Expected failure
-      return ResponseEntity.status(401).build();
-
-    } catch (Exception e) {
-      log.error("Logout failed unexpectedly", e); // Unexpected failure
-      return ResponseEntity.status(500).build();
-    }
+    log.info("Logout successful");
+    return ResponseEntity.noContent().build();
   }
 
   /**

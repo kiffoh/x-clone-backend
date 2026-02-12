@@ -4,6 +4,9 @@ import com.xclone.auth.dto.AuthTokens;
 import com.xclone.auth.dto.LoginRequest;
 import com.xclone.auth.dto.SignupRequest;
 import com.xclone.auth.model.RefreshTokenData;
+import com.xclone.exception.custom.AccountNotActiveException;
+import com.xclone.exception.custom.DuplicateHandleException;
+import com.xclone.exception.custom.InvalidRefreshTokenException;
 import com.xclone.security.jwt.JwtTokenProvider;
 import com.xclone.user.model.entity.User;
 import com.xclone.user.model.enums.UserStatus;
@@ -77,7 +80,7 @@ public class AuthenticationService {
   public AuthTokens signup(@Valid SignupRequest request) {
     if (userRepository.existsByHandle(request.handle())) {
       log.warn("signup attempt with an existing handle");
-      throw new BadCredentialsException(
+      throw new DuplicateHandleException(
           "This handle is already taken"); // Is this the correct error?
     }
 
@@ -119,16 +122,19 @@ public class AuthenticationService {
     RefreshTokenData tokenData = refreshTokenService.getTokenData(refreshToken);
     // Check if token expired
     if (tokenData == null || !refreshTokenService.tokenValid(tokenData)) {
-      log.warn("logout attempted with an invalid refresh token");
-      throw new BadCredentialsException("Invalid refresh token");
+      log.warn("Logout attempted with an invalid refresh token");
+      throw new InvalidRefreshTokenException("Invalid refresh token");
     }
 
     // Confirm if user id in tokens match
     String userId = jwtTokenProvider.getUserIdFromToken(accessToken);
     if (!userId.equals(tokenData.userId())) {
-      log.warn("logout token mismatch - userId: {}, tokenUserId: {}", userId, tokenData.userId());
-      throw new BadCredentialsException(
-          "Token mismatch");
+      log.error(
+          "SECURITY: Token mismatch during logout " +
+              "- accessToken userId: {}, refreshToken userId: {}",
+          userId, tokenData.userId());
+
+      throw new InvalidRefreshTokenException("Invalid refresh token");
     }
 
     // Remove token once proven to be valid and secure
@@ -143,7 +149,7 @@ public class AuthenticationService {
     // Check if token expired
     if (tokenData == null || !refreshTokenService.tokenValid(tokenData)) {
       log.warn("refresh token attempted with an invalid refresh token");
-      throw new BadCredentialsException("Invalid refresh token");
+      throw new InvalidRefreshTokenException("Invalid refresh token");
     }
 
     // Validates user exists for security
@@ -157,11 +163,11 @@ public class AuthenticationService {
         });
     // TODO: Check if user_tokens:user_id contains the refreshTokenId for security
 
-    // Check user status (if you have SUSPENDED, DELETED statuses)
+    // Check user status (user status has SUSPENDED and DELETED statuses)
     if (user.getStatus() != UserStatus.ACTIVE) {
       log.warn("Refresh attempted for {} user: {}", user.getStatus(), userId);
       refreshTokenService.removeToken(refreshToken);
-      throw new BadCredentialsException("Account not active");
+      throw new AccountNotActiveException("Account not active");
     }
 
     // Rotate token once validated
