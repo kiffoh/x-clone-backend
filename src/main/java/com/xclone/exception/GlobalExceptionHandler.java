@@ -8,7 +8,9 @@ import com.xclone.exception.dto.FieldError;
 import com.xclone.exception.dto.ValidationErrorResponse;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -68,9 +70,12 @@ public class GlobalExceptionHandler
         .body(new ErrorResponse(ex.getMessage()));
   }
 
-  @ExceptionHandler(MethodArgumentNotValidException.class)
-  public ResponseEntity<ValidationErrorResponse> handleMethodArgumentNotValidException(
-      MethodArgumentNotValidException ex) {
+  @Override
+  public ResponseEntity<Object> handleMethodArgumentNotValid(
+      MethodArgumentNotValidException ex,
+      HttpHeaders headers,
+      HttpStatusCode status,
+      WebRequest request) {
 
     List<FieldError> fieldErrorsList = ex.getBindingResult().getFieldErrors().stream()
         .map(error -> new FieldError(error.getField(), error.getDefaultMessage())).toList();

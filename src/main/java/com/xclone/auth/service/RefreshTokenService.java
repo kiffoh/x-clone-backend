@@ -1,6 +1,8 @@
 package com.xclone.auth.service;
 
 import com.xclone.auth.model.RefreshTokenData;
+import java.util.Date;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 
 /**
@@ -23,6 +25,7 @@ public class RefreshTokenService {
   }
 
   public boolean tokenValid(RefreshTokenData refreshToken) {
+    return true;
   }
 
   public String rotateToken(String userId) {
@@ -30,9 +33,16 @@ public class RefreshTokenService {
   }
 
   public String getUserId(String refreshToken) {
+    return UUID.randomUUID().toString();
   }
 
   public RefreshTokenData getTokenData(String refreshToken) {
+    return new RefreshTokenData(
+        "test-user-id",
+        new Date(),
+        new Date(),
+        "test-device-info"
+    );
   }
 
 
