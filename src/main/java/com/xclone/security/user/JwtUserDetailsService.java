@@ -3,6 +3,7 @@ package com.xclone.security.user;
 import com.xclone.security.jwt.JwtAuthenticationFilter;
 import com.xclone.user.model.entity.User;
 import com.xclone.user.repository.UserRepository;
+import java.util.UUID;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -28,7 +29,7 @@ public class JwtUserDetailsService {
    */
   public CustomUserDetails getUserById(String userId) {
     try {
-      User user = this.userRepository.findById(userId).orElseThrow();
+      User user = this.userRepository.findById(UUID.fromString(userId)).orElseThrow();
       return new CustomUserDetails(user);
     } catch (Exception e) {
       throw new UsernameNotFoundException(e.getMessage());
