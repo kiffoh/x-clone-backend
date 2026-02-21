@@ -74,7 +74,7 @@ public class RefreshTokenServiceTest {
 
     // Is there a convention for captured.is equal to input or the other way around?
     String capturedTokenId = tokenIdCaptor.getValue();
-    assertThat(tokenId).isEqualTo(capturedTokenId);
+    assertThat(capturedTokenId).isEqualTo(tokenId);
   }
 
   @Test
@@ -90,7 +90,7 @@ public class RefreshTokenServiceTest {
 
     // Is there a convention for captured.is equal to input or the other way around?
     String capturedTokenId = tokenIdCaptor.getValue();
-    assertThat(tokenId).isEqualTo(capturedTokenId);
+    assertThat(capturedTokenId).isEqualTo(tokenId);
   }
 
   @Test
@@ -98,6 +98,7 @@ public class RefreshTokenServiceTest {
     // Captor initialisation
     ArgumentCaptor<String> findTokenIdCaptor = ArgumentCaptor.forClass(String.class);
     ArgumentCaptor<String> saveTokenIdCaptor = ArgumentCaptor.forClass(String.class);
+    ArgumentCaptor<String> deleteTokenIdCaptor = ArgumentCaptor.forClass(String.class);
     ArgumentCaptor<RefreshTokenData> saveMetadataCaptor =
         ArgumentCaptor.forClass(RefreshTokenData.class);
     // Refresh token repository mock return value
@@ -118,16 +119,23 @@ public class RefreshTokenServiceTest {
         saveTokenIdCaptor.capture(),
         saveMetadataCaptor.capture()
     );
+    verify(this.refreshTokenRepository, times(1)).delete(
+        deleteTokenIdCaptor.capture()
+    );
 
     // Assertions
 
     // Assert that tokenId provided is used for .find()
     String findTokenId = findTokenIdCaptor.getValue();
-    assertThat(tokenId).isEqualTo(findTokenId);
+    assertThat(findTokenId).isEqualTo(tokenId);
 
     // Assert newTokenId used for .save() is returned
     String saveTokenId = saveTokenIdCaptor.getValue();
-    assertThat(newTokenId).isEqualTo(saveTokenId);
+    assertThat(saveTokenId).isEqualTo(newTokenId);
+
+    // Assert that the old token is deleted
+    String deleteTokenId = deleteTokenIdCaptor.getValue();
+    assertThat(deleteTokenId).isEqualTo(tokenId);
   }
 
   @Test

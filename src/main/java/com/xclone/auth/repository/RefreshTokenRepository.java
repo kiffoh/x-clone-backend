@@ -37,10 +37,10 @@ public class RefreshTokenRepository {
   }
 
   public RefreshTokenData find(String tokenId) {
+    String tokenData = Optional.ofNullable(this.redisTemplate.opsForValue().get(key(tokenId)))
+        .orElseThrow(() -> new InvalidRefreshTokenException(
+            String.format("Token with an ID of %s does not exist", tokenId)));
     try {
-      String tokenData = Optional.ofNullable(this.redisTemplate.opsForValue().get(key(tokenId)))
-          .orElseThrow(() -> new InvalidRefreshTokenException(
-              String.format("Token with an ID of %s does not exist", tokenId)));
       return objectMapper.readValue(tokenData, RefreshTokenData.class);
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Corrupted token data in Redis for key: " + key(tokenId), e);
