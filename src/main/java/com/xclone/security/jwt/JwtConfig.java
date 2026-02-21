@@ -21,7 +21,7 @@ public class JwtConfig {
   @Bean
   public SecretKey jwtSigningKey() {
     return Keys.hmacShaKeyFor(
-        this.jwtProperties.getJwtSecret().getBytes(StandardCharsets.UTF_8)
+        this.jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8)
     );
   }
 }

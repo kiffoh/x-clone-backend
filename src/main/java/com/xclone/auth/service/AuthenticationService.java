@@ -65,7 +65,7 @@ public class AuthenticationService {
             user.getId().toString(),
             user.getRole().toString()
         );
-    String refreshToken = refreshTokenService.createToken();
+    String refreshToken = refreshTokenService.createToken(user.getId().toString());
     log.info("login successful for user {}", user.getId());
     return new AuthTokens(
         refreshToken,
@@ -89,7 +89,7 @@ public class AuthenticationService {
     newUser.setHandle(request.handle());
     newUser.setPasswordHash(passwordEncoder.encode(request.password()));
     // Display name is defaulted to handle if not provided
-    if (request.displayName().isEmpty()) {
+    if (request.displayName() == null) {
       log.info("display name is set as the handle as display name not provided");
       newUser.setDisplayName(request.handle());
     } else {
@@ -106,7 +106,7 @@ public class AuthenticationService {
         );
 
     // Create refresh token
-    String refreshToken = refreshTokenService.createToken();
+    String refreshToken = refreshTokenService.createToken(newUser.getId().toString());
     log.info("signup successful for user {}", newUser.getId());
     return new AuthTokens(
         refreshToken,
@@ -117,11 +117,11 @@ public class AuthenticationService {
     );
   }
 
-  public void logout(String accessToken, String refreshToken) {
+  public void logout(String accessToken, String refreshTokenId) {
     log.debug("logout service called. Validating logout request");
-    RefreshTokenData tokenData = refreshTokenService.getTokenData(refreshToken);
+    RefreshTokenData tokenData = refreshTokenService.getToken(refreshTokenId);
     // Check if token expired
-    if (tokenData == null || !refreshTokenService.tokenValid(tokenData)) {
+    if (tokenData == null || tokenData.isExpired()) {
       log.warn("Logout attempted with an invalid refresh token");
       throw new InvalidRefreshTokenException("Invalid refresh token");
     }
@@ -138,16 +138,15 @@ public class AuthenticationService {
     }
 
     // Remove token once proven to be valid and secure
-    refreshTokenService.removeToken(userId
-    );
+    refreshTokenService.removeToken(refreshTokenId);
     log.info("User {} logged out successfully", userId);
   }
 
-  public AuthTokens refresh(@CookieValue("refreshToken") String refreshToken) {
+  public AuthTokens refresh(@CookieValue("refreshToken") String refreshTokenId) {
     log.debug("refresh service called. Validating refresh request");
-    RefreshTokenData tokenData = refreshTokenService.getTokenData(refreshToken);
+    RefreshTokenData tokenData = refreshTokenService.getToken(refreshTokenId);
     // Check if token expired
-    if (tokenData == null || !refreshTokenService.tokenValid(tokenData)) {
+    if (tokenData == null || tokenData.isExpired()) {
       log.warn("refresh token attempted with an invalid refresh token");
       throw new InvalidRefreshTokenException("Invalid refresh token");
     }
@@ -158,7 +157,7 @@ public class AuthenticationService {
         .orElseThrow(() -> {
           log.warn("Refresh attempted for non-existent user: {}", userId);
           // Clean up orphaned token
-          refreshTokenService.removeToken(refreshToken);
+          refreshTokenService.removeToken(refreshTokenId);
           return new UsernameNotFoundException("User not found");
         });
     // TODO: Check if user_tokens:user_id contains the refreshTokenId for security
@@ -166,12 +165,12 @@ public class AuthenticationService {
     // Check user status (user status has SUSPENDED and DELETED statuses)
     if (user.getStatus() != UserStatus.ACTIVE) {
       log.warn("Refresh attempted for {} user: {}", user.getStatus(), userId);
-      refreshTokenService.removeToken(refreshToken);
+      refreshTokenService.removeToken(refreshTokenId);
       throw new AccountNotActiveException("Account not active");
     }
 
     // Rotate token once validated
-    String newRefreshTokenId = refreshTokenService.rotateToken(refreshToken);
+    String newRefreshTokenId = refreshTokenService.rotateToken(refreshTokenId);
     // Create access token
     String newAccessToken =
         jwtTokenProvider.createToken(

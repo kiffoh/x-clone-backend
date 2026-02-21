@@ -1,7 +1,9 @@
 package com.xclone.auth.service;
 
 import com.xclone.auth.model.RefreshTokenData;
-import java.util.Date;
+import com.xclone.auth.repository.RefreshTokenRepository;
+import com.xclone.config.AuthProperties;
+import com.xclone.exception.custom.InvalidRefreshTokenException;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 
@@ -10,6 +12,18 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class RefreshTokenService {
+  private final RefreshTokenRepository refreshTokenRepository;
+  private final AuthProperties authProperties;
+
+  public RefreshTokenService(RefreshTokenRepository refreshTokenRepository,
+                             AuthProperties authProperties) {
+    this.refreshTokenRepository = refreshTokenRepository;
+    this.authProperties = authProperties;
+  }
+
+  private String generateOpaqueKey() {
+    return UUID.randomUUID().toString();
+  }
 
   /**
    * Creates a UUID string (tokenId) and stores token metadata ({@link RefreshTokenData}) in Redis.
@@ -17,42 +31,31 @@ public class RefreshTokenService {
    *
    * @return UUID string (tokenId)
    */
-  public String createToken() {
-    return "Implementation will come soon";
+  public String createToken(String userId) {
+    String tokenId = generateOpaqueKey();
+    RefreshTokenData metadata = RefreshTokenData.create(userId, this.authProperties);
+    this.refreshTokenRepository.save(tokenId, metadata);
+    return tokenId;
+  }
+
+  public RefreshTokenData getToken(String tokenId) {
+    return refreshTokenRepository.find(tokenId);
+  }
+
+
+  public String rotateToken(String tokenId) {
+    RefreshTokenData token = this.refreshTokenRepository.find(tokenId);
+    if (token.isExpired()) {
+      throw new InvalidRefreshTokenException("Refresh token is invalid");
+    }
+    String newTokenId = generateOpaqueKey();
+    RefreshTokenData metadata = RefreshTokenData.create(token.userId(), authProperties);
+    this.refreshTokenRepository.save(newTokenId, metadata);
+    removeToken(tokenId);
+    return newTokenId;
   }
 
   public void removeToken(String refreshTokenId) {
+    this.refreshTokenRepository.delete(refreshTokenId);
   }
-
-  public boolean tokenValid(RefreshTokenData refreshToken) {
-    return true;
-  }
-
-  public String rotateToken(String userId) {
-    return null;
-  }
-
-  public String getUserId(String refreshToken) {
-    return UUID.randomUUID().toString();
-  }
-
-  public RefreshTokenData getTokenData(String refreshToken) {
-    return new RefreshTokenData(
-        "test-user-id",
-        new Date(),
-        new Date(),
-        "test-device-info"
-    );
-  }
-
-
-//  /**
-//   * Generates and validates refresh tokens.
-//   */
-//  public RefreshToken generateToken(String userId, String deviceInfo) {
-//    final int TOKEN_DURATION = (60 * 60 * 24 * 30 * 1000);
-//    Date createdAt = new Date();
-//    Date expiresAt = new Date(createdAt.getTime() + TOKEN_DURATION);
-//    return new RefreshToken(userId, createdAt, expiresAt, deviceInfo);
-//  }
 }

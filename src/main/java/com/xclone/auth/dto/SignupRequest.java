@@ -1,7 +1,6 @@
 package com.xclone.auth.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 
 public record SignupRequest(
@@ -12,7 +11,7 @@ public record SignupRequest(
     @Size(min = 8, max = 100)
 //  TODO:  @Pattern(regexp = \[0-9]+[a-zA-Z]+\)
     String password,
-    @NotEmpty
+    @Size(min = 3)
     String displayName
 ) {
 }

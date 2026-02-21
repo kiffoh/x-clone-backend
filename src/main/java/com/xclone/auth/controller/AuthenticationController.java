@@ -68,7 +68,7 @@ public class AuthenticationController {
       HttpServletResponse response) {
     AuthTokens authTokens = authenticationService.login(request);
     setRefreshTokenCookie(response, authTokens.refreshToken());
-    return ResponseEntity.ok(authTokens.toAuthResponse()); // Why is this erroring?
+    return ResponseEntity.ok(authTokens.toAuthResponse());
   }
 
   /**

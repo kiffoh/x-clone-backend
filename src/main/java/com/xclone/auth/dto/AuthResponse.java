@@ -6,12 +6,12 @@ package com.xclone.auth.dto;
  * @param accessToken
  * @param userId
  * @param displayName
- * @param handle
+ * @param profileImage
  */
 public record AuthResponse(
     String accessToken,
     String userId,
     String displayName,
-    String handle
+    String profileImage
 ) {
 }

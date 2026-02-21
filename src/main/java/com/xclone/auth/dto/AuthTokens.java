@@ -7,14 +7,14 @@ package com.xclone.auth.dto;
  * @param accessToken  a jwt containing information used to validate the user on the server-side
  * @param userId       string UUID unique to the user
  * @param displayName  selected name by user
- * @param handle       unique string associated to the user
+ * @param profileImage profile image URI
  */
 public record AuthTokens(
     String refreshToken,
     String accessToken,
     String userId,
     String displayName,
-    String handle
+    String profileImage
 ) {
 
   /**
@@ -27,7 +27,7 @@ public record AuthTokens(
         this.accessToken(),
         this.userId(),
         this.displayName(),
-        this.handle()
+        this.profileImage()
     );
   }
 }
