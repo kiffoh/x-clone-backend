@@ -76,7 +76,6 @@ public class AuthenticationService {
     );
   }
 
-  // Should this be createUser?
   public AuthTokens signup(@Valid SignupRequest request) {
     if (userRepository.existsByHandle(request.handle())) {
       log.warn("signup attempt with an existing handle");
@@ -96,24 +95,24 @@ public class AuthenticationService {
       log.info("display name is set as {}", request.displayName());
       newUser.setDisplayName(request.displayName());
     }
-    userRepository.save(newUser);
+    User savedUser = userRepository.save(newUser);
 
     // Create access token
     String accessToken =
         jwtTokenProvider.createToken(
-            newUser.getId().toString(),
-            newUser.getRole().toString()
+            savedUser.getId().toString(),
+            savedUser.getRole().toString()
         );
 
     // Create refresh token
-    String refreshToken = refreshTokenService.createToken(newUser.getId().toString());
-    log.info("signup successful for user {}", newUser.getId());
+    String refreshToken = refreshTokenService.createToken(savedUser.getId().toString());
+    log.info("signup successful for user {}", savedUser.getId());
     return new AuthTokens(
         refreshToken,
         accessToken,
-        newUser.getId().toString(),
-        newUser.getDisplayName(),
-        newUser.getProfileImage()
+        savedUser.getId().toString(),
+        savedUser.getDisplayName(),
+        savedUser.getProfileImage()
     );
   }
 
