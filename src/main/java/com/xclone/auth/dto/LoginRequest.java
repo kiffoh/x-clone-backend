@@ -1,12 +1,12 @@
 package com.xclone.auth.dto;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import com.xclone.validation.ValidHandle;
+import com.xclone.validation.ValidPassword;
 
 public record LoginRequest(
-    @NotBlank(message = "Handle is required")
-    @Size(min = 3, max = 100)
+    @ValidHandle
     String handle,
+    @ValidPassword
     String password
 ) {
 }

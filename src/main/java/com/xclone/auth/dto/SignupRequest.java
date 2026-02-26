@@ -1,18 +1,20 @@
 package com.xclone.auth.dto;
 
-import jakarta.validation.constraints.NotBlank;
+import com.xclone.validation.ValidHandle;
+import com.xclone.validation.ValidPassword;
 import jakarta.validation.constraints.Size;
 
 public record SignupRequest(
-    @NotBlank(message = "Handle is required")
-    @Size(min = 3, max = 100)
+    @ValidHandle
     String handle,
-    @NotBlank
-    @Size(min = 8, max = 100)
-//  TODO:  @Pattern(regexp = \[0-9]+[a-zA-Z]+\)
+    @ValidPassword
     String password,
-    @Size(min = 3)
-    String displayName
+    @Size(min = 3, max = 100)
+    String displayName,
+    @Size(max = 160)
+    String bio,
+    @Size(max = 500)
+    String profileImage
 ) {
 }
 
