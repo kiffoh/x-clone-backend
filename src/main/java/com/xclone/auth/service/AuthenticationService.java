@@ -18,7 +18,6 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.CookieValue;
 
 /**
  * Coordinates business layers to perform route logic.
@@ -141,7 +140,7 @@ public class AuthenticationService {
     log.info("User {} logged out successfully", userId);
   }
 
-  public AuthTokens refresh(@CookieValue("refreshToken") String refreshTokenId) {
+  public AuthTokens refresh(String refreshTokenId) {
     log.debug("refresh service called. Validating refresh request");
     RefreshTokenData tokenData = refreshTokenService.getToken(refreshTokenId);
     // Check if token expired
@@ -163,7 +162,7 @@ public class AuthenticationService {
 
     // Check user status (user status has SUSPENDED and DELETED statuses)
     if (user.getStatus() != UserStatus.ACTIVE) {
-      log.warn("Refresh attempted for {} user: {}", user.getStatus(), userId);
+      log.warn("Refresh attempted for {} user: {}", user.getStatus(), user.getId());
       refreshTokenService.removeToken(refreshTokenId);
       throw new AccountNotActiveException("Account not active");
     }
@@ -173,14 +172,14 @@ public class AuthenticationService {
     // Create access token
     String newAccessToken =
         jwtTokenProvider.createToken(
-            userId,
+            user.getId().toString(),
             user.getRole().toString()
         );
     log.info("refreshToken rotated successfully for user {}", userId);
     return new AuthTokens(
         newRefreshTokenId,
         newAccessToken,
-        userId,
+        user.getId().toString(),
         user.getDisplayName(),
         user.getProfileImage()
     );

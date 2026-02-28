@@ -15,10 +15,12 @@ import com.xclone.auth.dto.LoginRequest;
 import com.xclone.auth.dto.SignupRequest;
 import com.xclone.auth.model.RefreshTokenData;
 import com.xclone.config.AuthProperties;
+import com.xclone.exception.custom.AccountNotActiveException;
 import com.xclone.exception.custom.DuplicateHandleException;
 import com.xclone.exception.custom.InvalidRefreshTokenException;
 import com.xclone.security.jwt.JwtTokenProvider;
 import com.xclone.user.model.entity.User;
+import com.xclone.user.model.enums.UserStatus;
 import com.xclone.user.repository.UserRepository;
 import java.util.Optional;
 import java.util.UUID;
@@ -30,6 +32,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
@@ -254,5 +257,95 @@ public class AuthenticationServiceTest {
     verify(this.refreshTokenService, times(0)).removeToken(exampleRefreshTokenId);
   }
 
+  @Test
+  void refresh_rotatesToken_returnsNewAuthTokens() {
+    // Arrange
+    User exampleUser = new User();
+    exampleUser.setDisplayName("exampleHandle");
+    exampleUser.setId(UUID.randomUUID());
+    String exampleUserId = exampleUser.getId().toString();
 
+    RefreshTokenData sampleToken = RefreshTokenData.create(exampleUserId, new AuthProperties());
+    String inputRefreshTokenId = UUID.randomUUID().toString();
+    String newRefreshTokenId = UUID.randomUUID().toString();
+    String newAccessToken = UUID.randomUUID().toString();
+
+    when(this.refreshTokenService.getToken(anyString())).thenReturn(sampleToken);
+    when(this.userRepository.findById(UUID.fromString(exampleUserId))).thenReturn(
+        Optional.of(exampleUser));
+    when(this.refreshTokenService.rotateToken(inputRefreshTokenId)).thenReturn(newRefreshTokenId);
+    when(this.jwtTokenProvider.createToken(exampleUserId, "USER")).thenReturn(newAccessToken);
+
+    // Act
+    AuthTokens res = this.authenticationService.refresh(inputRefreshTokenId);
+
+    // Assert
+    assertThat(res.refreshToken()).isEqualTo(newRefreshTokenId);
+    assertThat(res.accessToken()).isEqualTo(newAccessToken);
+    assertThat(res.userId()).isEqualTo(exampleUserId);
+  }
+
+  @Test
+  void refresh_expiredRefreshToken_returnsInvalidRefreshToken() {
+    // Arrange
+    RefreshTokenData sampleToken = mock(RefreshTokenData.class);
+    String exampleRefreshTokenId = UUID.randomUUID().toString();
+
+    when(this.refreshTokenService.getToken(anyString())).thenReturn(sampleToken);
+    when(sampleToken.isExpired()).thenReturn(true);
+
+    // Act
+    assertThatThrownBy(
+        () -> this.authenticationService.refresh(exampleRefreshTokenId))
+        .isInstanceOf(InvalidRefreshTokenException.class)
+        .hasMessage("Invalid refresh token");
+  }
+
+
+  @Test
+  void refresh_userDoesNotExist_removesRefreshToken_returnsUsernameNotFound() {
+    // Arrange
+    RefreshTokenData sampleToken = mock(RefreshTokenData.class);
+    String exampleRefreshTokenId = UUID.randomUUID().toString();
+    String exampleUserId = UUID.randomUUID().toString();
+
+    when(this.refreshTokenService.getToken(anyString())).thenReturn(sampleToken);
+    when(sampleToken.isExpired()).thenReturn(false);
+    when(sampleToken.userId()).thenReturn(exampleUserId);
+    when(userRepository.findById(UUID.fromString(exampleUserId))).thenReturn(Optional.empty());
+
+    // Act
+    assertThatThrownBy(
+        () -> this.authenticationService.refresh(exampleRefreshTokenId))
+        .isInstanceOf(UsernameNotFoundException.class)
+        .hasMessage("User not found");
+
+    // Assert
+    verify(this.refreshTokenService, times(1)).removeToken(exampleRefreshTokenId);
+  }
+
+  @Test
+  void refresh_userStatusNotActive_returnsAccountNotActive() {
+    // Arrange
+    User exampleUser = new User();
+    exampleUser.setId(UUID.randomUUID());
+    exampleUser.setStatus(UserStatus.SUSPENDED);
+
+    RefreshTokenData sampleToken = mock(RefreshTokenData.class);
+    String exampleRefreshTokenId = UUID.randomUUID().toString();
+
+    when(this.refreshTokenService.getToken(anyString())).thenReturn(sampleToken);
+    when(sampleToken.isExpired()).thenReturn(false);
+    when(sampleToken.userId()).thenReturn(exampleUser.getId().toString());
+    when(this.userRepository.findById(exampleUser.getId())).thenReturn(Optional.of(exampleUser));
+
+    // Act
+    assertThatThrownBy(
+        () -> this.authenticationService.refresh(exampleRefreshTokenId))
+        .isInstanceOf(AccountNotActiveException.class)
+        .hasMessage("Account not active");
+
+    // Assert
+    verify(this.refreshTokenService, times(1)).removeToken(exampleRefreshTokenId);
+  }
 }
