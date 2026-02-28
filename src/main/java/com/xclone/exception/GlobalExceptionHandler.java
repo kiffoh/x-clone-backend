@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -43,7 +44,7 @@ public class GlobalExceptionHandler
   @ExceptionHandler(InvalidRefreshTokenException.class)
   public ResponseEntity<ErrorResponse> handleInvalidRefreshTokenException(
       InvalidRefreshTokenException ex, WebRequest request) {
-    log.warn("Invalid refresh token attempt: {} - Path: {}",
+    log.debug("Invalid refresh token attempt: {} - Path: {}",
         ex.getMessage(),
         request.getDescription(false));
     return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value())
@@ -60,10 +61,10 @@ public class GlobalExceptionHandler
         .body(new ErrorResponse(ex.getMessage()));
   }
 
-  @ExceptionHandler(BadCredentialsException.class)
-  public ResponseEntity<ErrorResponse> handleBadCredentialsException(
-      BadCredentialsException ex, WebRequest request) {
-    log.warn("Authentication failed: {} - Path: {}",
+  @ExceptionHandler({BadCredentialsException.class, UsernameNotFoundException.class})
+  public ResponseEntity<ErrorResponse> handleAuthenticationException(
+      RuntimeException ex, WebRequest request) {
+    log.debug("Authentication failed: {} - Path: {}",
         ex.getMessage(),
         request.getDescription(false));
     return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()) // is 410 standard?

@@ -28,6 +28,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.context.request.WebRequest;
@@ -79,7 +80,16 @@ class GlobalExceptionHandlerTest {
   @Test
   void handleBadCredentialsException_returns401() {
     BadCredentialsException ex = new BadCredentialsException("Authentication failed");
-    ResponseEntity<ErrorResponse> response = handler.handleBadCredentialsException(ex, request);
+    ResponseEntity<ErrorResponse> response = handler.handleAuthenticationException(ex, request);
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    assertThat(response.getBody()).isNotNull();
+    assertThat(response.getBody().message()).isEqualTo("Authentication failed");
+  }
+
+  @Test
+  void handleUsernameNotFoundException_returns401() {
+    UsernameNotFoundException ex = new UsernameNotFoundException("Authentication failed");
+    ResponseEntity<ErrorResponse> response = handler.handleAuthenticationException(ex, request);
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     assertThat(response.getBody()).isNotNull();
     assertThat(response.getBody().message()).isEqualTo("Authentication failed");
