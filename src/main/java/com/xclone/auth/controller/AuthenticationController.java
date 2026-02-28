@@ -82,8 +82,7 @@ public class AuthenticationController {
   public ResponseEntity<Void> logout(
       @CookieValue("refreshToken") String refreshToken,
       @RequestHeader("Authorization") String authHeaders,
-      HttpServletResponse response
-  ) {
+      HttpServletResponse response) {
     log.info("Logout request received");
     String accessToken = authHeaders.replace("Bearer ", "");
     authenticationService.logout(accessToken, refreshToken);
