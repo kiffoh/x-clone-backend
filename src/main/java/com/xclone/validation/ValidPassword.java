@@ -13,7 +13,7 @@ import java.lang.annotation.Target;
 
 @NotBlank(message = "Password is required")
 @Size(min = 8, max = 100)
-@Pattern(regexp = "^[0-9]+[a-zA-Z]+$")
+@Pattern(regexp = "^[0-9a-zA-Z]+$")
 @Target({ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
 @Constraint(validatedBy = {})
