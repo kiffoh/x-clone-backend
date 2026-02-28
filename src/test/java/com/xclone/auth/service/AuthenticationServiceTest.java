@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -12,7 +13,10 @@ import static org.mockito.Mockito.when;
 import com.xclone.auth.dto.AuthTokens;
 import com.xclone.auth.dto.LoginRequest;
 import com.xclone.auth.dto.SignupRequest;
+import com.xclone.auth.model.RefreshTokenData;
+import com.xclone.config.AuthProperties;
 import com.xclone.exception.custom.DuplicateHandleException;
+import com.xclone.exception.custom.InvalidRefreshTokenException;
 import com.xclone.security.jwt.JwtTokenProvider;
 import com.xclone.user.model.entity.User;
 import com.xclone.user.repository.UserRepository;
@@ -137,7 +141,7 @@ public class AuthenticationServiceTest {
   }
 
   @Test
-  void signup_createsUseWithDisplayName_returnsAuthTokens() {
+  void signup_createsUserWithDisplayName_returnsAuthTokens() {
     // Arrange
     when(this.userRepository.existsByHandle(anyString())).thenReturn(false);
     when(this.userRepository.save(any(User.class))).thenAnswer(invocation -> {
@@ -184,5 +188,71 @@ public class AuthenticationServiceTest {
         .isInstanceOf(DuplicateHandleException.class)
         .hasMessageContaining("This handle is already taken");
   }
+
+  @Test
+  void logout_removesRefreshToken() {
+    // Arrange
+    String exampleUserId = UUID.randomUUID().toString();
+    RefreshTokenData sampleToken = RefreshTokenData.create(exampleUserId, new AuthProperties());
+    String exampleRefreshTokenId = UUID.randomUUID().toString();
+    String exampleAccessToken = UUID.randomUUID().toString();
+
+    when(this.refreshTokenService.getToken(anyString())).thenReturn(sampleToken);
+    when(this.jwtTokenProvider.getUserIdFromToken(anyString())).thenReturn(exampleUserId);
+
+    // Act
+    this.authenticationService.logout(exampleAccessToken, exampleRefreshTokenId);
+
+    // Assert
+    verify(this.refreshTokenService, times(1)).removeToken(exampleRefreshTokenId);
+  }
+
+  @Test
+  void logout_expiredRefreshToken_returnsInvalidRefreshToken() {
+    // Arrange
+    RefreshTokenData sampleToken = mock(RefreshTokenData.class);
+    String exampleRefreshTokenId = UUID.randomUUID().toString();
+    String exampleAccessToken = UUID.randomUUID().toString();
+
+    when(this.refreshTokenService.getToken(anyString())).thenReturn(sampleToken);
+    when(sampleToken.isExpired()).thenReturn(true);
+
+    // Act
+    assertThatThrownBy(
+        () -> this.authenticationService.logout(exampleAccessToken, exampleRefreshTokenId))
+        .isInstanceOf(InvalidRefreshTokenException.class)
+        .hasMessage("Invalid refresh token");
+
+    // Assert
+    verify(this.refreshTokenService, times(0)).removeToken(exampleRefreshTokenId);
+  }
+
+  @Test
+  void logout_tokenMismatch_returnsInvalidRefreshToken() {
+    // Arrange
+    String accessTokenUserId = UUID.randomUUID().toString();  // different IDs
+    String refreshTokenUserId = UUID.randomUUID().toString(); // will naturally not match
+    String exampleRefreshTokenId = UUID.randomUUID().toString();
+    String exampleAccessToken = UUID.randomUUID().toString();
+
+
+    RefreshTokenData sampleToken = mock(RefreshTokenData.class);
+    when(sampleToken.isExpired()).thenReturn(false);
+    when(sampleToken.userId()).thenReturn(refreshTokenUserId);
+
+    when(this.refreshTokenService.getToken(anyString())).thenReturn(sampleToken);
+    when(this.jwtTokenProvider.getUserIdFromToken(exampleAccessToken)).thenReturn(
+        accessTokenUserId);
+
+    // Act
+    assertThatThrownBy(
+        () -> this.authenticationService.logout(exampleAccessToken, exampleRefreshTokenId))
+        .isInstanceOf(InvalidRefreshTokenException.class)
+        .hasMessage("Invalid refresh token");
+
+    // Assert
+    verify(this.refreshTokenService, times(0)).removeToken(exampleRefreshTokenId);
+  }
+
 
 }
