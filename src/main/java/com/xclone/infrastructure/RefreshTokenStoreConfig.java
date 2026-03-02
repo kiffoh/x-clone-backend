@@ -5,6 +5,4 @@ import org.springframework.data.redis.repository.configuration.EnableRedisReposi
 
 @Configuration
 @EnableRedisRepositories(basePackages = "com.xclone.auth.repository")
-public class RefreshTokenStoreConfig {
-}
-
+public class RefreshTokenStoreConfig {}

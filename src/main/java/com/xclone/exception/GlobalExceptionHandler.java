@@ -21,10 +21,9 @@ import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 /**
- * Provides global error handling for the REST api routes (auth).
- * There is not a need for a global REST error handler as all the api routes are contained in
- * the same controller, and therefore a local one would suffice.
- * A global REST error handler has been impelmented for learning purposes.
+ * Provides global error handling for the REST api routes (auth). There is not a need for a global
+ * REST error handler as all the api routes are contained in the same controller, and therefore a
+ * local one would suffice. A global REST error handler has been impelmented for learning purposes.
  */
 @RestControllerAdvice
 @Slf4j
@@ -34,9 +33,8 @@ public class GlobalExceptionHandler
   @ExceptionHandler(DuplicateHandleException.class)
   public ResponseEntity<ErrorResponse> handleDuplicateHandleException(
       DuplicateHandleException ex, WebRequest request) {
-    log.warn("Duplicate handle attempt: {} - Path: {}",
-        ex.getMessage(),
-        request.getDescription(false));
+    log.warn(
+        "Duplicate handle attempt: {} - Path: {}", ex.getMessage(), request.getDescription(false));
     return ResponseEntity.status(HttpStatus.CONFLICT.value())
         .body(new ErrorResponse(ex.getMessage()));
   }
@@ -44,7 +42,8 @@ public class GlobalExceptionHandler
   @ExceptionHandler(InvalidRefreshTokenException.class)
   public ResponseEntity<ErrorResponse> handleInvalidRefreshTokenException(
       InvalidRefreshTokenException ex, WebRequest request) {
-    log.debug("Invalid refresh token attempt: {} - Path: {}",
+    log.debug(
+        "Invalid refresh token attempt: {} - Path: {}",
         ex.getMessage(),
         request.getDescription(false));
     return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value())
@@ -54,9 +53,8 @@ public class GlobalExceptionHandler
   @ExceptionHandler(AccountNotActiveException.class)
   public ResponseEntity<ErrorResponse> handleAccountNotActiveException(
       AccountNotActiveException ex, WebRequest request) {
-    log.warn("Inactive account attempt: {} - Path: {}",
-        ex.getMessage(),
-        request.getDescription(false));
+    log.warn(
+        "Inactive account attempt: {} - Path: {}", ex.getMessage(), request.getDescription(false));
     return ResponseEntity.status(HttpStatus.FORBIDDEN.value()) // is 410 standard?
         .body(new ErrorResponse(ex.getMessage()));
   }
@@ -64,9 +62,8 @@ public class GlobalExceptionHandler
   @ExceptionHandler({BadCredentialsException.class, UsernameNotFoundException.class})
   public ResponseEntity<ErrorResponse> handleAuthenticationException(
       RuntimeException ex, WebRequest request) {
-    log.debug("Authentication failed: {} - Path: {}",
-        ex.getMessage(),
-        request.getDescription(false));
+    log.debug(
+        "Authentication failed: {} - Path: {}", ex.getMessage(), request.getDescription(false));
     return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()) // is 410 standard?
         .body(new ErrorResponse(ex.getMessage()));
   }
@@ -78,8 +75,10 @@ public class GlobalExceptionHandler
       HttpStatusCode status,
       WebRequest request) {
 
-    List<FieldError> fieldErrorsList = ex.getBindingResult().getFieldErrors().stream()
-        .map(error -> new FieldError(error.getField(), error.getDefaultMessage())).toList();
+    List<FieldError> fieldErrorsList =
+        ex.getBindingResult().getFieldErrors().stream()
+            .map(error -> new FieldError(error.getField(), error.getDefaultMessage()))
+            .toList();
 
     log.warn("Validation failed: {} errors", fieldErrorsList.size());
 
@@ -88,10 +87,8 @@ public class GlobalExceptionHandler
   }
 
   @ExceptionHandler(Exception.class)
-  public ResponseEntity<ErrorResponse> handleGenericException(
-      Exception ex, WebRequest request) {
-    log.error("Unexpected error at {}: ",
-        request.getDescription(false), ex);
+  public ResponseEntity<ErrorResponse> handleGenericException(Exception ex, WebRequest request) {
+    log.error("Unexpected error at {}: ", request.getDescription(false), ex);
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR.value())
         .body(new ErrorResponse(ex.getMessage()));
   }

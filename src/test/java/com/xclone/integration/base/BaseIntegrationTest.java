@@ -12,7 +12,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @ActiveProfiles("dev")
 public abstract class BaseIntegrationTest {
 
-  @Container
-  @ServiceConnection
+  @Container @ServiceConnection
   static PostgreSQLContainer<?> postgreSQLContainer = new PostgreSQLContainer<>("postgres:16");
 }

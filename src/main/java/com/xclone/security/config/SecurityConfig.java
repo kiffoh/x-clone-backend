@@ -11,9 +11,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-/**
- * Configures Spring Security (what endpoints require auth, etc.).
- */
+/** Configures Spring Security (what endpoints require auth, etc.). */
 @Configuration
 public class SecurityConfig {
   private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -28,8 +26,8 @@ public class SecurityConfig {
   }
 
   /**
-   * Sets security settings;
-   * jwt authentication, session management, endpoints that require jwt tokens.
+   * Sets security settings; jwt authentication, session management, endpoints that require jwt
+   * tokens.
    */
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {

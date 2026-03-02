@@ -19,9 +19,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-/**
- * Coordinates business layers to perform route logic.
- */
+/** Coordinates business layers to perform route logic. */
 @Service
 @Slf4j
 public class AuthenticationService {
@@ -30,11 +28,11 @@ public class AuthenticationService {
   private final PasswordEncoder passwordEncoder;
   private final RefreshTokenService refreshTokenService;
 
-  public AuthenticationService(JwtTokenProvider jwtTokenProvider,
-                               UserRepository userRepository,
-                               PasswordEncoder passwordEncoder,
-                               RefreshTokenService refreshTokenService
-  ) {
+  public AuthenticationService(
+      JwtTokenProvider jwtTokenProvider,
+      UserRepository userRepository,
+      PasswordEncoder passwordEncoder,
+      RefreshTokenService refreshTokenService) {
     this.jwtTokenProvider = jwtTokenProvider;
     this.userRepository = userRepository;
     this.passwordEncoder = passwordEncoder;
@@ -42,15 +40,19 @@ public class AuthenticationService {
   }
 
   /**
-   * Gets user from database.
-   * Returns {@link AuthTokens} which contains a valid access token and refresh token.
+   * Gets user from database. Returns {@link AuthTokens} which contains a valid access token and
+   * refresh token.
    */
   public AuthTokens login(@Valid LoginRequest request) {
     log.info("login service called. Validating request.");
-    User user = this.userRepository.findByHandle(request.handle()).orElseThrow(() -> {
-      log.warn("login attempted for a user does not exist");
-      return new BadCredentialsException("Invalid credentials");
-    });
+    User user =
+        this.userRepository
+            .findByHandle(request.handle())
+            .orElseThrow(
+                () -> {
+                  log.warn("login attempted for a user does not exist");
+                  return new BadCredentialsException("Invalid credentials");
+                });
 
     // Verify password
     if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
@@ -58,12 +60,8 @@ public class AuthenticationService {
       throw new BadCredentialsException("Invalid credentials");
     }
 
-
     String accessToken =
-        jwtTokenProvider.createToken(
-            user.getId().toString(),
-            user.getRole().toString()
-        );
+        jwtTokenProvider.createToken(user.getId().toString(), user.getRole().toString());
     String refreshToken = refreshTokenService.createToken(user.getId().toString());
     log.info("login successful for user {}", user.getId());
     return new AuthTokens(
@@ -71,8 +69,7 @@ public class AuthenticationService {
         accessToken,
         user.getId().toString(),
         user.getDisplayName(),
-        user.getProfileImage()
-    );
+        user.getProfileImage());
   }
 
   public AuthTokens signup(@Valid SignupRequest request) {
@@ -98,10 +95,7 @@ public class AuthenticationService {
 
     // Create access token
     String accessToken =
-        jwtTokenProvider.createToken(
-            savedUser.getId().toString(),
-            savedUser.getRole().toString()
-        );
+        jwtTokenProvider.createToken(savedUser.getId().toString(), savedUser.getRole().toString());
 
     // Create refresh token
     String refreshToken = refreshTokenService.createToken(savedUser.getId().toString());
@@ -111,8 +105,7 @@ public class AuthenticationService {
         accessToken,
         savedUser.getId().toString(),
         savedUser.getDisplayName(),
-        savedUser.getProfileImage()
-    );
+        savedUser.getProfileImage());
   }
 
   public void logout(String accessToken, String refreshTokenId) {
@@ -128,9 +121,10 @@ public class AuthenticationService {
     String userId = jwtTokenProvider.getUserIdFromToken(accessToken);
     if (!userId.equals(tokenData.userId())) {
       log.error(
-          "SECURITY: Token mismatch during logout " +
-              "- accessToken userId: {}, refreshToken userId: {}",
-          userId, tokenData.userId());
+          "SECURITY: Token mismatch during logout "
+              + "- accessToken userId: {}, refreshToken userId: {}",
+          userId,
+          tokenData.userId());
 
       throw new InvalidRefreshTokenException("Invalid refresh token");
     }
@@ -151,13 +145,16 @@ public class AuthenticationService {
 
     // Validates user exists for security
     String userId = tokenData.userId();
-    User user = userRepository.findById(UUID.fromString(userId))
-        .orElseThrow(() -> {
-          log.warn("Refresh attempted for non-existent user: {}", userId);
-          // Clean up orphaned token
-          refreshTokenService.removeToken(refreshTokenId);
-          return new UsernameNotFoundException("User not found");
-        });
+    User user =
+        userRepository
+            .findById(UUID.fromString(userId))
+            .orElseThrow(
+                () -> {
+                  log.warn("Refresh attempted for non-existent user: {}", userId);
+                  // Clean up orphaned token
+                  refreshTokenService.removeToken(refreshTokenId);
+                  return new UsernameNotFoundException("User not found");
+                });
     // TODO: Check if user_tokens:user_id contains the refreshTokenId for security
 
     // Check user status (user status has SUSPENDED and DELETED statuses)
@@ -171,17 +168,13 @@ public class AuthenticationService {
     String newRefreshTokenId = refreshTokenService.rotateToken(refreshTokenId);
     // Create access token
     String newAccessToken =
-        jwtTokenProvider.createToken(
-            user.getId().toString(),
-            user.getRole().toString()
-        );
+        jwtTokenProvider.createToken(user.getId().toString(), user.getRole().toString());
     log.info("refreshToken rotated successfully for user {}", userId);
     return new AuthTokens(
         newRefreshTokenId,
         newAccessToken,
         user.getId().toString(),
         user.getDisplayName(),
-        user.getProfileImage()
-    );
+        user.getProfileImage());
   }
 }

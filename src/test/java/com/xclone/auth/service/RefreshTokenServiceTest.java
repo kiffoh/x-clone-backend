@@ -22,8 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 public class RefreshTokenServiceTest {
-  @Mock
-  RefreshTokenRepository refreshTokenRepository;
+  @Mock RefreshTokenRepository refreshTokenRepository;
   AuthProperties authProperties;
 
   RefreshTokenService refreshTokenService;
@@ -34,9 +33,7 @@ public class RefreshTokenServiceTest {
   void setUp() {
     authProperties = new AuthProperties();
 
-    refreshTokenService =
-        new RefreshTokenService(refreshTokenRepository, authProperties);
-
+    refreshTokenService = new RefreshTokenService(refreshTokenRepository, authProperties);
   }
 
   @Test
@@ -57,8 +54,7 @@ public class RefreshTokenServiceTest {
     assertThat(capturedTokenId).isEqualTo(returnedTokenId);
     assertThat(capturedMetadata.userId()).isEqualTo(userId);
 
-    assertThat(capturedMetadata.expiresAt())
-        .isAfter(Instant.now());
+    assertThat(capturedMetadata.expiresAt()).isAfter(Instant.now());
   }
 
   @Test
@@ -68,9 +64,7 @@ public class RefreshTokenServiceTest {
     String tokenId = UUID.randomUUID().toString();
 
     this.refreshTokenService.getToken(tokenId);
-    verify(this.refreshTokenRepository, times(1)).find(
-        tokenIdCaptor.capture()
-    );
+    verify(this.refreshTokenRepository, times(1)).find(tokenIdCaptor.capture());
 
     // Is there a convention for captured.is equal to input or the other way around?
     String capturedTokenId = tokenIdCaptor.getValue();
@@ -84,9 +78,7 @@ public class RefreshTokenServiceTest {
     String tokenId = UUID.randomUUID().toString();
 
     this.refreshTokenService.removeToken(tokenId);
-    verify(this.refreshTokenRepository, times(1)).delete(
-        tokenIdCaptor.capture()
-    );
+    verify(this.refreshTokenRepository, times(1)).delete(tokenIdCaptor.capture());
 
     // Is there a convention for captured.is equal to input or the other way around?
     String capturedTokenId = tokenIdCaptor.getValue();
@@ -112,16 +104,10 @@ public class RefreshTokenServiceTest {
     String newTokenId = this.refreshTokenService.rotateToken(tokenId);
 
     // Capture repository calls
-    verify(this.refreshTokenRepository, times(1)).find(
-        findTokenIdCaptor.capture()
-    );
-    verify(this.refreshTokenRepository, times(1)).save(
-        saveTokenIdCaptor.capture(),
-        saveMetadataCaptor.capture()
-    );
-    verify(this.refreshTokenRepository, times(1)).delete(
-        deleteTokenIdCaptor.capture()
-    );
+    verify(this.refreshTokenRepository, times(1)).find(findTokenIdCaptor.capture());
+    verify(this.refreshTokenRepository, times(1))
+        .save(saveTokenIdCaptor.capture(), saveMetadataCaptor.capture());
+    verify(this.refreshTokenRepository, times(1)).delete(deleteTokenIdCaptor.capture());
 
     // Assertions
 
@@ -142,8 +128,11 @@ public class RefreshTokenServiceTest {
   public void rotateToken_returnsInvalidRefreshTokenException() {
     // Refresh token repository mock return value
     // Should this be in a fixtures file?
-    RefreshTokenData invalidRefreshToken = new RefreshTokenData(UUID.randomUUID().toString(),
-        Instant.now().minusSeconds(120), Instant.now().minusSeconds(60));
+    RefreshTokenData invalidRefreshToken =
+        new RefreshTokenData(
+            UUID.randomUUID().toString(),
+            Instant.now().minusSeconds(120),
+            Instant.now().minusSeconds(60));
     when(this.refreshTokenRepository.find(anyString())).thenReturn(invalidRefreshToken);
 
     // Act & Assert: assert the exception is thrown

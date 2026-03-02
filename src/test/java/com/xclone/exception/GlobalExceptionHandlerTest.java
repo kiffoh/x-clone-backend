@@ -39,8 +39,7 @@ class GlobalExceptionHandlerTest {
   private GlobalExceptionHandler handler;
   private final String PATH_TO_ERROR = "path to error";
 
-  @Mock
-  private WebRequest request;
+  @Mock private WebRequest request;
 
   @BeforeEach
   void setUp() {
@@ -70,8 +69,7 @@ class GlobalExceptionHandlerTest {
   @Test
   void handleAccountNotActiveException_returns403() {
     AccountNotActiveException ex = new AccountNotActiveException("Account is not active");
-    ResponseEntity<ErrorResponse> response =
-        handler.handleAccountNotActiveException(ex, request);
+    ResponseEntity<ErrorResponse> response = handler.handleAccountNotActiveException(ex, request);
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     assertThat(response.getBody()).isNotNull();
     assertThat(response.getBody().message()).isEqualTo("Account is not active");
@@ -100,17 +98,13 @@ class GlobalExceptionHandlerTest {
     // Setup
     BeanPropertyBindingResult bindingResult =
         new BeanPropertyBindingResult(new Object(), "signupRequest");
-    bindingResult.addError(new org.springframework.validation.FieldError(
-        "signupRequest",
-        "handle",
-        "must not be blank"
-    ));
+    bindingResult.addError(
+        new org.springframework.validation.FieldError(
+            "signupRequest", "handle", "must not be blank"));
 
-    bindingResult.addError(new org.springframework.validation.FieldError(
-        "signupRequest",
-        "password",
-        "size must be between 8 and 100"
-    ));
+    bindingResult.addError(
+        new org.springframework.validation.FieldError(
+            "signupRequest", "password", "size must be between 8 and 100"));
 
     MethodParameter parameter = mock(MethodParameter.class);
     MethodArgumentNotValidException ex =
@@ -130,13 +124,11 @@ class GlobalExceptionHandlerTest {
 
     assertThat(body.message()).isEqualTo("Invalid request");
     assertThat(body.errors().size()).isEqualTo(2);
-    assertThat(body.errors()).extracting(
-        FieldError::field,
-        FieldError::message
-    ).containsExactlyInAnyOrder(
-        tuple("handle", "must not be blank"),
-        tuple("password", "size must be between 8 and 100")
-    );
+    assertThat(body.errors())
+        .extracting(FieldError::field, FieldError::message)
+        .containsExactlyInAnyOrder(
+            tuple("handle", "must not be blank"),
+            tuple("password", "size must be between 8 and 100"));
   }
 
   @Test
@@ -161,6 +153,4 @@ class GlobalExceptionHandlerTest {
     assertThat(logsList.getFirst().getFormattedMessage())
         .contains(String.format("Unexpected error at %s", PATH_TO_ERROR));
   }
-
-
 }

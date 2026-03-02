@@ -1,6 +1,5 @@
 package com.xclone.integration.auth;
 
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.xclone.auth.dto.AuthResponse;
@@ -29,12 +28,9 @@ import org.springframework.http.ResponseEntity;
 
 public class AuthenticationIT extends BaseAuthIntegrationTest {
 
-  @Autowired
-  private TestRestTemplate testRestTemplate;
-  @Autowired
-  private UserRepository userRepository;
-  @Autowired
-  private StringRedisTemplate stringRedisTemplate;
+  @Autowired private TestRestTemplate testRestTemplate;
+  @Autowired private UserRepository userRepository;
+  @Autowired private StringRedisTemplate stringRedisTemplate;
 
   private final String refreshTokenRegex =
       "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
@@ -42,10 +38,12 @@ public class AuthenticationIT extends BaseAuthIntegrationTest {
   @BeforeEach
   void setup() {
     userRepository.deleteAll();
-    stringRedisTemplate.execute((RedisCallback<Void>) connection -> {
-      connection.serverCommands().flushDb();
-      return null;
-    });
+    stringRedisTemplate.execute(
+        (RedisCallback<Void>)
+            connection -> {
+              connection.serverCommands().flushDb();
+              return null;
+            });
   }
 
   // Helpers
@@ -57,8 +55,7 @@ public class AuthenticationIT extends BaseAuthIntegrationTest {
   }
 
   private String extractRefreshCookie(ResponseEntity<?> response) {
-    return response.getHeaders().get("Set-Cookie")
-        .getFirst().split(";")[0];
+    return response.getHeaders().get("Set-Cookie").getFirst().split(";")[0];
   }
 
   @Test
@@ -120,7 +117,6 @@ public class AuthenticationIT extends BaseAuthIntegrationTest {
     LoginRequest request = new LoginRequest("exampleHandle", "password");
     ResponseEntity<AuthResponse> response =
         testRestTemplate.postForEntity("/api/auth/login", request, AuthResponse.class);
-
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getHeaders().get("Set-Cookie"))
@@ -225,12 +221,11 @@ public class AuthenticationIT extends BaseAuthIntegrationTest {
     ResponseEntity<AuthResponse> signupResponse = signup();
     String refreshCookie = extractRefreshCookie(signupResponse);
 
-
     HttpHeaders headers = new HttpHeaders();
     headers.add("Cookie", refreshCookie);
     ResponseEntity<AuthResponse> response =
-        testRestTemplate.postForEntity("/api/auth/refresh", new HttpEntity<>(headers),
-            AuthResponse.class);
+        testRestTemplate.postForEntity(
+            "/api/auth/refresh", new HttpEntity<>(headers), AuthResponse.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     Assertions.assertNotNull(response.getBody());
@@ -245,8 +240,8 @@ public class AuthenticationIT extends BaseAuthIntegrationTest {
     HttpHeaders headers = new HttpHeaders();
     headers.add("Cookie", refreshCookie);
     ResponseEntity<AuthResponse> response =
-        testRestTemplate.postForEntity("/api/auth/refresh", new HttpEntity<>(headers),
-            AuthResponse.class);
+        testRestTemplate.postForEntity(
+            "/api/auth/refresh", new HttpEntity<>(headers), AuthResponse.class);
 
     assertThat(response.getHeaders().get("Set-Cookie"))
         .anyMatch(cookie -> cookie.matches("refreshToken=" + refreshTokenRegex + ";.*"));
@@ -265,15 +260,16 @@ public class AuthenticationIT extends BaseAuthIntegrationTest {
     HttpHeaders headers = new HttpHeaders();
     headers.add("Cookie", oldRefreshToken);
     ResponseEntity<AuthResponse> response =
-        testRestTemplate.postForEntity("/api/auth/refresh", new HttpEntity<>(headers),
-            AuthResponse.class);
+        testRestTemplate.postForEntity(
+            "/api/auth/refresh", new HttpEntity<>(headers), AuthResponse.class);
 
     List<String> cookies = response.getHeaders().get("Set-Cookie");
-    assertThat(cookies).isNotNull().hasSize(1)
+    assertThat(cookies)
+        .isNotNull()
+        .hasSize(1)
         .anyMatch(cookie -> cookie.matches("refreshToken=" + refreshTokenRegex + ";.*"));
     String newRefreshToken = cookies.getFirst().split(";")[0];
     String newRefreshTokenValue = newRefreshToken.replace("refreshToken=", "");
-
 
     Set<String> newKeys = stringRedisTemplate.keys("refresh_token:*");
     assertThat(newKeys).hasSize(1);
@@ -286,8 +282,8 @@ public class AuthenticationIT extends BaseAuthIntegrationTest {
     HttpHeaders headers = new HttpHeaders();
     headers.add("Cookie", "refreshToken=" + invalidRefreshToken);
     ResponseEntity<ErrorResponse> response =
-        testRestTemplate.postForEntity("/api/auth/refresh", new HttpEntity<>(headers),
-            ErrorResponse.class);
+        testRestTemplate.postForEntity(
+            "/api/auth/refresh", new HttpEntity<>(headers), ErrorResponse.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
   }
@@ -305,8 +301,8 @@ public class AuthenticationIT extends BaseAuthIntegrationTest {
     HttpHeaders headers = new HttpHeaders();
     headers.add("Cookie", refreshCookie);
     ResponseEntity<ErrorResponse> response =
-        testRestTemplate.postForEntity("/api/auth/refresh", new HttpEntity<>(headers),
-            ErrorResponse.class);
+        testRestTemplate.postForEntity(
+            "/api/auth/refresh", new HttpEntity<>(headers), ErrorResponse.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
   }

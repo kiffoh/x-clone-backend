@@ -7,16 +7,14 @@ import com.xclone.exception.custom.InvalidRefreshTokenException;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 
-/**
- * Provides redis CRUD for refresh tokens.
- */
+/** Provides redis CRUD for refresh tokens. */
 @Service
 public class RefreshTokenService {
   private final RefreshTokenRepository refreshTokenRepository;
   private final AuthProperties authProperties;
 
-  public RefreshTokenService(RefreshTokenRepository refreshTokenRepository,
-                             AuthProperties authProperties) {
+  public RefreshTokenService(
+      RefreshTokenRepository refreshTokenRepository, AuthProperties authProperties) {
     this.refreshTokenRepository = refreshTokenRepository;
     this.authProperties = authProperties;
   }
@@ -41,7 +39,6 @@ public class RefreshTokenService {
   public RefreshTokenData getToken(String tokenId) {
     return refreshTokenRepository.find(tokenId);
   }
-
 
   public String rotateToken(String tokenId) {
     RefreshTokenData token = this.refreshTokenRepository.find(tokenId);

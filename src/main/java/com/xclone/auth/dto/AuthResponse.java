@@ -9,9 +9,4 @@ package com.xclone.auth.dto;
  * @param profileImage
  */
 public record AuthResponse(
-    String accessToken,
-    String userId,
-    String displayName,
-    String profileImage
-) {
-}
+    String accessToken, String userId, String displayName, String profileImage) {}

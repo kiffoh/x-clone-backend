@@ -10,11 +10,11 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 /**
- * Loads user data from the database and adapts it to Spring Security's
- * {@link UserDetails} interface via {@link CustomUserDetails}.
- * This service does NOT implement Spring Security's {@link UserDetailsService} interface; instead,
- * custom JWT-based authentication is utilised. {@link JwtAuthenticationFilter} calls
- * {@link #getUserById(String)} directly to authenticate requests based on JWT tokens.
+ * Loads user data from the database and adapts it to Spring Security's {@link UserDetails}
+ * interface via {@link CustomUserDetails}. This service does NOT implement Spring Security's {@link
+ * UserDetailsService} interface; instead, custom JWT-based authentication is utilised. {@link
+ * JwtAuthenticationFilter} calls {@link #getUserById(String)} directly to authenticate requests
+ * based on JWT tokens.
  */
 @Service
 public class JwtUserDetailsService {
@@ -24,9 +24,7 @@ public class JwtUserDetailsService {
     this.userRepository = userRepository;
   }
 
-  /**
-   * userId is a UUID string.
-   */
+  /** userId is a UUID string. */
   public CustomUserDetails getUserById(String userId) {
     try {
       User user = this.userRepository.findById(UUID.fromString(userId)).orElseThrow();

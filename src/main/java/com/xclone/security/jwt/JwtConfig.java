@@ -7,9 +7,7 @@ import javax.crypto.SecretKey;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * Configuration for Jwt signing key.
- */
+/** Configuration for Jwt signing key. */
 @Configuration
 public class JwtConfig {
   private final JwtProperties jwtProperties;
@@ -20,8 +18,6 @@ public class JwtConfig {
 
   @Bean
   public SecretKey jwtSigningKey() {
-    return Keys.hmacShaKeyFor(
-        this.jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8)
-    );
+    return Keys.hmacShaKeyFor(this.jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8));
   }
 }

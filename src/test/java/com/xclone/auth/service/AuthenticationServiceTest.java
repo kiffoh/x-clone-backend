@@ -37,17 +37,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
 public class AuthenticationServiceTest {
-  @Mock
-  JwtTokenProvider jwtTokenProvider;
-  @Mock
-  UserRepository userRepository;
-  @Mock
-  PasswordEncoder passwordEncoder;
-  @Mock
-  RefreshTokenService refreshTokenService;
+  @Mock JwtTokenProvider jwtTokenProvider;
+  @Mock UserRepository userRepository;
+  @Mock PasswordEncoder passwordEncoder;
+  @Mock RefreshTokenService refreshTokenService;
 
-  @InjectMocks
-  AuthenticationService authenticationService;
+  @InjectMocks AuthenticationService authenticationService;
 
   @BeforeEach
   void setUp() {
@@ -62,26 +57,17 @@ public class AuthenticationServiceTest {
     exampleUser.setPasswordHash("hashedPassword");
     exampleUser.setHandle("exampleHandle");
     exampleUser.setId(UUID.randomUUID());
-    when(this.userRepository.findByHandle(anyString()))
-        .thenReturn(Optional.of(exampleUser));
-    when(this.passwordEncoder.matches(anyString(), eq("hashedPassword")))
-        .thenReturn(true);
+    when(this.userRepository.findByHandle(anyString())).thenReturn(Optional.of(exampleUser));
+    when(this.passwordEncoder.matches(anyString(), eq("hashedPassword"))).thenReturn(true);
 
     // Trigger
     LoginRequest req = new LoginRequest("exampleHandle", "password");
     this.authenticationService.login(req);
 
     // Assert
-    verify(userRepository, times(1)).findByHandle(
-        exampleUser.getHandle()
-    );
-    verify(passwordEncoder, times(1)).matches(
-        "password",
-        "hashedPassword"
-    );
-    verify(refreshTokenService, times(1)).createToken(
-        exampleUser.getId().toString()
-    );
+    verify(userRepository, times(1)).findByHandle(exampleUser.getHandle());
+    verify(passwordEncoder, times(1)).matches("password", "hashedPassword");
+    verify(refreshTokenService, times(1)).createToken(exampleUser.getId().toString());
   }
 
   @Test
@@ -99,10 +85,8 @@ public class AuthenticationServiceTest {
   void login_attemptWithInvalidPassword_returnsBadCredentials() {
     User exampleUser = new User();
     exampleUser.setPasswordHash("hashedPassword");
-    when(this.userRepository.findByHandle(anyString()))
-        .thenReturn(Optional.of(exampleUser));
-    when(this.passwordEncoder.matches(anyString(), eq("hashedPassword")))
-        .thenReturn(false);
+    when(this.userRepository.findByHandle(anyString())).thenReturn(Optional.of(exampleUser));
+    when(this.passwordEncoder.matches(anyString(), eq("hashedPassword"))).thenReturn(false);
 
     LoginRequest req = new LoginRequest("exampleHandle", "password");
 
@@ -115,18 +99,16 @@ public class AuthenticationServiceTest {
   void signup_createsUser_automaticallyAssignsDisplayName_returnsAuthTokens() {
     // Arrange
     when(this.userRepository.existsByHandle(anyString())).thenReturn(false);
-    when(this.userRepository.save(any(User.class))).thenAnswer(invocation -> {
-      User user = invocation.getArgument(0);
-      user.setId(UUID.randomUUID());
-      return user;
-    });
+    when(this.userRepository.save(any(User.class)))
+        .thenAnswer(
+            invocation -> {
+              User user = invocation.getArgument(0);
+              user.setId(UUID.randomUUID());
+              return user;
+            });
     when(passwordEncoder.encode("password")).thenReturn("hashed_password");
 
-    SignupRequest req = new SignupRequest("exampleHandle",
-        "password",
-        null,
-        null,
-        null);
+    SignupRequest req = new SignupRequest("exampleHandle", "password", null, null, null);
 
     // Act
     AuthTokens res = this.authenticationService.signup(req);
@@ -147,18 +129,16 @@ public class AuthenticationServiceTest {
   void signup_createsUserWithDisplayName_returnsAuthTokens() {
     // Arrange
     when(this.userRepository.existsByHandle(anyString())).thenReturn(false);
-    when(this.userRepository.save(any(User.class))).thenAnswer(invocation -> {
-      User user = invocation.getArgument(0);
-      user.setId(UUID.randomUUID());
-      return user;
-    });
+    when(this.userRepository.save(any(User.class)))
+        .thenAnswer(
+            invocation -> {
+              User user = invocation.getArgument(0);
+              user.setId(UUID.randomUUID());
+              return user;
+            });
     when(passwordEncoder.encode("password")).thenReturn("hashed_password");
 
-    SignupRequest req = new SignupRequest("exampleHandle",
-        "password",
-        "displayName",
-        null,
-        null);
+    SignupRequest req = new SignupRequest("exampleHandle", "password", "displayName", null, null);
 
     // Act
     AuthTokens res = this.authenticationService.signup(req);
@@ -180,11 +160,7 @@ public class AuthenticationServiceTest {
     // Arrange
     when(this.userRepository.existsByHandle(anyString())).thenReturn(true);
 
-    SignupRequest req = new SignupRequest("exampleHandle",
-        "password",
-        "displayName",
-        null,
-        null);
+    SignupRequest req = new SignupRequest("exampleHandle", "password", "displayName", null, null);
 
     // Act + Assert
     assertThatThrownBy(() -> this.authenticationService.signup(req))
@@ -222,7 +198,7 @@ public class AuthenticationServiceTest {
 
     // Act
     assertThatThrownBy(
-        () -> this.authenticationService.logout(exampleAccessToken, exampleRefreshTokenId))
+            () -> this.authenticationService.logout(exampleAccessToken, exampleRefreshTokenId))
         .isInstanceOf(InvalidRefreshTokenException.class)
         .hasMessage("Invalid refresh token");
 
@@ -233,23 +209,22 @@ public class AuthenticationServiceTest {
   @Test
   void logout_tokenMismatch_returnsInvalidRefreshToken() {
     // Arrange
-    String accessTokenUserId = UUID.randomUUID().toString();  // different IDs
+    String accessTokenUserId = UUID.randomUUID().toString(); // different IDs
     String refreshTokenUserId = UUID.randomUUID().toString(); // will naturally not match
     String exampleRefreshTokenId = UUID.randomUUID().toString();
     String exampleAccessToken = UUID.randomUUID().toString();
-
 
     RefreshTokenData sampleToken = mock(RefreshTokenData.class);
     when(sampleToken.isExpired()).thenReturn(false);
     when(sampleToken.userId()).thenReturn(refreshTokenUserId);
 
     when(this.refreshTokenService.getToken(anyString())).thenReturn(sampleToken);
-    when(this.jwtTokenProvider.getUserIdFromToken(exampleAccessToken)).thenReturn(
-        accessTokenUserId);
+    when(this.jwtTokenProvider.getUserIdFromToken(exampleAccessToken))
+        .thenReturn(accessTokenUserId);
 
     // Act
     assertThatThrownBy(
-        () -> this.authenticationService.logout(exampleAccessToken, exampleRefreshTokenId))
+            () -> this.authenticationService.logout(exampleAccessToken, exampleRefreshTokenId))
         .isInstanceOf(InvalidRefreshTokenException.class)
         .hasMessage("Invalid refresh token");
 
@@ -271,8 +246,8 @@ public class AuthenticationServiceTest {
     String newAccessToken = UUID.randomUUID().toString();
 
     when(this.refreshTokenService.getToken(anyString())).thenReturn(sampleToken);
-    when(this.userRepository.findById(UUID.fromString(exampleUserId))).thenReturn(
-        Optional.of(exampleUser));
+    when(this.userRepository.findById(UUID.fromString(exampleUserId)))
+        .thenReturn(Optional.of(exampleUser));
     when(this.refreshTokenService.rotateToken(inputRefreshTokenId)).thenReturn(newRefreshTokenId);
     when(this.jwtTokenProvider.createToken(exampleUserId, "USER")).thenReturn(newAccessToken);
 
@@ -295,12 +270,10 @@ public class AuthenticationServiceTest {
     when(sampleToken.isExpired()).thenReturn(true);
 
     // Act
-    assertThatThrownBy(
-        () -> this.authenticationService.refresh(exampleRefreshTokenId))
+    assertThatThrownBy(() -> this.authenticationService.refresh(exampleRefreshTokenId))
         .isInstanceOf(InvalidRefreshTokenException.class)
         .hasMessage("Invalid refresh token");
   }
-
 
   @Test
   void refresh_userDoesNotExist_removesRefreshToken_returnsUsernameNotFound() {
@@ -315,8 +288,7 @@ public class AuthenticationServiceTest {
     when(userRepository.findById(UUID.fromString(exampleUserId))).thenReturn(Optional.empty());
 
     // Act
-    assertThatThrownBy(
-        () -> this.authenticationService.refresh(exampleRefreshTokenId))
+    assertThatThrownBy(() -> this.authenticationService.refresh(exampleRefreshTokenId))
         .isInstanceOf(UsernameNotFoundException.class)
         .hasMessage("User not found");
 
@@ -340,8 +312,7 @@ public class AuthenticationServiceTest {
     when(this.userRepository.findById(exampleUser.getId())).thenReturn(Optional.of(exampleUser));
 
     // Act
-    assertThatThrownBy(
-        () -> this.authenticationService.refresh(exampleRefreshTokenId))
+    assertThatThrownBy(() -> this.authenticationService.refresh(exampleRefreshTokenId))
         .isInstanceOf(AccountNotActiveException.class)
         .hasMessage("Account not active");
 

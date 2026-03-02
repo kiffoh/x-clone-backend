@@ -10,9 +10,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 /**
- * Adapts the {@link User} entity to Spring Security's {@link UserDetails} interface.
- * This allows Spring Security to authenticate users without coupling security
- * concerns to our domain model.
+ * Adapts the {@link User} entity to Spring Security's {@link UserDetails} interface. This allows
+ * Spring Security to authenticate users without coupling security concerns to our domain model.
  */
 public class CustomUserDetails implements UserDetails {
   private final User user;

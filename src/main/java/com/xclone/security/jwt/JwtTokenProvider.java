@@ -9,9 +9,7 @@ import javax.crypto.SecretKey;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-/**
- * Generates and validates JWT tokens.
- */
+/** Generates and validates JWT tokens. */
 @Slf4j
 @Component
 public class JwtTokenProvider {
@@ -19,27 +17,24 @@ public class JwtTokenProvider {
   private final AuthProperties authProperties;
   private final JwtProperties jwtProperties;
 
-  public JwtTokenProvider(SecretKey jwtSigningKey,
-                          AuthProperties authProperties,
-                          JwtProperties jwtProperties) {
+  public JwtTokenProvider(
+      SecretKey jwtSigningKey, AuthProperties authProperties, JwtProperties jwtProperties) {
     this.jwtSigningKey = jwtSigningKey;
     this.authProperties = authProperties;
     this.jwtProperties = jwtProperties;
   }
 
   /**
-   * Creates a JWT access token.
-   * Algorithm is automatically selected based on key length.
+   * Creates a JWT access token. Algorithm is automatically selected based on key length.
    *
    * @param userId User's unique identifier
-   * @param role   User's role (USER, ADMIN)
+   * @param role User's role (USER, ADMIN)
    * @return Signed JWT string
    */
   public String createToken(String userId, String role) {
     Date now = new Date();
-    Date expiration = new Date(
-        now.getTime() + this.authProperties.getAccessTokenDurationSeconds() * 1000L
-    );
+    Date expiration =
+        new Date(now.getTime() + this.authProperties.getAccessTokenDurationSeconds() * 1000L);
     return Jwts.builder()
         .subject(userId)
         .issuer(jwtProperties.getIssuer())
@@ -50,20 +45,12 @@ public class JwtTokenProvider {
         .compact();
   }
 
-  /**
-   * Parses and validates a JWT token.
-   */
+  /** Parses and validates a JWT token. */
   public Claims parseToken(String jws) {
-    return Jwts.parser()
-        .verifyWith(this.jwtSigningKey)
-        .build()
-        .parseSignedClaims(jws)
-        .getPayload();
+    return Jwts.parser().verifyWith(this.jwtSigningKey).build().parseSignedClaims(jws).getPayload();
   }
 
-  /**
-   * Extracts user ID from token.
-   */
+  /** Extracts user ID from token. */
   public String getUserIdFromToken(String jws) {
     return Jwts.parser()
         .verifyWith(this.jwtSigningKey)
@@ -73,17 +60,17 @@ public class JwtTokenProvider {
         .getSubject();
   }
 
-  /**
-   * Validates a JWT Token.
-   */
+  /** Validates a JWT Token. */
   public boolean validToken(String jws) {
     try {
       Claims claims = parseToken(jws);
 
       // Validate issuer
       if (!jwtProperties.getIssuer().equals(claims.getIssuer())) {
-        log.warn("Invalid issuer: expected={}, actual={}",
-            jwtProperties.getIssuer(), claims.getIssuer());
+        log.warn(
+            "Invalid issuer: expected={}, actual={}",
+            jwtProperties.getIssuer(),
+            claims.getIssuer());
         return false;
       }
 
@@ -95,5 +82,4 @@ public class JwtTokenProvider {
       return false;
     }
   }
-
 }
