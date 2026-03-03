@@ -41,15 +41,20 @@ import org.springframework.test.web.servlet.MockMvc;
 @Import({SecurityConfig.class, AuthProperties.class})
 @ActiveProfiles("dev")
 public class AuthenticationControllerTest {
-  @Autowired private MockMvc mockMvc;
+  @Autowired
+  private MockMvc mockMvc;
 
-  @Autowired private ObjectMapper objectMapper;
+  @Autowired
+  private ObjectMapper objectMapper;
 
-  @MockitoBean private AuthenticationService authenticationService;
+  @MockitoBean
+  private AuthenticationService authenticationService;
 
   // JwtAuthenticationFilter's dependencies
-  @MockitoBean private JwtTokenProvider jwtTokenProvider;
-  @MockitoBean private JwtUserDetailsService userDetailsService;
+  @MockitoBean
+  private JwtTokenProvider jwtTokenProvider;
+  @MockitoBean
+  private JwtUserDetailsService userDetailsService;
 
   private String refreshTokenId;
   private AuthTokens validAuthTokens;
@@ -74,7 +79,7 @@ public class AuthenticationControllerTest {
   @Test
   void signup_validRequest_returns200WithRefreshTokenCookie() throws Exception {
     // Setup
-    SignupRequest validSignup = new SignupRequest("exampleHandle", "password", null, null, null);
+    SignupRequest validSignup = new SignupRequest("exampleHandle", "paassw0rD?", null, null, null);
 
     when(authenticationService.signup(validSignup)).thenReturn(validAuthTokens);
 
@@ -92,7 +97,7 @@ public class AuthenticationControllerTest {
   @Test
   void signup_duplicateHandle_returns409() throws Exception {
     // Setup
-    SignupRequest validSignup = new SignupRequest("exampleHandle", "password", null, null, null);
+    SignupRequest validSignup = new SignupRequest("exampleHandle", "paassw0rD?", null, null, null);
 
     when(authenticationService.signup(validSignup))
         .thenThrow(new DuplicateHandleException("This handle is already taken"));
@@ -111,7 +116,7 @@ public class AuthenticationControllerTest {
   void signup_invalidRequestWithOneFieldError_returns400() throws Exception {
     // Setup
     SignupRequest invalidHandle =
-        new SignupRequest("invalidHandle//?", "password", null, null, null);
+        new SignupRequest("invalidHandle/?", "paassw0rD?", null, null, null);
 
     // Act
     mockMvc
@@ -146,7 +151,7 @@ public class AuthenticationControllerTest {
   @Test
   void login_validRequest_returns200WithRefreshTokenCookie() throws Exception {
     // Setup
-    LoginRequest validLogin = new LoginRequest("exampleHandle", "password");
+    LoginRequest validLogin = new LoginRequest("exampleHandle", "paassw0rD?");
 
     when(authenticationService.login(validLogin)).thenReturn(validAuthTokens);
 
@@ -164,7 +169,7 @@ public class AuthenticationControllerTest {
   @Test
   void login_invalidCredentials_returns401() throws Exception {
     // Setup
-    LoginRequest validLogin = new LoginRequest("exampleHandle", "password");
+    LoginRequest validLogin = new LoginRequest("exampleHandle", "paassw0rD?");
 
     when(authenticationService.login(validLogin))
         .thenThrow(new BadCredentialsException("Invalid credentials"));
