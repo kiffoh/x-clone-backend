@@ -20,9 +20,6 @@ echo "$JAVA_FILES"
 echo "→ Running formatting + lint checks..."
 
 # Single Maven invocation (much faster)
-./mvnw -q \
-  -DskipTests \
-  spotless:check \
-  checkstyle:check -Dcheckstyle.skip=true
+./mvnw -q spotless:apply
 
 echo "✅ Pre-commit checks passed!"
