@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /** Router for authentication REST API calls. */
 @RestController
-@RequestMapping("api/auth")
+@RequestMapping("/api/auth")
 @Slf4j
 public class AuthenticationController {
   private final AuthenticationService authenticationService;

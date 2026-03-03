@@ -10,6 +10,13 @@ import java.util.concurrent.TimeUnit;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Repository;
 
+/**
+ * Repository responsible for persisting and retrieving refresh token metadata in Redis.
+ *
+ * <p>Each token is stored under a key of the form: {@code refresh_token:{uuid}}
+ *
+ * <p>Entries are stored with a TTL equal to the configured refresh token lifetime.
+ */
 @Repository
 public class RefreshTokenRepository {
   private final StringRedisTemplate redisTemplate;
@@ -23,6 +30,12 @@ public class RefreshTokenRepository {
     this.objectMapper = objectMapper;
   }
 
+  /**
+   * Writes the new refresh token to the redis database.
+   *
+   * @param tokenId opaque refresh token id
+   * @param metadata refresh token metadata
+   */
   public void save(String tokenId, RefreshTokenData metadata) {
     try {
       String serializedData = objectMapper.writeValueAsString(metadata);
@@ -38,6 +51,12 @@ public class RefreshTokenRepository {
     }
   }
 
+  /**
+   * Returns the refresh token metadata based on the token id.
+   *
+   * @param tokenId opaque refresh token id
+   * @return refresh token metadata
+   */
   public RefreshTokenData find(String tokenId) {
     String tokenData =
         Optional.ofNullable(this.redisTemplate.opsForValue().get(key(tokenId)))

@@ -25,7 +25,7 @@ public class JwtTokenProvider {
   }
 
   /**
-   * Creates a JWT access token. Algorithm is automatically selected based on key length.
+   * Creates a JWT access token. RS265 algorithm is automatically selected based on key length.
    *
    * @param userId User's unique identifier
    * @param role User's role (USER, ADMIN)

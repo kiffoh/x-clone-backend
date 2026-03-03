@@ -4,6 +4,10 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Configuration properties for authentication settings. Binds properties with the prefix {@code
+ * app.auth} from the application configuration into a strongly typed object.
+ */
 @Configuration
 @ConfigurationProperties(prefix = "app.auth")
 @Data

@@ -40,6 +40,16 @@ public class RefreshTokenService {
     return refreshTokenRepository.find(tokenId);
   }
 
+  /**
+   * Rotates a valid refresh token.
+   *
+   * <p>The existing token must be valid and not expired. A new token is generated and stored, and
+   * the old token is removed.
+   *
+   * @param tokenId existing refresh token identifier
+   * @return new refresh token identifier
+   * @throws InvalidRefreshTokenException if the token is invalid or expired
+   */
   public String rotateToken(String tokenId) {
     RefreshTokenData token = this.refreshTokenRepository.find(tokenId);
     if (token.isExpired()) {

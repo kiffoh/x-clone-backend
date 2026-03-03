@@ -40,8 +40,20 @@ public class AuthenticationService {
   }
 
   /**
-   * Gets user from database. Returns {@link AuthTokens} which contains a valid access token and
-   * refresh token.
+   * Retrieves an existing user account and issues authentication tokens.
+   *
+   * <p>This method:
+   *
+   * <ul>
+   *   <li>Validates handle uniqueness
+   *   <li>Hashes the raw password before persistence
+   *   <li>Generates a signed JWT access token
+   *   <li>Generates and stores a refresh token in Redis
+   * </ul>
+   *
+   * @param request validated login request payload
+   * @return authentication tokens and user metadata
+   * @throws BadCredentialsException if the user does not exist or the password does not match
    */
   public AuthTokens login(@Valid LoginRequest request) {
     log.info("login service called. Validating request.");
@@ -72,6 +84,23 @@ public class AuthenticationService {
         user.getProfileImage());
   }
 
+  /**
+   * Registers a new user account and issues authentication tokens.
+   *
+   * <p>This method:
+   *
+   * <ul>
+   *   <li>Validates handle uniqueness
+   *   <li>Hashes the raw password before persistence
+   *   <li>Persists the new {@link User}
+   *   <li>Generates a signed JWT access token
+   *   <li>Generates and stores a refresh token in Redis
+   * </ul>
+   *
+   * @param request validated signup request payload
+   * @return authentication tokens and user metadata
+   * @throws DuplicateHandleException if the handle already exists
+   */
   public AuthTokens signup(@Valid SignupRequest request) {
     if (userRepository.existsByHandle(request.handle())) {
       log.warn("signup attempt with an existing handle");
@@ -108,6 +137,22 @@ public class AuthenticationService {
         savedUser.getProfileImage());
   }
 
+  /**
+   * Invalidates a refresh token and logs the user out.
+   *
+   * <p>This method verifies:
+   *
+   * <ul>
+   *   <li>The refresh token exists and is not expired
+   *   <li>The user ID in the access token matches the refresh token owner
+   * </ul>
+   *
+   * <p>If validation succeeds, the refresh token is removed from Redis.
+   *
+   * @param accessToken signed JWT access token
+   * @param refreshTokenId opaque refresh token identifier
+   * @throws InvalidRefreshTokenException if validation fails
+   */
   public void logout(String accessToken, String refreshTokenId) {
     log.debug("logout service called. Validating logout request");
     RefreshTokenData tokenData = refreshTokenService.getToken(refreshTokenId);
@@ -134,6 +179,24 @@ public class AuthenticationService {
     log.info("User {} logged out successfully", userId);
   }
 
+  /**
+   * Validates and rotates a refresh token, issuing new authentication tokens.
+   *
+   * <p>This method:
+   *
+   * <ul>
+   *   <li>Ensures the refresh token exists and is not expired
+   *   <li>Validates the associated user exists
+   *   <li>Ensures the user account is {@link UserStatus#ACTIVE}
+   *   <li>Rotates the refresh token (old token removed, new token stored)
+   *   <li>Generates a new signed JWT access token
+   * </ul>
+   *
+   * @param refreshTokenId opaque refresh token identifier
+   * @return new authentication tokens and user metadata
+   * @throws InvalidRefreshTokenException if the token is invalid or expired
+   * @throws AccountNotActiveException if the account is not active
+   */
   public AuthTokens refresh(String refreshTokenId) {
     log.debug("refresh service called. Validating refresh request");
     RefreshTokenData tokenData = refreshTokenService.getToken(refreshTokenId);
