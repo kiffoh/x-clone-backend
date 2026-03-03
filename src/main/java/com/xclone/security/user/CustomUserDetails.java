@@ -3,6 +3,7 @@ package com.xclone.security.user;
 import com.xclone.user.model.entity.User;
 import com.xclone.user.model.enums.UserRole;
 import com.xclone.user.model.enums.UserStatus;
+import java.io.Serial;
 import java.util.Collection;
 import java.util.List;
 import org.springframework.security.core.GrantedAuthority;
@@ -14,6 +15,8 @@ import org.springframework.security.core.userdetails.UserDetails;
  * Spring Security to authenticate users without coupling security concerns to our domain model.
  */
 public class CustomUserDetails implements UserDetails {
+  @Serial
+  private static final long serialVersionUID = 1L;
   private final transient User user;
 
   public CustomUserDetails(User user) {
