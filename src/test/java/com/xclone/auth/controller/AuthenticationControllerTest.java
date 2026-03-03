@@ -41,20 +41,15 @@ import org.springframework.test.web.servlet.MockMvc;
 @Import({SecurityConfig.class, AuthProperties.class})
 @ActiveProfiles("dev")
 public class AuthenticationControllerTest {
-  @Autowired
-  private MockMvc mockMvc;
+  @Autowired private MockMvc mockMvc;
 
-  @Autowired
-  private ObjectMapper objectMapper;
+  @Autowired private ObjectMapper objectMapper;
 
-  @MockitoBean
-  private AuthenticationService authenticationService;
+  @MockitoBean private AuthenticationService authenticationService;
 
   // JwtAuthenticationFilter's dependencies
-  @MockitoBean
-  private JwtTokenProvider jwtTokenProvider;
-  @MockitoBean
-  private JwtUserDetailsService userDetailsService;
+  @MockitoBean private JwtTokenProvider jwtTokenProvider;
+  @MockitoBean private JwtUserDetailsService userDetailsService;
 
   private String refreshTokenId;
   private AuthTokens validAuthTokens;

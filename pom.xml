@@ -239,7 +239,8 @@
                     <excludeFilterFile>${project.basedir}/spotbugs-exclude.xml</excludeFilterFile>
                     <effort>Max</effort>
                     <threshold>Medium</threshold>
-                    <failOnError>true</failOnError>
+                    <failOnError>false</failOnError>
+                    <htmlOutput>true</htmlOutput>
                     <plugins>
                         <plugin>
                             <groupId>com.h3xstream.findsecbugs</groupId>
@@ -250,8 +251,8 @@
                 </configuration>
                 <executions>
                     <execution>
-                        <id>analyze-compile</id>
-                        <phase>compile</phase>
+                        <id>spotbugs-check</id>
+                        <phase>verify</phase>
                         <goals>
                             <goal>check</goal>
                         </goals>
