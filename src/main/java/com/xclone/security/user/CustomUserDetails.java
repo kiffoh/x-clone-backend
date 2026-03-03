@@ -15,8 +15,7 @@ import org.springframework.security.core.userdetails.UserDetails;
  * Spring Security to authenticate users without coupling security concerns to our domain model.
  */
 public class CustomUserDetails implements UserDetails {
-  @Serial
-  private static final long serialVersionUID = 1L;
+  @Serial private static final long serialVersionUID = 1L;
   private final transient User user;
 
   public CustomUserDetails(User user) {
