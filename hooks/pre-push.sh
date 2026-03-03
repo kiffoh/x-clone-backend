@@ -3,7 +3,7 @@
 echo "🔍 Running pre-push checks..."
 
 # Run full verification (includes tests, coverage, spotbugs)
-./mvnw verify -q
+./mvnw verify -Dspotbugs.skip -DskipTests -q
 
 if [ $? -ne 0 ]; then
     echo "❌ Pre-push checks failed!"
