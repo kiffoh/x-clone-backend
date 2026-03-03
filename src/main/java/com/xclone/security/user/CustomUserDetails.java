@@ -14,7 +14,7 @@ import org.springframework.security.core.userdetails.UserDetails;
  * Spring Security to authenticate users without coupling security concerns to our domain model.
  */
 public class CustomUserDetails implements UserDetails {
-  private final User user;
+  private final transient User user;
 
   public CustomUserDetails(User user) {
     this.user = user;
