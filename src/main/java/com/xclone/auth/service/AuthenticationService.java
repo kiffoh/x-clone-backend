@@ -151,7 +151,7 @@ public class AuthenticationService {
    *
    * @param accessToken signed JWT access token
    * @param refreshTokenId opaque refresh token identifier
-   * @throws InvalidRefreshTokenException if validation fails
+   * @throws InvalidRefreshTokenException if the token is invalid or expired
    */
   public void logout(String accessToken, String refreshTokenId) {
     log.debug("logout service called. Validating logout request");

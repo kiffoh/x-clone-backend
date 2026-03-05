@@ -25,7 +25,7 @@ import java.lang.annotation.Target;
  */
 @NotBlank(message = "Handle is required")
 @Size(min = 4, max = 15)
-@Pattern(regexp = "^(?![0-9]+$)[0-9a-zA-Z_]+$")
+@Pattern(regexp = ValidationConstants.HANDLE_PATTERN)
 @Target({ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
 @Constraint(validatedBy = {})

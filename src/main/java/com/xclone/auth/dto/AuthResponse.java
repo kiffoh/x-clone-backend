@@ -1,5 +1,7 @@
 package com.xclone.auth.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 /**
  * Response payload returned after successful authentication operations (signup, login, refresh).
  *
@@ -9,4 +11,11 @@ package com.xclone.auth.dto;
  * @param profileImage URI of the user's profile image
  */
 public record AuthResponse(
-    String accessToken, String userId, String displayName, String profileImage) {}
+    @Schema(
+            description =
+                "Short-lived JWT used to authenticate subsequent requests. "
+                    + "Include in the Authorization header as: Bearer {token}.")
+        String accessToken,
+    @Schema(description = "Unique identifier of the authenticated user.") String userId,
+    @Schema(description = "Display name shown on the user's profile.") String displayName,
+    @Schema(description = "Profile image URL.") String profileImage) {}
