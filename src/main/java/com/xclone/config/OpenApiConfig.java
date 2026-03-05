@@ -16,6 +16,11 @@ import org.springdoc.core.customizers.OpenApiCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Configuration file for OpenApi schema generation from code.
+ * Defines and associates schemas as components to the OpenApi model.
+ * Moreover, defines the custom order of the endpoints.
+ */
 @Configuration
 public class OpenApiConfig {
   private final ApiResponse badRequest =
@@ -81,6 +86,11 @@ public class OpenApiConfig {
   private final Map<String, Schema> fieldErrorSchema =
       ModelConverters.getInstance().readAll(FieldError.class);
 
+  /**
+   * Assigns Error DTOs and Schemas to the OpenAPI model.
+   *
+   * @return OpenApi model with updated schemas and responses.
+   */
   @Bean
   public OpenAPI customOpenApi() {
     return new OpenAPI()
@@ -97,6 +107,11 @@ public class OpenApiConfig {
                 .addResponses("InternalServerError", internalServerError));
   }
 
+  /**
+   * Applies custom order for endpoints in OpenApi schema.
+   *
+   * @return re-ordered endpoints
+   */
   @Bean
   public OpenApiCustomizer orderPaths() {
     return openApi -> {
