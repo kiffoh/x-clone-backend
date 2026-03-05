@@ -25,9 +25,7 @@ import java.lang.annotation.Target;
  */
 @NotBlank(message = "Password is required")
 @Size(min = 10, max = 100)
-@Pattern(
-    regexp =
-        ValidationConstants.PASSWORD_PATTERN)
+@Pattern(regexp = ValidationConstants.PASSWORD_PATTERN)
 @Target({ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
 @Constraint(validatedBy = {})

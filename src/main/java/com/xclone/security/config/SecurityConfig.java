@@ -16,11 +16,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-/**
- * Configures Spring Security (what endpoints require auth, etc.).
- */
-@OpenAPIDefinition(info = @Info(title = "X-Clone Backend Api", version = "1.0.0"), security = {
-    @SecurityRequirement(name = "JWT")})
+/** Configures Spring Security (what endpoints require auth, etc.). */
+@OpenAPIDefinition(
+    info = @Info(title = "X-Clone Backend Api", version = "1.0.0"),
+    security = {@SecurityRequirement(name = "JWT")})
 @SecurityScheme(type = SecuritySchemeType.HTTP, scheme = "bearer", bearerFormat = "JWT")
 @Configuration
 public class SecurityConfig {
@@ -42,8 +41,12 @@ public class SecurityConfig {
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     http.authorizeHttpRequests(
-        auth -> auth.requestMatchers("/api/auth/**", "/v3/api-docs/**", "/v3/api-docs.yaml",
-            "/swagger-ui/**").permitAll().anyRequest().authenticated());
+        auth ->
+            auth.requestMatchers(
+                    "/api/auth/**", "/v3/api-docs/**", "/v3/api-docs.yaml", "/swagger-ui/**")
+                .permitAll()
+                .anyRequest()
+                .authenticated());
     http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
     http.csrf(AbstractHttpConfigurer::disable);
     http.sessionManagement(

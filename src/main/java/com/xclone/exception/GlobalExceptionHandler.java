@@ -35,7 +35,7 @@ public class GlobalExceptionHandler
    * Handles {@link DuplicateHandleException} by returning an HTTP 409 (Conflict) response
    * containing the error message.
    *
-   * @param ex      the thrown exception
+   * @param ex the thrown exception
    * @param request the current web request
    * @return a {@link ResponseEntity} containing the error details
    */
@@ -52,7 +52,7 @@ public class GlobalExceptionHandler
    * Handles {@link InvalidRefreshTokenException} by returning a 401 (Unauthorized) response
    * containing the error message.
    *
-   * @param ex      the thrown exception
+   * @param ex the thrown exception
    * @param request the current web request
    * @return a {@link ResponseEntity} containing the error details
    */
@@ -71,7 +71,7 @@ public class GlobalExceptionHandler
    * Handles {@link AccountNotActiveException} by returning a 403 (Forbidden) response containing
    * the error message.
    *
-   * @param ex      the thrown exception
+   * @param ex the thrown exception
    * @param request the current web request
    * @return a {@link ResponseEntity} containing the error details
    */
@@ -88,7 +88,7 @@ public class GlobalExceptionHandler
    * Handles {@link BadCredentialsException} {@link UsernameNotFoundException} by returning a 401
    * (Unauthorized) response containing the error message.
    *
-   * @param ex      the thrown exception
+   * @param ex the thrown exception
    * @param request the current web request
    * @return a {@link ResponseEntity} containing the error details
    */
@@ -123,7 +123,7 @@ public class GlobalExceptionHandler
    * Handles generic exceptions by returning a 500 (Internal Server Error) response containing the
    * error message.
    *
-   * @param ex      the thrown exception
+   * @param ex the thrown exception
    * @param request the current web request
    * @return a {@link ResponseEntity} containing the error details
    */

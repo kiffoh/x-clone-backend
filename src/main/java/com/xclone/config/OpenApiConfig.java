@@ -18,51 +18,61 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class OpenApiConfig {
-  private final ApiResponse badRequest = new ApiResponse()
-      .description("Bad request")
-      .content(new Content().addMediaType(
-          "application/json",
-          new MediaType().schema(
-              new Schema<ValidationErrorResponse>()
-                  .$ref("#/components/schemas/ValidationErrorResponse")
-          )
-      ));
-  private final ApiResponse unauthorizedRequest = new ApiResponse()
-      .description("Unauthorized request")
-      .content(new Content().addMediaType(
-          "application/json",
-          new MediaType().schema(
-              new Schema<ErrorResponse>()
-                  .$ref("#/components/schemas/ErrorResponse")
-          )
-      ));
-  private final ApiResponse conflictingResource = new ApiResponse()
-      .description("Conflicting Resource")
-      .content(new Content().addMediaType(
-          "application/json",
-          new MediaType().schema(
-              new Schema<ErrorResponse>()
-                  .$ref("#/components/schemas/ErrorResponse")
-          )
-      ));
-  private final ApiResponse forbiddenResource = new ApiResponse()
-      .description("Forbidden Resource")
-      .content(new Content().addMediaType(
-          "application/json",
-          new MediaType().schema(
-              new Schema<ErrorResponse>()
-                  .$ref("#/components/schemas/ErrorResponse")
-          )
-      ));
-  private final ApiResponse internalServerError = new ApiResponse()
-      .description("Internal Server Error")
-      .content(new Content().addMediaType(
-          "application/json",
-          new MediaType().schema(
-              new Schema<ErrorResponse>()
-                  .$ref("#/components/schemas/ErrorResponse")
-          )
-      ));
+  private final ApiResponse badRequest =
+      new ApiResponse()
+          .description("Bad request")
+          .content(
+              new Content()
+                  .addMediaType(
+                      "application/json",
+                      new MediaType()
+                          .schema(
+                              new Schema<ValidationErrorResponse>()
+                                  .$ref("#/components/schemas/ValidationErrorResponse"))));
+  private final ApiResponse unauthorizedRequest =
+      new ApiResponse()
+          .description("Unauthorized request")
+          .content(
+              new Content()
+                  .addMediaType(
+                      "application/json",
+                      new MediaType()
+                          .schema(
+                              new Schema<ErrorResponse>()
+                                  .$ref("#/components/schemas/ErrorResponse"))));
+  private final ApiResponse conflictingResource =
+      new ApiResponse()
+          .description("Conflicting Resource")
+          .content(
+              new Content()
+                  .addMediaType(
+                      "application/json",
+                      new MediaType()
+                          .schema(
+                              new Schema<ErrorResponse>()
+                                  .$ref("#/components/schemas/ErrorResponse"))));
+  private final ApiResponse forbiddenResource =
+      new ApiResponse()
+          .description("Forbidden Resource")
+          .content(
+              new Content()
+                  .addMediaType(
+                      "application/json",
+                      new MediaType()
+                          .schema(
+                              new Schema<ErrorResponse>()
+                                  .$ref("#/components/schemas/ErrorResponse"))));
+  private final ApiResponse internalServerError =
+      new ApiResponse()
+          .description("Internal Server Error")
+          .content(
+              new Content()
+                  .addMediaType(
+                      "application/json",
+                      new MediaType()
+                          .schema(
+                              new Schema<ErrorResponse>()
+                                  .$ref("#/components/schemas/ErrorResponse"))));
 
   private final Map<String, Schema> errorSchema =
       ModelConverters.getInstance().readAll(ErrorResponse.class);
@@ -73,16 +83,18 @@ public class OpenApiConfig {
 
   @Bean
   public OpenAPI customOpenApi() {
-    return new OpenAPI().components(new Components()
-        .addSchemas("ValidationErrorResponse", validationErrorSchema.get("ValidationErrorResponse"))
-        .addSchemas("ErrorResponse", errorSchema.get("ErrorResponse"))
-        .addSchemas("FieldError", fieldErrorSchema.get("FieldError"))
-        .addResponses("BadRequestError", badRequest)
-        .addResponses("UnauthorizedError", unauthorizedRequest)
-        .addResponses("ConflictError", conflictingResource)
-        .addResponses("ForbiddenError", forbiddenResource)
-        .addResponses("InternalServerError", internalServerError)
-    );
+    return new OpenAPI()
+        .components(
+            new Components()
+                .addSchemas(
+                    "ValidationErrorResponse", validationErrorSchema.get("ValidationErrorResponse"))
+                .addSchemas("ErrorResponse", errorSchema.get("ErrorResponse"))
+                .addSchemas("FieldError", fieldErrorSchema.get("FieldError"))
+                .addResponses("BadRequestError", badRequest)
+                .addResponses("UnauthorizedError", unauthorizedRequest)
+                .addResponses("ConflictError", conflictingResource)
+                .addResponses("ForbiddenError", forbiddenResource)
+                .addResponses("InternalServerError", internalServerError));
   }
 
   @Bean

@@ -24,10 +24,10 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Router for authentication REST API calls.
- */
-@Tag(name = "Authentication", description = "Endpoints for user registration, login, and token management")
+/** Router for authentication REST API calls. */
+@Tag(
+    name = "Authentication",
+    description = "Endpoints for user registration, login, and token management")
 @RestController
 @RequestMapping("/api/auth")
 @Slf4j
@@ -45,17 +45,20 @@ public class AuthenticationController {
    * Controller layer for signup requests. Calls the signup service function to validate and
    * register a user. Assigns a new access and refresh token as part of response.
    *
-   * @param request  HTTP request object
+   * @param request HTTP request object
    * @param response HTTP response object
    * @return {@link AuthResponse} dto
    */
-  @Operation(summary = "Register a new user account",
-      description = "Creates a new user and returns an access token. Sets an httpOnly refresh token cookie.")
-  @ApiResponses(value = {
-      @ApiResponse(responseCode = "200", description = "Ok", useReturnTypeSchema = true),
-      @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequestError"),
-      @ApiResponse(responseCode = "409", ref = "#/components/responses/ConflictError"),
-  })
+  @Operation(
+      summary = "Register a new user account",
+      description =
+          "Creates a new user and returns an access token. Sets an httpOnly refresh token cookie.")
+  @ApiResponses(
+      value = {
+        @ApiResponse(responseCode = "200", description = "Ok", useReturnTypeSchema = true),
+        @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequestError"),
+        @ApiResponse(responseCode = "409", ref = "#/components/responses/ConflictError"),
+      })
   @SecurityRequirements()
   @PostMapping(value = "/signup", produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<AuthResponse> signup(
@@ -69,17 +72,20 @@ public class AuthenticationController {
    * Controller layer for login requests. Calls the login service function to validate and log a
    * user in. Assigns a new access and refresh token as part of response.
    *
-   * @param request  HTTP request object
+   * @param request HTTP request object
    * @param response HTTP response object
    * @return {@link AuthResponse} dto
    */
-  @Operation(summary = "Authenticate with handle and password",
-      description = "Validates credentials and returns an access token. Sets an httpOnly refresh token cookie.")
-  @ApiResponses(value = {
-      @ApiResponse(responseCode = "200", description = "Ok", useReturnTypeSchema = true),
-      @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequestError"),
-      @ApiResponse(responseCode = "401", ref = "#/components/responses/UnauthorizedError"),
-  })
+  @Operation(
+      summary = "Authenticate with handle and password",
+      description =
+          "Validates credentials and returns an access token. Sets an httpOnly refresh token cookie.")
+  @ApiResponses(
+      value = {
+        @ApiResponse(responseCode = "200", description = "Ok", useReturnTypeSchema = true),
+        @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequestError"),
+        @ApiResponse(responseCode = "401", ref = "#/components/responses/UnauthorizedError"),
+      })
   @SecurityRequirements()
   @PostMapping(value = "/login", produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<AuthResponse> login(
@@ -95,12 +101,15 @@ public class AuthenticationController {
    *
    * @param response HTTP response object
    */
-  @Operation(summary = "Invalidate the current session",
-      description = "Deletes the refresh token from the server and clears the refresh token cookie. Requires Bearer token and refreshToken cookie.")
-  @ApiResponses(value = {
-      @ApiResponse(responseCode = "204", description = "No Content", useReturnTypeSchema = true),
-      @ApiResponse(responseCode = "401", ref = "#/components/responses/UnauthorizedError"),
-  })
+  @Operation(
+      summary = "Invalidate the current session",
+      description =
+          "Deletes the refresh token from the server and clears the refresh token cookie. Requires Bearer token and refreshToken cookie.")
+  @ApiResponses(
+      value = {
+        @ApiResponse(responseCode = "204", description = "No Content", useReturnTypeSchema = true),
+        @ApiResponse(responseCode = "401", ref = "#/components/responses/UnauthorizedError"),
+      })
   @PostMapping(value = "/logout", produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<Void> logout(
       @CookieValue("refreshToken") String refreshToken,
@@ -121,14 +130,17 @@ public class AuthenticationController {
    *
    * @param response HTTP response object
    */
-  @Operation(summary = "Exchange a refresh token for a new access token",
-      description = "Rotates the refresh token cookie and returns a new access token. Requires a valid refreshToken cookie.")
-  @ApiResponses(value = {
-      @ApiResponse(responseCode = "200", description = "Ok", useReturnTypeSchema = true),
-      @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequestError"),
-      @ApiResponse(responseCode = "401", ref = "#/components/responses/UnauthorizedError"),
-      @ApiResponse(responseCode = "403", ref = "#/components/responses/ForbiddenError"),
-  })
+  @Operation(
+      summary = "Exchange a refresh token for a new access token",
+      description =
+          "Rotates the refresh token cookie and returns a new access token. Requires a valid refreshToken cookie.")
+  @ApiResponses(
+      value = {
+        @ApiResponse(responseCode = "200", description = "Ok", useReturnTypeSchema = true),
+        @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequestError"),
+        @ApiResponse(responseCode = "401", ref = "#/components/responses/UnauthorizedError"),
+        @ApiResponse(responseCode = "403", ref = "#/components/responses/ForbiddenError"),
+      })
   @SecurityRequirements()
   @PostMapping(value = "/refresh", produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<AuthResponse> refresh(
