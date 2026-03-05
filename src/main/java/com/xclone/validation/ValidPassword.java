@@ -27,8 +27,7 @@ import java.lang.annotation.Target;
 @Size(min = 10, max = 100)
 @Pattern(
     regexp =
-        "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[$&+,:;=?@#|'<>.^*()%!-])"
-            + "[0-9a-zA-Z$&+,:;=?@#|'<>.^*()%!-]+$")
+        ValidationConstants.PASSWORD_PATTERN)
 @Target({ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
 @Constraint(validatedBy = {})

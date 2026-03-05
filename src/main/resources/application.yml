@@ -2,7 +2,6 @@ spring:
   application:
     name: x-clone-backend
 
-  # GraphQL Configuration
   graphql:
     graphiql:
       enabled: true
@@ -14,13 +13,13 @@ spring:
     websocket:
       path: /graphql-ws
 
-# JWT Configuration (you'll add this later)
+
 jwt:
   secret: ${JWT_SECRET:DLAFZBVVg4tKQcYcM5MqPZjasrFBVUnk}
   algorithm: HS256
   issuer: x-clone
 
-# Logging
+
 logging:
   level:
     com.xclone: DEBUG

@@ -19,7 +19,9 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-/** Coordinates business layers to perform route logic. */
+/**
+ * Coordinates business layers to perform route logic.
+ */
 @Service
 @Slf4j
 public class AuthenticationService {
@@ -149,9 +151,9 @@ public class AuthenticationService {
    *
    * <p>If validation succeeds, the refresh token is removed from Redis.
    *
-   * @param accessToken signed JWT access token
+   * @param accessToken    signed JWT access token
    * @param refreshTokenId opaque refresh token identifier
-   * @throws InvalidRefreshTokenException if validation fails
+   * @throws InvalidRefreshTokenException if the token is invalid or expired
    */
   public void logout(String accessToken, String refreshTokenId) {
     log.debug("logout service called. Validating logout request");
@@ -195,7 +197,7 @@ public class AuthenticationService {
    * @param refreshTokenId opaque refresh token identifier
    * @return new authentication tokens and user metadata
    * @throws InvalidRefreshTokenException if the token is invalid or expired
-   * @throws AccountNotActiveException if the account is not active
+   * @throws AccountNotActiveException    if the account is not active
    */
   public AuthTokens refresh(String refreshTokenId) {
     log.debug("refresh service called. Validating refresh request");
