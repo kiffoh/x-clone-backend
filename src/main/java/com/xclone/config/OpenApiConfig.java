@@ -17,9 +17,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Configuration file for OpenApi schema generation from code.
- * Defines and associates schemas as components to the OpenApi model.
- * Moreover, defines the custom order of the endpoints.
+ * Configuration file for OpenApi schema generation from code. Defines and associates schemas as
+ * components to the OpenApi model. Moreover, defines the custom order of the endpoints.
  */
 @Configuration
 public class OpenApiConfig {
