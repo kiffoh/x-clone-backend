@@ -7,6 +7,7 @@ import io.jsonwebtoken.Jwts;
 import java.util.Date;
 import javax.crypto.SecretKey;
 import lombok.extern.slf4j.Slf4j;
+import org.dataloader.annotations.VisibleForTesting;
 import org.springframework.stereotype.Component;
 
 /** Generates and validates JWT tokens. */
@@ -35,6 +36,11 @@ public class JwtTokenProvider {
     Date now = new Date();
     Date expiration =
         new Date(now.getTime() + this.authProperties.getAccessTokenDurationSeconds() * 1000L);
+    return createToken(userId, role, now, expiration);
+  }
+
+  @VisibleForTesting
+  public String createToken(String userId, String role, Date now, Date expiration) {
     return Jwts.builder()
         .subject(userId)
         .issuer(jwtProperties.getIssuer())
