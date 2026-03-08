@@ -8,13 +8,17 @@ import org.springframework.boot.test.context.TestComponent;
 
 @TestComponent
 public class AuthHelpers {
-  @Autowired private JwtTokenProvider jwtTokenProvider;
+  @Autowired
+  private JwtTokenProvider jwtTokenProvider;
 
   public String getUserAccessToken(String userId) {
     return this.jwtTokenProvider.createToken(userId, UserRole.USER.toString());
   }
 
-  public String createExpiredAccessToken(String userId, String role, Date expired) {
+  public String createExpiredAccessToken(String userId, String role) {
+    Date now = new Date();
+    long fiveMinutesMs = 5 * 60 * 1000L;
+    Date expired = new Date(now.getTime() - fiveMinutesMs);
     return this.jwtTokenProvider.createToken(userId, role, expired, expired);
   }
 }

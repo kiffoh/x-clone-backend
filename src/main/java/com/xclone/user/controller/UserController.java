@@ -10,6 +10,9 @@ import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 
+/**
+ * GraphQL controller resolving queries for the {@link com.xclone.user.model.entity.User} model.
+ */
 @Controller
 public class UserController {
   private final UserService userService;

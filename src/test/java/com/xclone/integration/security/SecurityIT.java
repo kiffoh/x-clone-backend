@@ -7,7 +7,6 @@ import com.xclone.integration.base.BaseIntegrationTest;
 import com.xclone.support.fixtures.UserFixtures;
 import com.xclone.support.helpers.AuthHelpers;
 import com.xclone.user.model.entity.User;
-import java.util.Date;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,9 +24,11 @@ import org.springframework.http.ResponseEntity;
 @Import(AuthHelpers.class)
 public class SecurityIT extends BaseIntegrationTest {
 
-  @Autowired private TestRestTemplate testRestTemplate;
+  @Autowired
+  private TestRestTemplate testRestTemplate;
 
-  @Autowired AuthHelpers authHelpers;
+  @Autowired
+  AuthHelpers authHelpers;
 
   HttpHeaders headers;
 
@@ -56,13 +57,10 @@ public class SecurityIT extends BaseIntegrationTest {
 
   @Test
   void unauthenticatedRequest_expiredAccessToken_returns401() {
-    Date now = new Date();
-    long fiveMinutesMs = 5 * 60 * 1000L;
-    Date expiredTime = new Date(now.getTime() - fiveMinutesMs);
     User user = UserFixtures.getDefaultUserWithRandomId();
     headers.setBearerAuth(
         authHelpers.createExpiredAccessToken(
-            user.getId().toString(), user.getRole().toString(), expiredTime));
+            user.getId().toString(), user.getRole().toString()));
 
     ResponseEntity<ErrorResponse> response =
         testRestTemplate.postForEntity("/graphql", new HttpEntity<>(headers), ErrorResponse.class);

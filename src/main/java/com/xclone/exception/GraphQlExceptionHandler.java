@@ -1,5 +1,6 @@
 package com.xclone.exception;
 
+import com.xclone.exception.dto.FieldError;
 import graphql.ErrorType;
 import graphql.GraphQLError;
 import jakarta.validation.ConstraintViolation;
@@ -9,10 +10,21 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 
+/**
+ * Provides global error handling for GraphQL operations.
+ */
 @ControllerAdvice
 @Slf4j
 public class GraphQlExceptionHandler {
 
+  /**
+   * Handles {@link ConstraintViolationException} and formats the errors to a similar style
+   * to the REST error response* {@link FieldError}.
+   *
+   * @param violations exception which contains the validation violations
+   * @return a list of {@link GraphQLError} — one entry per violation,
+   * each containing the violation message and field name in {@code extensions}.
+   */
   @org.springframework.graphql.data.method.annotation.GraphQlExceptionHandler(
       ConstraintViolationException.class)
   public List<GraphQLError> handleConstraintViolationException(
