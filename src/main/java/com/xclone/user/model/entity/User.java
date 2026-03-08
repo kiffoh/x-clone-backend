@@ -1,5 +1,6 @@
 package com.xclone.user.model.entity;
 
+import com.xclone.user.dto.UserProfile;
 import com.xclone.user.model.enums.UserRole;
 import com.xclone.user.model.enums.UserStatus;
 import jakarta.persistence.Column;
@@ -12,6 +13,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
@@ -61,4 +63,15 @@ public class User {
   @LastModifiedDate
   @Column(name = "updated_at")
   private Instant updatedAt;
+
+  public UserProfile toUserProfile() {
+    return new UserProfile(
+        id,
+        handle,
+        displayName,
+        bio,
+        profileImage,
+        createdAt.atOffset(ZoneOffset.UTC),
+        updatedAt.atOffset(ZoneOffset.UTC));
+  }
 }

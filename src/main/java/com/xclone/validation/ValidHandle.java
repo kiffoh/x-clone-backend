@@ -26,7 +26,7 @@ import java.lang.annotation.Target;
 @NotBlank(message = "Handle is required")
 @Size(min = 4, max = 15)
 @Pattern(regexp = ValidationConstants.HANDLE_PATTERN)
-@Target({ElementType.FIELD})
+@Target({ElementType.FIELD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
 @Constraint(validatedBy = {})
 @Documented
