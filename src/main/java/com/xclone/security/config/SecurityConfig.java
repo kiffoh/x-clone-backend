@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -43,11 +44,19 @@ public class SecurityConfig {
     http.authorizeHttpRequests(
         auth ->
             auth.requestMatchers(
-                    "/api/auth/**", "/v3/api-docs/**", "/v3/api-docs.yaml", "/swagger-ui/**")
+                    "/api/auth/**",
+                    "/v3/api-docs/**",
+                    "/v3/api-docs.yaml",
+                    "/swagger-ui/**",
+                    "/graphiql")
                 .permitAll()
                 .anyRequest()
                 .authenticated());
     http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+    http.exceptionHandling(
+        ex ->
+            ex.authenticationEntryPoint(
+                (request, response, e) -> response.sendError(HttpServletResponse.SC_UNAUTHORIZED)));
     http.csrf(AbstractHttpConfigurer::disable);
     http.sessionManagement(
         (session) -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
