@@ -8,8 +8,7 @@ import org.springframework.boot.test.context.TestComponent;
 
 @TestComponent
 public class AuthHelpers {
-  @Autowired
-  private JwtTokenProvider jwtTokenProvider;
+  @Autowired private JwtTokenProvider jwtTokenProvider;
 
   public String getUserAccessToken(String userId) {
     return this.jwtTokenProvider.createToken(userId, UserRole.USER.toString());

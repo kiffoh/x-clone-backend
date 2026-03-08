@@ -21,9 +21,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-/**
- * Entity for users table.
- */
+/** Entity for users table. */
 @Getter
 @Setter
 @Entity
@@ -67,9 +65,8 @@ public class User {
   private Instant updatedAt;
 
   /**
-   * Projects this entity to a {@link UserProfile} for use in GraphQL responses.
-   * Timestamps are converted from {@link java.time.Instant} to
-   * {@link java.time.OffsetDateTime} at UTC.
+   * Projects this entity to a {@link UserProfile} for use in GraphQL responses. Timestamps are
+   * converted from {@link java.time.Instant} to {@link java.time.OffsetDateTime} at UTC.
    *
    * @return immutable public-facing projection of this user
    */

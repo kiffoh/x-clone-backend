@@ -14,9 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
-/**
- * Coordinates resolver logic for the User GraphQL model.
- */
+/** Coordinates resolver logic for the User GraphQL model. */
 @Slf4j
 @Service
 @Validated
@@ -28,9 +26,9 @@ public class UserService {
   }
 
   /**
-   * Builds a {@link UserConnection} from a flat list of {@link User} entities.
-   * {@link PageInfo#hasNextPage()} and {@link PageInfo#hasPreviousPage()} are always
-   * {@code false} until cursor pagination is implemented.
+   * Builds a {@link UserConnection} from a flat list of {@link User} entities. {@link
+   * PageInfo#hasNextPage()} and {@link PageInfo#hasPreviousPage()} are always {@code false} until
+   * cursor pagination is implemented.
    *
    * @param users the users to wrap; may be empty
    * @return a connection containing edges, page metadata, and total count

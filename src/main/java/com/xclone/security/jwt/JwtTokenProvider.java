@@ -10,9 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.dataloader.annotations.VisibleForTesting;
 import org.springframework.stereotype.Component;
 
-/**
- * Generates and validates JWT tokens.
- */
+/** Generates and validates JWT tokens. */
 @Slf4j
 @Component
 public class JwtTokenProvider {
@@ -28,11 +26,11 @@ public class JwtTokenProvider {
   }
 
   /**
-   * Creates a JWT access token using the configured expiry duration.
-   * Delegates to {@link #createToken(String, String, Date, Date)}.
+   * Creates a JWT access token using the configured expiry duration. Delegates to {@link
+   * #createToken(String, String, Date, Date)}.
    *
    * @param userId User's unique identifier
-   * @param role   User's role (USER, ADMIN)
+   * @param role User's role (USER, ADMIN)
    * @return Signed JWT string
    */
   public String createToken(String userId, String role) {
@@ -45,9 +43,9 @@ public class JwtTokenProvider {
   /**
    * Creates a JWT access token. RS265 algorithm is automatically selected based on key length.
    *
-   * @param userId     User's unique identifier
-   * @param role       User's role (USER, ADMIN)
-   * @param now        datetime of token creation
+   * @param userId User's unique identifier
+   * @param role User's role (USER, ADMIN)
+   * @param now datetime of token creation
    * @param expiration datetime of token expiration
    * @return Signed JWT string
    */
@@ -63,16 +61,12 @@ public class JwtTokenProvider {
         .compact();
   }
 
-  /**
-   * Parses and validates a JWT token.
-   */
+  /** Parses and validates a JWT token. */
   public Claims parseToken(String jws) {
     return Jwts.parser().verifyWith(this.jwtSigningKey).build().parseSignedClaims(jws).getPayload();
   }
 
-  /**
-   * Extracts user ID from token.
-   */
+  /** Extracts user ID from token. */
   public String getUserIdFromToken(String jws) {
     return Jwts.parser()
         .verifyWith(this.jwtSigningKey)
@@ -82,9 +76,7 @@ public class JwtTokenProvider {
         .getSubject();
   }
 
-  /**
-   * Validates a JWT Token.
-   */
+  /** Validates a JWT Token. */
   public boolean validToken(String jws) {
     try {
       Claims claims = parseToken(jws);

@@ -24,11 +24,9 @@ import org.springframework.http.ResponseEntity;
 @Import(AuthHelpers.class)
 public class SecurityIT extends BaseIntegrationTest {
 
-  @Autowired
-  private TestRestTemplate testRestTemplate;
+  @Autowired private TestRestTemplate testRestTemplate;
 
-  @Autowired
-  AuthHelpers authHelpers;
+  @Autowired AuthHelpers authHelpers;
 
   HttpHeaders headers;
 
@@ -59,8 +57,7 @@ public class SecurityIT extends BaseIntegrationTest {
   void unauthenticatedRequest_expiredAccessToken_returns401() {
     User user = UserFixtures.getDefaultUserWithRandomId();
     headers.setBearerAuth(
-        authHelpers.createExpiredAccessToken(
-            user.getId().toString(), user.getRole().toString()));
+        authHelpers.createExpiredAccessToken(user.getId().toString(), user.getRole().toString()));
 
     ResponseEntity<ErrorResponse> response =
         testRestTemplate.postForEntity("/graphql", new HttpEntity<>(headers), ErrorResponse.class);
