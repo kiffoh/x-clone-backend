@@ -64,13 +64,13 @@ public class UserIT extends BaseIntegrationTest {
       authenticatedTester()
           .document(
               """
-              {
-                me {
-                  handle
-                  id
-                }
-               }
-              """)
+                  {
+                    me {
+                      handle
+                      id
+                    }
+                   }
+                  """)
           .execute()
           .path("me.handle")
           .entity(String.class)
@@ -79,32 +79,6 @@ public class UserIT extends BaseIntegrationTest {
           .entity(String.class)
           .isEqualTo(authenticatedUser.getId().toString());
     }
-  }
-
-  @Test
-  void me_invalidRefreshToken_returns403() {
-
-    //    assertThatThrownBy(() -> graphQlTester.document("""
-    //        {
-    //          me {
-    //            id
-    //            handle
-    //          }
-    //         }
-    //        """).execute())
-    //        .
-    //    GraphQlResponse response = graphQlTester.document("""
-    //        {
-    //          me {
-    //            id
-    //            handle
-    //          }
-    //         }
-    //        """).execute().errors().expect();
-    //
-    //    assertThat(response.)
-    //
-    //    System.out.println(response);
   }
 
   @Nested
@@ -116,13 +90,13 @@ public class UserIT extends BaseIntegrationTest {
           .document(
               String.format(
                   """
-              {
-                userByHandle(handle: "%s") {
-                  id
-                  handle
-                }
-               }
-              """,
+                      {
+                        userByHandle(handle: "%s") {
+                          id
+                          handle
+                        }
+                       }
+                      """,
                   handle))
           .execute()
           .path("userByHandle.handle")
@@ -134,19 +108,19 @@ public class UserIT extends BaseIntegrationTest {
     }
 
     @Test
-    void userByHandle_userNotExist_returnsUser() {
+    void userByHandle_userNotExist_returnsNull() {
       String userWithHandleDoesNotExist = "handleNotExist";
       authenticatedTester()
           .document(
               String.format(
                   """
-              {
-                userByHandle(handle: "%s") {
-                  id
-                  handle
-                }
-               }
-              """,
+                      {
+                        userByHandle(handle: "%s") {
+                          id
+                          handle
+                        }
+                       }
+                      """,
                   userWithHandleDoesNotExist))
           .execute()
           .path("userByHandle")
@@ -164,13 +138,13 @@ public class UserIT extends BaseIntegrationTest {
               .document(
                   String.format(
                       """
-          {
-            userByHandle(handle: "%s") {
-              id
-              handle
-            }
-           }
-          """,
+                          {
+                            userByHandle(handle: "%s") {
+                              id
+                              handle
+                            }
+                           }
+                          """,
                       invalidHandle))
               .execute()
               .returnResponse()
@@ -182,6 +156,140 @@ public class UserIT extends BaseIntegrationTest {
           .containsExactlyInAnyOrder(
               tuple("handle", "size must be between 4 and 15"),
               tuple("handle", "must match \"^(?![0-9]+$)[0-9a-zA-Z_]+$\""));
+    }
+  }
+
+  @Nested
+  class userByIdTests {
+    @Test
+    void userById_userExists_returnsUser() {
+      User user = users.getFirst();
+      authenticatedTester()
+          .document(
+              String.format(
+                  """
+                      {
+                        userById(id: "%s") {
+                          id
+                          handle
+                        }
+                       }
+                      """,
+                  user.getId()))
+          .execute()
+          .path("userById.handle")
+          .entity(String.class)
+          .isEqualTo(user.getHandle())
+          .path("userById.id")
+          .entity(String.class)
+          .isEqualTo(user.getId().toString());
+    }
+
+    @Test
+    void userById_userNotExist_returnsNull() {
+      User userDoesNotExist = UserFixtures.getDefaultUserWithRandomId();
+      authenticatedTester()
+          .document(
+              String.format(
+                  """
+                      {
+                        userById(id: "%s") {
+                          id
+                          handle
+                        }
+                       }
+                      """,
+                  userDoesNotExist.getId()))
+          .execute()
+          .path("userById")
+          .valueIsNull();
+    }
+  }
+
+  @Nested
+  class searchUsersTest {
+    @Test
+    void searchUsers_validQueryForMultipleUser_returnsUserConnection() {
+      String query = "exam";
+      authenticatedTester()
+          .document(
+              String.format(
+                  """
+                      {
+                        searchUsers(query: "%s") {
+                          totalCount
+                          edges {
+                            node {
+                              handle
+                            }
+                           }
+                         }
+                      }
+                      """,
+                  query))
+          .execute()
+          .path("searchUsers.totalCount")
+          .entity(Integer.class)
+          .isEqualTo(3)
+          .path("searchUsers.edges[*].node.handle")
+          .entityList(String.class)
+          .satisfies(handles -> handles.forEach((handle -> assertThat(handle).contains(query))));
+    }
+
+    @Test
+    void searchUsers_validQueryForSingleUser_returnsUserConnection() {
+      String query = "example1";
+      authenticatedTester()
+          .document(
+              String.format(
+                  """
+                      {
+                        searchUsers(query: "%s") {
+                          totalCount
+                          edges {
+                            node {
+                              handle
+                            }
+                           }
+                         }
+                      }
+                      """,
+                  query))
+          .execute()
+          .path("searchUsers.totalCount")
+          .entity(Integer.class)
+          .isEqualTo(1)
+          .path("searchUsers.edges[*].node.handle")
+          .entityList(String.class)
+          .satisfies(handles -> handles.forEach((handle -> assertThat(handle).contains(query))));
+    }
+
+    @Test
+    void searchUsers_queryWithNoMatch_returnsUserConnection() {
+      String query = "noUserHasThisHandle";
+      authenticatedTester()
+          .document(
+              String.format(
+                  """
+                      {
+                        searchUsers(query: "%s") {
+                          totalCount
+                          edges {
+                            node {
+                              handle
+                            }
+                           }
+                         }
+                      }
+                      """,
+                  query))
+          .execute()
+          .path("searchUsers.totalCount")
+          .entity(Integer.class)
+          .isEqualTo(0)
+          .path("searchUsers.edges[*].node.handle")
+          .entityList(String.class)
+          .hasSize(0);
     }
   }
 }
