@@ -1,12 +1,16 @@
 package com.xclone.user.service;
 
+import com.xclone.common.connection.PageInfo;
+import com.xclone.exception.custom.DuplicateHandleException;
 import com.xclone.user.dto.UserProfile;
-import com.xclone.user.dto.connection.PageInfo;
 import com.xclone.user.dto.connection.UserConnection;
 import com.xclone.user.dto.connection.UserEdge;
+import com.xclone.user.dto.request.UpdateUserRequest;
 import com.xclone.user.model.entity.User;
+import com.xclone.user.model.enums.UserStatus;
 import com.xclone.user.repository.UserRepository;
 import com.xclone.validation.ValidHandle;
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -60,5 +64,33 @@ public class UserService {
   public UserConnection getUsersByHandle(String query) {
     List<User> users = userRepository.findAllByHandleContaining(query);
     return toUserConnection(users);
+  }
+
+  //   Is request better than input?
+  public UserProfile updateProfile(User user, @Valid UpdateUserRequest updateUserInput) {
+    if (updateUserInput.bio() != null) {
+      user.setBio(updateUserInput.bio());
+    }
+    if (updateUserInput.displayName() != null) {
+      user.setDisplayName(updateUserInput.displayName());
+    }
+    // Do I need to check for handle?
+    if (updateUserInput.handle() != null) {
+      if (userRepository.existsByHandle(updateUserInput.handle())) {
+        log.warn("signup attempt with an existing handle");
+        throw new DuplicateHandleException("This handle is already taken");
+      } else {
+        user.setHandle(updateUserInput.handle());
+      }
+    }
+    if (updateUserInput.profileImage() != null) {
+      user.setProfileImage(updateUserInput.profileImage());
+    }
+    User updatedUser = userRepository.save(user);
+    return updatedUser.toUserProfile();
+  }
+
+  public void deleteProfile(User user) {
+    user.setStatus(UserStatus.DELETED);
   }
 }

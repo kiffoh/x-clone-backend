@@ -1,4 +1,4 @@
-package com.xclone.user.dto.connection;
+package com.xclone.common.connection;
 
 /**
  * Represents metadata for a GraphQL relay-style connection.

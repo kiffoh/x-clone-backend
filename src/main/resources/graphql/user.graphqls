@@ -5,7 +5,6 @@ type User {
     bio: String
     profileImage: String
     createdAt: DateTime
-    status: UserStatus
 
     posts(first: Int, after: String): PostConnection!
 
@@ -37,7 +36,7 @@ extend type Query {
 extend type Mutation {
     """
     Update user profile information.
-    
+
     Authentication: Required (user can only update their own profile)
     Admin can update any user by using adminUpdateUser mutation.
     """
@@ -45,7 +44,7 @@ extend type Mutation {
     """
     Delete the authenticated user's account.
     Soft delete - sets status to DELETED.
-    
+
     Authentication: Required
     Cannot be undone (for MVP - could add restore later)
     """

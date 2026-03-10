@@ -1,5 +1,6 @@
 package com.xclone.user.dto.connection;
 
+import com.xclone.common.connection.PageInfo;
 import java.util.List;
 
 /**
