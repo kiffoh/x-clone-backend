@@ -6,9 +6,7 @@ import java.util.List;
 public interface MutationResponse {
   String code();
 
-  boolean success();
-
-  String message();
+  Boolean success();
 
   List<FieldError> errors();
 }

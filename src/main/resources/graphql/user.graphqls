@@ -64,7 +64,6 @@ input UpdateUserInput {
 type UserResponse implements MutationResponse {
     code: String!
     success: Boolean!
-    message: String!
     user: User
     errors: [Error!]
 }

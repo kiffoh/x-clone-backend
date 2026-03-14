@@ -46,7 +46,6 @@ type NotificationEdge {
 interface MutationResponse {
     code: String!
     success: Boolean!
-    message: String!
     errors: [Error!]
 }
 

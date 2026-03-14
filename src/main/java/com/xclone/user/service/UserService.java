@@ -5,7 +5,7 @@ import com.xclone.exception.custom.DuplicateHandleException;
 import com.xclone.user.dto.UserProfile;
 import com.xclone.user.dto.connection.UserConnection;
 import com.xclone.user.dto.connection.UserEdge;
-import com.xclone.user.dto.request.UpdateUserRequest;
+import com.xclone.user.dto.request.UpdateUserInput;
 import com.xclone.user.model.entity.User;
 import com.xclone.user.model.enums.UserStatus;
 import com.xclone.user.repository.UserRepository;
@@ -67,7 +67,7 @@ public class UserService {
   }
 
   //   Is request better than input?
-  public UserProfile updateProfile(User user, @Valid UpdateUserRequest updateUserInput) {
+  public UserProfile updateProfile(User user, @Valid UpdateUserInput updateUserInput) {
     if (updateUserInput.bio() != null) {
       user.setBio(updateUserInput.bio());
     }
@@ -77,7 +77,7 @@ public class UserService {
     // Do I need to check for handle?
     if (updateUserInput.handle() != null) {
       if (userRepository.existsByHandle(updateUserInput.handle())) {
-        log.warn("signup attempt with an existing handle");
+        log.debug("update profile attempt with an existing handle");
         throw new DuplicateHandleException("This handle is already taken");
       } else {
         user.setHandle(updateUserInput.handle());
@@ -92,5 +92,6 @@ public class UserService {
 
   public void deleteProfile(User user) {
     user.setStatus(UserStatus.DELETED);
+    userRepository.save(user);
   }
 }

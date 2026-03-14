@@ -1,11 +1,18 @@
 package com.xclone.user.controller;
 
+import com.xclone.exception.custom.DuplicateHandleException;
+import com.xclone.exception.dto.FieldError;
 import com.xclone.security.user.CustomUserDetails;
 import com.xclone.user.dto.UserProfile;
 import com.xclone.user.dto.connection.UserConnection;
+import com.xclone.user.dto.mutation.UserResponse;
+import com.xclone.user.dto.request.UpdateUserInput;
+import com.xclone.user.model.entity.User;
 import com.xclone.user.service.UserService;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.graphql.data.method.annotation.Argument;
+import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
@@ -50,4 +57,24 @@ public class UserController {
   //    return userService.getSuggestedUsers(userDetails.getUser());
   //  }
 
+  // The message and success seem counter intutive to me.
+  @MutationMapping
+  public UserResponse updateMyProfile(
+      @AuthenticationPrincipal CustomUserDetails userDetails, @Argument UpdateUserInput input) {
+    User user = userDetails.getUser();
+    try {
+      UserProfile updatedUser = userService.updateProfile(user, input);
+      return new UserResponse("200", true, updatedUser, null);
+    } catch (DuplicateHandleException ex) {
+      return new UserResponse(
+          "409", false, null, List.of(new FieldError("handle", ex.getMessage())));
+    }
+  }
+
+  @MutationMapping
+  public UserResponse deleteMyAccount(@AuthenticationPrincipal CustomUserDetails userDetails) {
+    User user = userDetails.getUser();
+    userService.deleteProfile(user);
+    return new UserResponse("200", true, null, null);
+  }
 }

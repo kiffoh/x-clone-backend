@@ -28,16 +28,15 @@ public class UserControllerTest {
   @WithMockCustomUser
   public void me_returnsUserProfile() {
     User defaultUser = UserFixtures.getDefaultUserWithStaticId();
-    // Is there a way to declare the same id that is generated with annotation WithMockUser?
     String request =
         """
-        {
-          me {
-            handle
-            id
-          }
-        }
-        """;
+            {
+              me {
+                handle
+                id
+              }
+            }
+            """;
     tester
         .document(request)
         .execute()
@@ -57,12 +56,12 @@ public class UserControllerTest {
     String request =
         String.format(
             """
-        {
-          userByHandle(handle: "%s") {
-            id
-          }
-        }
-        """,
+                {
+                  userByHandle(handle: "%s") {
+                    id
+                  }
+                }
+                """,
             handle);
     tester
         .document(request)
@@ -80,12 +79,12 @@ public class UserControllerTest {
     String request =
         String.format(
             """
-        {
-          userById(id: "%s") {
-            id
-          }
-        }
-        """,
+                {
+                  userById(id: "%s") {
+                    id
+                  }
+                }
+                """,
             id);
     tester
         .document(request)
@@ -103,18 +102,18 @@ public class UserControllerTest {
     String request =
         String.format(
             """
-        {
-          searchUsers(query: "%s") {
-            totalCount
-            edges {
-              node {
-                id
-                handle
-              }
-             }
-           }
-        }
-        """,
+                {
+                  searchUsers(query: "%s") {
+                    totalCount
+                    edges {
+                      node {
+                        id
+                        handle
+                      }
+                     }
+                   }
+                }
+                """,
             query);
     tester
         .document(request)
