@@ -2,17 +2,19 @@ package com.xclone.user.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import com.xclone.exception.custom.DuplicateHandleException;
+import com.xclone.integration.validation.ValidationIT;
 import com.xclone.support.fixtures.UserFixtures;
 import com.xclone.user.dto.UserProfile;
 import com.xclone.user.dto.connection.UserConnection;
 import com.xclone.user.dto.request.UpdateUserInput;
 import com.xclone.user.model.entity.User;
 import com.xclone.user.repository.UserRepository;
+import com.xclone.validation.ObjectNotEmpty;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -24,8 +26,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 /**
  * The unit testing for the following functions has been skipped as they are thin services and
- * testing would only be testing the framework: - me - getUserByHandle - getUsersByHandle -
- * deleteProfile
+ * testing would only be testing the framework:
+ *
+ * <ul>
+ *   <li>me
+ *   <li>getUserByHandle
+ *   <li>getUsersByHandle
+ *   <li>deleteProfile
+ * </ul>
  */
 @ExtendWith(MockitoExtension.class)
 public class UserServiceTest {
@@ -115,14 +123,20 @@ public class UserServiceTest {
     }
   }
 
+  /**
+   * The test where all {@link UpdateUserInput} values as null has been skipped. It is a duplication
+   * of the {@link ObjectNotEmpty} annotation tests in {@link ValidationIT}.
+   */
   @Nested
   class updateProfileTests {
 
     User existingUser;
+    String existingUserId;
 
     @BeforeEach
     void initialisation() {
       existingUser = UserFixtures.getDefaultUserWithRandomId();
+      existingUserId = existingUser.getId().toString();
     }
 
     @Test
@@ -130,26 +144,26 @@ public class UserServiceTest {
       UpdateUserInput input = new UpdateUserInput("NewName", null, null, null);
       String originalDisplayName = existingUser.getDisplayName();
 
-      when(userRepository.save(existingUser)).thenReturn(existingUser);
-
-      UserProfile returnedUser = userService.updateProfile(existingUser, input);
+      when(userRepository.findById(existingUser.getId())).thenReturn(Optional.of(existingUser));
+      UserProfile returnedUser = userService.updateProfile(existingUserId, input);
 
       assertThat(returnedUser.displayName()).isNotEqualTo(originalDisplayName);
       assertThat(returnedUser).isEqualTo(existingUser.toUserProfile());
     }
 
     @Test
-    void updatesUserHandle_originalHandle_returnsUserProfile() {
+    void updatesUserHandle_newHandle_returnsUserProfile() {
       String newHandle = "new";
       UpdateUserInput input = new UpdateUserInput(null, newHandle, null, null);
       String originalHandle = existingUser.getHandle();
 
-      when(userRepository.existsByHandle(newHandle)).thenReturn(false);
-      when(userRepository.save(existingUser)).thenReturn(existingUser);
+      when(userRepository.findById(existingUser.getId())).thenReturn(Optional.of(existingUser));
+      when(userRepository.existsByHandleAndIdNot(newHandle, existingUser.getId()))
+          .thenReturn(false);
 
-      UserProfile returnedUser = userService.updateProfile(existingUser, input);
+      UserProfile returnedUser = userService.updateProfile(existingUserId, input);
 
-      assertThat(returnedUser.displayName()).isNotEqualTo(originalHandle);
+      assertThat(returnedUser.handle()).isNotEqualTo(originalHandle);
       assertThat(returnedUser).isEqualTo(existingUser.toUserProfile());
     }
 
@@ -164,10 +178,11 @@ public class UserServiceTest {
               "https://www.thisisanewprofileuri.com");
       User originalUser = existingUser.toBuilder().build();
 
-      when(userRepository.existsByHandle(anyString())).thenReturn(false);
-      when(userRepository.save(existingUser)).thenReturn(existingUser);
+      when(userRepository.findById(existingUser.getId())).thenReturn(Optional.of(existingUser));
+      when(userRepository.existsByHandleAndIdNot(newHandle, existingUser.getId()))
+          .thenReturn(false);
 
-      UserProfile returnedUser = userService.updateProfile(existingUser, input);
+      UserProfile returnedUser = userService.updateProfile(existingUserId, input);
 
       assertThat(returnedUser.displayName()).isNotEqualTo(originalUser.getDisplayName());
       assertThat(returnedUser.handle()).isNotEqualTo(originalUser.getHandle());
@@ -177,17 +192,41 @@ public class UserServiceTest {
     }
 
     @Test
+    void updatesUserHandle_userSubmitsCurrentHandleAsUpdateInput_returnsUserProfile() {
+      String existingHandle = existingUser.getHandle();
+      UpdateUserInput input = new UpdateUserInput(null, existingHandle, null, null);
+
+      when(userRepository.findById(existingUser.getId())).thenReturn(Optional.of(existingUser));
+      when(userRepository.existsByHandleAndIdNot(existingHandle, existingUser.getId()))
+          .thenReturn(false);
+
+      UserProfile returnedUser = userService.updateProfile(existingUserId, input);
+
+      assertThat(returnedUser).isEqualTo(existingUser.toUserProfile());
+    }
+
+    @Test
     void updatesUserHandle_existingHandle_returnsDuplicateHandle() {
       String existingHandle = "existing";
       UpdateUserInput input = new UpdateUserInput(null, existingHandle, null, null);
 
-      when(userRepository.existsByHandle(existingHandle)).thenReturn(true);
-      assertThatThrownBy(() -> userService.updateProfile(existingUser, input))
+      when(userRepository.findById(existingUser.getId())).thenReturn(Optional.of(existingUser));
+      when(userRepository.existsByHandleAndIdNot(existingHandle, existingUser.getId()))
+          .thenReturn(true);
+      assertThatThrownBy(() -> userService.updateProfile(existingUserId, input))
           .isInstanceOf(DuplicateHandleException.class)
           .hasMessage("This handle is already taken");
     }
-  }
 
-  @Nested
-  class deleteProfileTests {}
+    @Test
+    void invalidUserId_returnsIllegalState() {
+      UpdateUserInput input = new UpdateUserInput("NewName", null, null, null);
+
+      when(userRepository.findById(existingUser.getId())).thenReturn(Optional.empty());
+
+      assertThatThrownBy(() -> userService.updateProfile(existingUserId, input))
+          .isInstanceOf(IllegalStateException.class)
+          .hasMessage("Authenticated user not found in database: " + existingUserId);
+    }
+  }
 }

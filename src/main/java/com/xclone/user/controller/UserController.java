@@ -7,7 +7,6 @@ import com.xclone.user.dto.UserProfile;
 import com.xclone.user.dto.connection.UserConnection;
 import com.xclone.user.dto.mutation.UserResponse;
 import com.xclone.user.dto.request.UpdateUserInput;
-import com.xclone.user.model.entity.User;
 import com.xclone.user.service.UserService;
 import java.util.List;
 import java.util.UUID;
@@ -57,13 +56,12 @@ public class UserController {
   //    return userService.getSuggestedUsers(userDetails.getUser());
   //  }
 
-  // The message and success seem counter intutive to me.
   @MutationMapping
   public UserResponse updateMyProfile(
       @AuthenticationPrincipal CustomUserDetails userDetails, @Argument UpdateUserInput input) {
-    User user = userDetails.getUser();
+    String userId = userDetails.getUsername();
     try {
-      UserProfile updatedUser = userService.updateProfile(user, input);
+      UserProfile updatedUser = userService.updateProfile(userId, input);
       return new UserResponse("200", true, updatedUser, null);
     } catch (DuplicateHandleException ex) {
       return new UserResponse(
@@ -73,8 +71,8 @@ public class UserController {
 
   @MutationMapping
   public UserResponse deleteMyAccount(@AuthenticationPrincipal CustomUserDetails userDetails) {
-    User user = userDetails.getUser();
-    userService.deleteProfile(user);
+    String userId = userDetails.getUsername();
+    userService.deleteProfile(userId);
     return new UserResponse("200", true, null, null);
   }
 }

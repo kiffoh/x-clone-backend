@@ -55,6 +55,7 @@ extend type Mutation {
 }
 
 input UpdateUserInput {
+    """At least one field must be provided."""
     displayName: String,
     handle: String,
     bio: String,

@@ -10,6 +10,7 @@ import com.xclone.user.model.entity.User;
 import com.xclone.user.model.enums.UserStatus;
 import com.xclone.user.repository.UserRepository;
 import com.xclone.validation.ValidHandle;
+import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Optional;
@@ -66,8 +67,25 @@ public class UserService {
     return toUserConnection(users);
   }
 
-  //   Is request better than input?
-  public UserProfile updateProfile(User user, @Valid UpdateUserInput updateUserInput) {
+  /**
+   * Updates the user entity with the provided input fields using a {@link Transactional} view,
+   * ensuring for an accurate and consistent view of the user entity. {@link
+   * DuplicateHandleException} throws when the handle in {@link UpdateUserInput} already exists in
+   * the database and is not the current user handle.
+   *
+   * @param userId unique UUID for user entity
+   * @param updateUserInput DTO with user profile fields to be updated
+   * @return user with relevant fields updated
+   */
+  @Transactional
+  public UserProfile updateProfile(String userId, @Valid UpdateUserInput updateUserInput) {
+    User user =
+        userRepository
+            .findById(UUID.fromString(userId))
+            .orElseThrow(
+                () ->
+                    new IllegalStateException(
+                        "Authenticated user not found in database: " + userId));
     if (updateUserInput.bio() != null) {
       user.setBio(updateUserInput.bio());
     }
@@ -76,7 +94,7 @@ public class UserService {
     }
     // Do I need to check for handle?
     if (updateUserInput.handle() != null) {
-      if (userRepository.existsByHandle(updateUserInput.handle())) {
+      if (userRepository.existsByHandleAndIdNot(updateUserInput.handle(), user.getId())) {
         log.debug("update profile attempt with an existing handle");
         throw new DuplicateHandleException("This handle is already taken");
       } else {
@@ -86,12 +104,18 @@ public class UserService {
     if (updateUserInput.profileImage() != null) {
       user.setProfileImage(updateUserInput.profileImage());
     }
-    User updatedUser = userRepository.save(user);
-    return updatedUser.toUserProfile();
+    return user.toUserProfile();
   }
 
-  public void deleteProfile(User user) {
+  @Transactional
+  public void deleteProfile(String userId) {
+    User user =
+        userRepository
+            .findById(UUID.fromString(userId))
+            .orElseThrow(
+                () ->
+                    new IllegalStateException(
+                        "Authenticated user not found in database: " + userId));
     user.setStatus(UserStatus.DELETED);
-    userRepository.save(user);
   }
 }

@@ -15,4 +15,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
   List<User> findAllByHandleContaining(String query);
 
   boolean existsByHandle(String handle);
+
+  boolean existsByHandleAndIdNot(String handle, UUID id);
 }
