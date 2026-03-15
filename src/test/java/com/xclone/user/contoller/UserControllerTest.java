@@ -1,13 +1,17 @@
 package com.xclone.user.contoller;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import com.xclone.config.GraphQlConfig;
+import com.xclone.exception.custom.DuplicateHandleException;
 import com.xclone.support.fixtures.UserFixtures;
 import com.xclone.user.controller.UserController;
 import com.xclone.user.dto.connection.UserConnection;
 import com.xclone.user.model.entity.User;
 import com.xclone.user.service.UserService;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -121,5 +125,127 @@ public class UserControllerTest {
         .path("searchUsers.totalCount")
         .entity(Integer.class)
         .isEqualTo(3);
+  }
+
+  @Test
+  @WithMockCustomUser
+  public void updateMyProfile_returnsUserResponse() {
+    User defaultUser = UserFixtures.getDefaultUserWithStaticId();
+    String newDisplayName = "newName";
+    String newHandle = "newHandle";
+    User updatedUser = defaultUser.toBuilder().build();
+    updatedUser.setDisplayName(newDisplayName);
+    updatedUser.setHandle(newHandle);
+    when(userService.updateProfile(anyString(), any())).thenReturn(updatedUser.toUserProfile());
+
+    tester
+        .document(
+            """
+            mutation UpdateProfile($input: UpdateUserInput!) {
+              updateMyProfile(input: $input) {
+                code
+                success
+                user {
+                  displayName
+                  handle
+                }
+                errors {
+                  field
+                  message
+                }
+              }
+            }
+            """)
+        .variable(
+            "input",
+            Map.of(
+                "displayName", newDisplayName,
+                "handle", newHandle))
+        .execute()
+        .path("updateMyProfile")
+        .matchesJson(
+            String.format(
+                """
+            {
+              "code": "200",
+              "success": true,
+              "user": {
+                "displayName": "%s",
+                "handle": "%s"
+              },
+              "errors": null
+            }
+            """,
+                newDisplayName, newHandle));
+  }
+
+  @Test
+  @WithMockCustomUser
+  public void updateMyProfile_returnsDuplicateHandle() {
+    User defaultUser = UserFixtures.getDefaultUserWithStaticId();
+    when(userService.updateProfile(anyString(), any()))
+        .thenThrow(new DuplicateHandleException("Handle already in use"));
+
+    tester
+        .document(
+            """
+            mutation UpdateProfile($input: UpdateUserInput!) {
+              updateMyProfile(input: $input) {
+                code
+                success
+                user {
+                  displayName
+                  handle
+                }
+                errors {
+                  field
+                  message
+                }
+              }
+            }
+            """)
+        .variable("input", Map.of("handle", defaultUser.getHandle()))
+        .execute()
+        .path("updateMyProfile")
+        .matchesJson(
+            """
+            {
+              "code": "409",
+              "success": false,
+              "user": null,
+              "errors": [
+                { "field": "handle", "message" : "Handle already in use" }
+              ]
+            }
+            """);
+  }
+
+  @Test
+  @WithMockCustomUser
+  public void deleteMyAccount_returnsDeleteResponse() {
+    tester
+        .document(
+            """
+            mutation DeleteProfile {
+              deleteMyAccount {
+                code
+                success
+                errors {
+                  field
+                  message
+                }
+              }
+            }
+            """)
+        .execute()
+        .path("deleteMyAccount")
+        .matchesJson(
+            """
+            {
+              "code": "200",
+              "success": true,
+              "errors": null
+            }
+            """);
   }
 }

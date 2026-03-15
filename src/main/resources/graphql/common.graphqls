@@ -49,6 +49,12 @@ interface MutationResponse {
     errors: [Error!]
 }
 
+type DeleteResponse implements MutationResponse {
+    code: String!
+    success: Boolean!
+    errors: [Error!]
+}
+
 type EngagementEvent {
     type: EngagementType!
     post: Post!

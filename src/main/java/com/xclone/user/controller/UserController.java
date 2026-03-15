@@ -1,5 +1,6 @@
 package com.xclone.user.controller;
 
+import com.xclone.common.mutation.DeleteResponse;
 import com.xclone.exception.custom.DuplicateHandleException;
 import com.xclone.exception.dto.FieldError;
 import com.xclone.security.user.CustomUserDetails;
@@ -70,9 +71,9 @@ public class UserController {
   }
 
   @MutationMapping
-  public UserResponse deleteMyAccount(@AuthenticationPrincipal CustomUserDetails userDetails) {
+  public DeleteResponse deleteMyAccount(@AuthenticationPrincipal CustomUserDetails userDetails) {
     String userId = userDetails.getUsername();
     userService.deleteProfile(userId);
-    return new UserResponse("200", true, null, null);
+    return new DeleteResponse("200", true, null);
   }
 }
