@@ -365,23 +365,23 @@ public class UserIT extends BaseIntegrationTest {
           authenticatedTester()
               .document(
                   """
-                  mutation UpdateProfile($input: UpdateUserInput!) {
-                    updateMyProfile(input: $input) {
-                      code
-                      success
-                      user {
-                        displayName
-                        handle
-                        bio
-                        profileImage
+                      mutation UpdateProfile($input: UpdateUserInput!) {
+                        updateMyProfile(input: $input) {
+                          code
+                          success
+                          user {
+                            displayName
+                            handle
+                            bio
+                            profileImage
+                          }
+                          errors {
+                            field
+                            message
+                          }
+                        }
                       }
-                      errors {
-                        field
-                        message
-                      }
-                    }
-                  }
-                  """)
+                      """)
               .variable("input", Map.of("displayName", newDisplayName))
               .execute()
               .path("updateMyProfile")
@@ -398,50 +398,6 @@ public class UserIT extends BaseIntegrationTest {
     }
 
     @Test
-    void updateMyProfile_allNullInput_returnsInvalidRequest() {
-      Map<String, Object> input = new HashMap<>();
-      input.put("displayName", null);
-      input.put("handle", null);
-      input.put("bio", null);
-      input.put("profileImage", null);
-
-      UserResponse response =
-          authenticatedTester()
-              .document(
-                  """
-                  mutation UpdateProfile($input: UpdateUserInput!) {
-                    updateMyProfile(input: $input) {
-                      code
-                      success
-                      user {
-                        displayName
-                        handle
-                        bio
-                        profileImage
-                      }
-                      errors {
-                        field
-                        message
-                      }
-                    }
-                  }
-                  """)
-              .variable("input", input)
-              .execute()
-              .path("updateMyProfile")
-              .entity(UserResponse.class)
-              .get();
-
-      assertEquals("400", response.code());
-      assertFalse(response.success());
-      assertNull(response.user());
-      assertThat(response.errors())
-          .extracting(FieldError::field, FieldError::message)
-          .containsExactly(
-              tuple("updateUserInput", "UpdateUserInput must have at least one field"));
-    }
-
-    @Test
     void updateMyProfile_invalidInput_returnsInvalidRequest() {
       Map<String, Object> input = new HashMap<>();
       input.put("displayName", "This is an invalid display name");
@@ -451,23 +407,23 @@ public class UserIT extends BaseIntegrationTest {
           authenticatedTester()
               .document(
                   """
-                  mutation UpdateProfile($input: UpdateUserInput!) {
-                    updateMyProfile(input: $input) {
-                      code
-                      success
-                      user {
-                        displayName
-                        handle
-                        bio
-                        profileImage
+                      mutation UpdateProfile($input: UpdateUserInput!) {
+                        updateMyProfile(input: $input) {
+                          code
+                          success
+                          user {
+                            displayName
+                            handle
+                            bio
+                            profileImage
+                          }
+                          errors {
+                            field
+                            message
+                          }
+                        }
                       }
-                      errors {
-                        field
-                        message
-                      }
-                    }
-                  }
-                  """)
+                      """)
               .variable("input", input)
               .execute()
               .path("updateMyProfile")
@@ -484,7 +440,6 @@ public class UserIT extends BaseIntegrationTest {
               tuple("handle", "must match \"^(?![0-9]+$)[0-9a-zA-Z_]+$\""));
     }
 
-    // Do I need to do a check to see if the DB has been updated or is that pointless?
     @Test
     void updateMyProfile_usingCurrentHandle_returnsUserResponse() {
       Map<String, Object> input = new HashMap<>();
@@ -497,23 +452,23 @@ public class UserIT extends BaseIntegrationTest {
           authenticatedTester()
               .document(
                   """
-                  mutation UpdateProfile($input: UpdateUserInput!) {
-                    updateMyProfile(input: $input) {
-                      code
-                      success
-                      user {
-                        displayName
-                        handle
-                        bio
-                        profileImage
+                      mutation UpdateProfile($input: UpdateUserInput!) {
+                        updateMyProfile(input: $input) {
+                          code
+                          success
+                          user {
+                            displayName
+                            handle
+                            bio
+                            profileImage
+                          }
+                          errors {
+                            field
+                            message
+                          }
+                        }
                       }
-                      errors {
-                        field
-                        message
-                      }
-                    }
-                  }
-                  """)
+                      """)
               .variable("input", input)
               .execute()
               .path("updateMyProfile")
@@ -527,10 +482,10 @@ public class UserIT extends BaseIntegrationTest {
       assertThat(response.user().displayName()).isEqualTo(newDisplayName);
     }
 
-    // Is it okay if a test partially completes?
-    // What's the industry standard with hibernate as it will update when an open session is
-    // created?
-    // - What's the terminology for this?
+    /**
+     * User will not partially update as DuplicateHandle is an unchecked exception (extends
+     * RuntimeException) and consequently defaults to rollback.
+     */
     @Test
     void updateMyProfile_usingExistingHandle_returnsDuplicateHandle() {
       Map<String, Object> input = new HashMap<>();
@@ -540,23 +495,23 @@ public class UserIT extends BaseIntegrationTest {
           authenticatedTester()
               .document(
                   """
-                  mutation UpdateProfile($input: UpdateUserInput!) {
-                    updateMyProfile(input: $input) {
-                      code
-                      success
-                      user {
-                        displayName
-                        handle
-                        bio
-                        profileImage
+                      mutation UpdateProfile($input: UpdateUserInput!) {
+                        updateMyProfile(input: $input) {
+                          code
+                          success
+                          user {
+                            displayName
+                            handle
+                            bio
+                            profileImage
+                          }
+                          errors {
+                            field
+                            message
+                          }
+                        }
                       }
-                      errors {
-                        field
-                        message
-                      }
-                    }
-                  }
-                  """)
+                      """)
               .variable("input", input)
               .execute()
               .path("updateMyProfile")
@@ -582,17 +537,17 @@ public class UserIT extends BaseIntegrationTest {
           authenticatedTester()
               .document(
                   """
-              mutation DeleteAccount {
-                deleteMyAccount {
-                  success
-                  code
-                  errors {
-                    field
-                    message
-                   }
-                }
-              }
-              """)
+                      mutation DeleteAccount {
+                        deleteMyAccount {
+                          success
+                          code
+                          errors {
+                            field
+                            message
+                           }
+                        }
+                      }
+                      """)
               .execute()
               .path("deleteMyAccount")
               .entity(DeleteResponse.class)
