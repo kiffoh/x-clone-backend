@@ -4,6 +4,7 @@ import com.xclone.validation.ValidHandle;
 import com.xclone.validation.ValidPassword;
 import com.xclone.validation.ValidationConstants;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 /**
@@ -24,6 +25,7 @@ public record SignupRequest(
             description =
                 "Unique username used to identify the account. "
                     + "Alphanumeric and underscores only, cannot be purely numeric.")
+        @NotBlank(message = "Handle is required")
         @ValidHandle
         String handle,
     @Schema(
