@@ -1,15 +1,15 @@
 package com.xclone.user.controller;
 
 import com.xclone.common.mutation.DeleteResponse;
+import com.xclone.exception.GraphQlErrorMapper;
 import com.xclone.exception.custom.DuplicateHandleException;
-import com.xclone.exception.dto.FieldError;
 import com.xclone.security.user.CustomUserDetails;
 import com.xclone.user.dto.UserProfile;
 import com.xclone.user.dto.connection.UserConnection;
 import com.xclone.user.dto.mutation.UserResponse;
 import com.xclone.user.dto.request.UpdateUserInput;
 import com.xclone.user.service.UserService;
-import java.util.List;
+import jakarta.validation.ConstraintViolationException;
 import java.util.UUID;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
@@ -65,8 +65,9 @@ public class UserController {
       UserProfile updatedUser = userService.updateProfile(userId, input);
       return new UserResponse("200", true, updatedUser, null);
     } catch (DuplicateHandleException ex) {
-      return new UserResponse(
-          "409", false, null, List.of(new FieldError("handle", ex.getMessage())));
+      return new UserResponse("409", false, null, GraphQlErrorMapper.fromDuplicateHandle(ex));
+    } catch (ConstraintViolationException ex) {
+      return new UserResponse("400", false, null, GraphQlErrorMapper.fromConstraintViolations(ex));
     }
   }
 
