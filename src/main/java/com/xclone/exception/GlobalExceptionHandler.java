@@ -131,6 +131,6 @@ public class GlobalExceptionHandler
   public ResponseEntity<ErrorResponse> handleGenericException(Exception ex, WebRequest request) {
     log.error("Unexpected error at {}: ", request.getDescription(false), ex);
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-        .body(new ErrorResponse("An unexpected error occurred"));
+        .body(new ErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase()));
   }
 }

@@ -55,11 +55,14 @@ public class GraphQlExceptionHandler {
   }
 
   /**
-   * Handles generic exceptions by returning a 500 (Internal Server Error) protocol error containing
-   * a generic message and logs the actual error message.
+   * Handles unexpected exceptions by returning a generic {@link ErrorType#DataFetchingException}
+   * protocol error, and logs the exception class, message, and full stack trace.
    *
-   * @param ex generic exception
-   * @return a generic error message.
+   * <p>The response message is intentionally generic — the actual exception detail is never sent to
+   * the client.
+   *
+   * @param ex the unhandled exception
+   * @return a GraphQL protocol error with a safe generic message
    */
   @org.springframework.graphql.data.method.annotation.GraphQlExceptionHandler(Exception.class)
   public GraphQLError handleGenericException(Exception ex) {
