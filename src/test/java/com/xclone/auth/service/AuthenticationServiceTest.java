@@ -19,12 +19,12 @@ import com.xclone.exception.custom.AccountNotActiveException;
 import com.xclone.exception.custom.DuplicateHandleException;
 import com.xclone.exception.custom.InvalidRefreshTokenException;
 import com.xclone.security.jwt.JwtTokenProvider;
+import com.xclone.support.fixtures.UserFixtures;
 import com.xclone.user.model.entity.User;
 import com.xclone.user.model.enums.UserStatus;
 import com.xclone.user.repository.UserRepository;
 import java.util.Optional;
 import java.util.UUID;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -44,19 +44,10 @@ public class AuthenticationServiceTest {
 
   @InjectMocks AuthenticationService authenticationService;
 
-  @BeforeEach
-  void setUp() {
-    ArgumentCaptor<String> refreshTokenCaptor;
-    ArgumentCaptor<String> accessTokenCaptor;
-  }
-
   @Test
   void login_createsTokens_returnsAuthTokens() {
     // Setup
-    User exampleUser = new User();
-    exampleUser.setPasswordHash("hashedPassword");
-    exampleUser.setHandle("exampleHandle");
-    exampleUser.setId(UUID.randomUUID());
+    User exampleUser = UserFixtures.getDefaultUserWithRandomId();
     when(this.userRepository.findByHandle(anyString())).thenReturn(Optional.of(exampleUser));
     when(this.passwordEncoder.matches(anyString(), eq("hashedPassword"))).thenReturn(true);
 
@@ -83,8 +74,7 @@ public class AuthenticationServiceTest {
 
   @Test
   void login_attemptWithInvalidPassword_returnsBadCredentials() {
-    User exampleUser = new User();
-    exampleUser.setPasswordHash("hashedPassword");
+    User exampleUser = UserFixtures.getDefaultUserWithRandomId();
     when(this.userRepository.findByHandle(anyString())).thenReturn(Optional.of(exampleUser));
     when(this.passwordEncoder.matches(anyString(), eq("hashedPassword"))).thenReturn(false);
 
@@ -209,8 +199,8 @@ public class AuthenticationServiceTest {
   @Test
   void logout_tokenMismatch_returnsInvalidRefreshToken() {
     // Arrange
-    String accessTokenUserId = UUID.randomUUID().toString(); // different IDs
-    String refreshTokenUserId = UUID.randomUUID().toString(); // will naturally not match
+    String accessTokenUserId = UUID.randomUUID().toString();
+    String refreshTokenUserId = UUID.randomUUID().toString();
     String exampleRefreshTokenId = UUID.randomUUID().toString();
     String exampleAccessToken = UUID.randomUUID().toString();
 
@@ -235,9 +225,7 @@ public class AuthenticationServiceTest {
   @Test
   void refresh_rotatesToken_returnsNewAuthTokens() {
     // Arrange
-    User exampleUser = new User();
-    exampleUser.setDisplayName("exampleHandle");
-    exampleUser.setId(UUID.randomUUID());
+    User exampleUser = UserFixtures.getDefaultUserWithRandomId();
     String exampleUserId = exampleUser.getId().toString();
 
     RefreshTokenData sampleToken = RefreshTokenData.create(exampleUserId, new AuthProperties());
@@ -299,8 +287,7 @@ public class AuthenticationServiceTest {
   @Test
   void refresh_userStatusNotActive_returnsAccountNotActive() {
     // Arrange
-    User exampleUser = new User();
-    exampleUser.setId(UUID.randomUUID());
+    User exampleUser = UserFixtures.getDefaultUserWithRandomId();
     exampleUser.setStatus(UserStatus.SUSPENDED);
 
     RefreshTokenData sampleToken = mock(RefreshTokenData.class);
