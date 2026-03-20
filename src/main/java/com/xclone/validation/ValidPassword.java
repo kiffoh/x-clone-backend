@@ -28,7 +28,8 @@ import java.lang.annotation.Target;
 @Pattern(
     regexp = ValidationConstants.PASSWORD_PATTERN,
     message =
-        "Password must contain at least one special character, capital letter, lowercase letter and number")
+        "Password must contain at least one special character, "
+            + "capital letter, lowercase letter and number")
 @Target({ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
 @Constraint(validatedBy = {})

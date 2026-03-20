@@ -107,6 +107,14 @@ public class UserService {
     return user.toUserProfile();
   }
 
+  /**
+   * Soft deletes the authenticated user by marking their status as {@link UserStatus#DELETED}.
+   * Relies on JPA dirty checking within the transaction — no explicit {@code save()} is needed.
+   *
+   * @param userId unique UUID for user entity
+   * @throws IllegalStateException if the authenticated user cannot be found in the database,
+   *     indicating a mismatch between the security context and the persisted state
+   */
   @Transactional
   public void deleteProfile(String userId) {
     User user =

@@ -3,6 +3,7 @@ package com.xclone.user.controller;
 import com.xclone.common.mutation.DeleteResponse;
 import com.xclone.exception.GraphQlErrorMapper;
 import com.xclone.exception.custom.DuplicateHandleException;
+import com.xclone.security.jwt.JwtAuthenticationFilter;
 import com.xclone.security.user.CustomUserDetails;
 import com.xclone.user.dto.UserProfile;
 import com.xclone.user.dto.connection.UserConnection;
@@ -57,6 +58,18 @@ public class UserController {
   //    return userService.getSuggestedUsers(userDetails.getUser());
   //  }
 
+  /**
+   * Triggers the {@link UserService#updateProfile(String, UpdateUserInput)} with the authenticated
+   * user.
+   *
+   * <p>Business exceptions are mapped with {@link GraphQlErrorMapper} in the style of
+   * "errors-as-data".
+   *
+   * @param userDetails authenticated user; populated as part of the security chain with {@link
+   *     JwtAuthenticationFilter}
+   * @param input DTO containing user details to update
+   * @return the updated user
+   */
   @MutationMapping
   public UserResponse updateMyProfile(
       @AuthenticationPrincipal CustomUserDetails userDetails, @Argument UpdateUserInput input) {
@@ -71,6 +84,13 @@ public class UserController {
     }
   }
 
+  /**
+   * Triggers the {@link UserService#deleteProfile(String)} with the authenticated user.
+   *
+   * @param userDetails authenticated user; populated as part of the security chain with {@link
+   *     JwtAuthenticationFilter}
+   * @return the status of the soft-delete of the user
+   */
   @MutationMapping
   public DeleteResponse deleteMyAccount(@AuthenticationPrincipal CustomUserDetails userDetails) {
     String userId = userDetails.getUsername();

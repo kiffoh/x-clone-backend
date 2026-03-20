@@ -18,5 +18,6 @@ public final class ValidationConstants {
   public static final String INVALID_PASSWORD_SIZE =
       String.format("size must be between %d and %d", MIN_PASSWORD_SIZE, MAX_PASSWORD_SIZE);
   public static final String INVALID_PASSWORD_REGEX =
-      "Password must contain at least one special character, capital letter, lowercase letter and number";
+      "Password must contain at least one special character,"
+          + " capital letter, lowercase letter and number";
 }

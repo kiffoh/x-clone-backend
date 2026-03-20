@@ -6,10 +6,12 @@ import com.xclone.user.dto.UserProfile;
 import java.util.List;
 
 /**
- * @param code
- * @param success
- * @param user
- * @param errors
+ * Response DTO representing the status of a mutation attempt to the User entity.
+ *
+ * @param code HTTP status code
+ * @param success {@code true} if the mutation completed without errors
+ * @param user nullable updated user
+ * @param errors nullable list of errors. Populated if a request fails due to business logic
  */
 public record UserResponse(String code, Boolean success, UserProfile user, List<FieldError> errors)
     implements MutationResponse {}
