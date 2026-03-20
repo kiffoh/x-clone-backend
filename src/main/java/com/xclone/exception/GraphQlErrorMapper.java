@@ -7,7 +7,6 @@ import jakarta.validation.ConstraintViolationException;
 import java.util.List;
 
 public class GraphQlErrorMapper {
-
   public static List<FieldError> fromConstraintViolations(ConstraintViolationException ex) {
     return ex.getConstraintViolations().stream()
         .map(v -> new FieldError(getFieldName(v), v.getMessage()))

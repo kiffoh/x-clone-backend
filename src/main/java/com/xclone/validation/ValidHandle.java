@@ -21,7 +21,7 @@ import java.lang.annotation.Target;
  *   <li>Cannot consist of digits only
  * </ul>
  */
-@Size(min = 4, max = 15)
+@Size(min = ValidationConstants.MIN_HANDLE_SIZE, max = ValidationConstants.MAX_HANDLE_SIZE)
 @Pattern(
     regexp = ValidationConstants.HANDLE_PATTERN,
     message =

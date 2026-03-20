@@ -15,6 +15,7 @@ import com.xclone.support.helpers.AuthHelpers;
 import com.xclone.user.dto.mutation.UserResponse;
 import com.xclone.user.model.entity.User;
 import com.xclone.user.repository.UserRepository;
+import com.xclone.validation.ValidationConstants;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,11 +50,7 @@ public class ValidationIT extends BaseAuthIntegrationTest {
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
       assertThat(response.getBody().errors())
-          .isEqualTo(
-              List.of(
-                  new FieldError(
-                      "handle",
-                      "Handle may only contain letters, numbers, and underscores, and cannot be all numbers")));
+          .isEqualTo(List.of(new FieldError("handle", ValidationConstants.INVALID_HANDLE_REGEX)));
     }
 
     @Test
@@ -66,11 +63,7 @@ public class ValidationIT extends BaseAuthIntegrationTest {
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
       assertThat(response.getBody().errors())
-          .isEqualTo(
-              List.of(
-                  new FieldError(
-                      "handle",
-                      "Handle may only contain letters, numbers, and underscores, and cannot be all numbers")));
+          .isEqualTo(List.of(new FieldError("handle", ValidationConstants.INVALID_HANDLE_REGEX)));
     }
 
     @Test
@@ -83,7 +76,7 @@ public class ValidationIT extends BaseAuthIntegrationTest {
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
       assertThat(response.getBody().errors())
-          .isEqualTo(List.of(new FieldError("handle", "size must be between 4 and 15")));
+          .isEqualTo(List.of(new FieldError("handle", ValidationConstants.INVALID_HANDLE_SIZE)));
     }
 
     @Test
@@ -97,7 +90,7 @@ public class ValidationIT extends BaseAuthIntegrationTest {
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
       assertThat(response.getBody().errors())
-          .isEqualTo(List.of(new FieldError("handle", "size must be between 4 and 15")));
+          .isEqualTo(List.of(new FieldError("handle", ValidationConstants.INVALID_HANDLE_SIZE)));
     }
   }
 
@@ -114,10 +107,7 @@ public class ValidationIT extends BaseAuthIntegrationTest {
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
       assertThat(response.getBody().errors())
           .isEqualTo(
-              List.of(
-                  new FieldError(
-                      "password",
-                      "Password must contain at least one special character, capital letter, lowercase letter and number")));
+              List.of(new FieldError("password", ValidationConstants.INVALID_PASSWORD_REGEX)));
     }
 
     @Test
@@ -131,10 +121,7 @@ public class ValidationIT extends BaseAuthIntegrationTest {
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
       assertThat(response.getBody().errors())
           .isEqualTo(
-              List.of(
-                  new FieldError(
-                      "password",
-                      "Password must contain at least one special character, capital letter, lowercase letter and number")));
+              List.of(new FieldError("password", ValidationConstants.INVALID_PASSWORD_REGEX)));
     }
 
     @Test
@@ -148,10 +135,7 @@ public class ValidationIT extends BaseAuthIntegrationTest {
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
       assertThat(response.getBody().errors())
           .isEqualTo(
-              List.of(
-                  new FieldError(
-                      "password",
-                      "Password must contain at least one special character, capital letter, lowercase letter and number")));
+              List.of(new FieldError("password", ValidationConstants.INVALID_PASSWORD_REGEX)));
     }
 
     @Test
@@ -165,10 +149,7 @@ public class ValidationIT extends BaseAuthIntegrationTest {
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
       assertThat(response.getBody().errors())
           .isEqualTo(
-              List.of(
-                  new FieldError(
-                      "password",
-                      "Password must contain at least one special character, capital letter, lowercase letter and number")));
+              List.of(new FieldError("password", ValidationConstants.INVALID_PASSWORD_REGEX)));
     }
 
     @Test
@@ -182,10 +163,7 @@ public class ValidationIT extends BaseAuthIntegrationTest {
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
       assertThat(response.getBody().errors())
           .isEqualTo(
-              List.of(
-                  new FieldError(
-                      "password",
-                      "Password must contain at least one special character, capital letter, lowercase letter and number")));
+              List.of(new FieldError("password", ValidationConstants.INVALID_PASSWORD_REGEX)));
     }
 
     @Test
@@ -198,7 +176,8 @@ public class ValidationIT extends BaseAuthIntegrationTest {
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
       assertThat(response.getBody().errors())
-          .isEqualTo(List.of(new FieldError("password", "size must be between 10 and 100")));
+          .isEqualTo(
+              List.of(new FieldError("password", ValidationConstants.INVALID_PASSWORD_SIZE)));
     }
 
     @Test
@@ -212,7 +191,8 @@ public class ValidationIT extends BaseAuthIntegrationTest {
 
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
       assertThat(response.getBody().errors())
-          .isEqualTo(List.of(new FieldError("password", "size must be between 10 and 100")));
+          .isEqualTo(
+              List.of(new FieldError("password", ValidationConstants.INVALID_PASSWORD_SIZE)));
     }
   }
 

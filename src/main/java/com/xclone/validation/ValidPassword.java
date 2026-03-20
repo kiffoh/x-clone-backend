@@ -24,7 +24,7 @@ import java.lang.annotation.Target;
  * </ul>
  */
 @NotBlank(message = "Password is required")
-@Size(min = 10, max = 100)
+@Size(min = ValidationConstants.MIN_PASSWORD_SIZE, max = ValidationConstants.MAX_PASSWORD_SIZE)
 @Pattern(
     regexp = ValidationConstants.PASSWORD_PATTERN,
     message =
