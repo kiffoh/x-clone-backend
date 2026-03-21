@@ -1,7 +1,13 @@
 # Scalars
+"""
+A date-time with an offset from UTC/Greenwich in the ISO-8601 calendar system
+"""
 scalar DateTime
 
 # Pagination (Relay pattern)
+"""
+Pagination metadata for navigating a paginated result set using the Relay cursor pattern
+"""
 type PageInfo {
     hasNextPage: Boolean!
     hasPreviousPage: Boolean!
@@ -20,12 +26,18 @@ type PostEdge {
     cursor: String!
 }
 
+"""
+A paginated list of connected users
+"""
 type UserConnection {
     edges: [UserEdge!]!
     pageInfo: PageInfo!
     totalCount: Int
 }
 
+"""
+A paginated edge wrapping a User node with its cursor position
+"""
 type UserEdge {
     node: User!
     cursor: String!
@@ -43,12 +55,18 @@ type NotificationEdge {
 }
 
 # Mutation responses
+"""
+Base interface for responses to a GraphQl mutation operation
+"""
 interface MutationResponse {
     code: String!
     success: Boolean!
     errors: [Error!]
 }
 
+"""
+Status of a deletion operation of a resource
+"""
 type DeleteResponse implements MutationResponse {
     code: String!
     success: Boolean!
@@ -69,13 +87,21 @@ enum EngagementType {
     QUOTE
 }
 
-
+"""
+Represents the state of a resource
+"""
 enum Status {
     ACTIVE
     DELETED
     HIDDEN
 }
 
+"""
+Field error response object.
+
+field - name of field which contains error
+message - error message
+"""
 type Error {
     field: String
     message: String!

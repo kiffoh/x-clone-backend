@@ -48,7 +48,8 @@ public class SecurityConfig {
                     "/v3/api-docs/**",
                     "/v3/api-docs.yaml",
                     "/swagger-ui/**",
-                    "/graphiql")
+                    "/graphiql",
+                    "graphql")
                 .permitAll()
                 .anyRequest()
                 .authenticated());
