@@ -120,8 +120,8 @@ public class GlobalExceptionHandler
   }
 
   /**
-   * Handles generic exceptions by returning a 500 (Internal Server Error) response containing the
-   * error message.
+   * Handles generic exceptions by returning a 500 (Internal Server Error) response containing a
+   * generic error message whilst logging the actual error message.
    *
    * @param ex the thrown exception
    * @param request the current web request
@@ -131,6 +131,6 @@ public class GlobalExceptionHandler
   public ResponseEntity<ErrorResponse> handleGenericException(Exception ex, WebRequest request) {
     log.error("Unexpected error at {}: ", request.getDescription(false), ex);
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-        .body(new ErrorResponse(ex.getMessage()));
+        .body(new ErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase()));
   }
 }

@@ -1,5 +1,6 @@
 package com.xclone.security.jwt;
 
+import com.xclone.security.user.CustomUserDetails;
 import com.xclone.security.user.JwtUserDetailsService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -9,7 +10,6 @@ import java.io.IOException;
 import org.jspecify.annotations.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -38,7 +38,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     if (jwtTokenProvider.validToken(token)) {
       String userId = jwtTokenProvider.getUserIdFromToken(token);
       // UserDetails service next
-      UserDetails userDetails = jwtUserDetailsService.getUserById(userId);
+      CustomUserDetails userDetails = jwtUserDetailsService.getUserById(userId);
       // Set authentication in SecurityContext
       UsernamePasswordAuthenticationToken auth =
           new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());

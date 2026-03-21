@@ -2,7 +2,6 @@ package com.xclone.validation;
 
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.lang.annotation.Documented;
@@ -17,16 +16,17 @@ import java.lang.annotation.Target;
  * <p>Enforces:
  *
  * <ul>
- *   <li>Non-blank value
  *   <li>Length between 4 and 15 characters
  *   <li>Alphanumeric characters and underscores only
  *   <li>Cannot consist of digits only
  * </ul>
  */
-@NotBlank(message = "Handle is required")
-@Size(min = 4, max = 15)
-@Pattern(regexp = ValidationConstants.HANDLE_PATTERN)
-@Target({ElementType.FIELD})
+@Size(min = ValidationConstants.MIN_HANDLE_SIZE, max = ValidationConstants.MAX_HANDLE_SIZE)
+@Pattern(
+    regexp = ValidationConstants.HANDLE_PATTERN,
+    message =
+        "Handle may only contain letters, numbers, and underscores, and cannot be all numbers")
+@Target({ElementType.FIELD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
 @Constraint(validatedBy = {})
 @Documented

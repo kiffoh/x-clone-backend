@@ -104,8 +104,7 @@ public class AuthenticationService {
   public AuthTokens signup(@Valid SignupRequest request) {
     if (userRepository.existsByHandle(request.handle())) {
       log.warn("signup attempt with an existing handle");
-      throw new DuplicateHandleException(
-          "This handle is already taken"); // Is this the correct error?
+      throw new DuplicateHandleException("This handle is already taken");
     }
 
     // Create new User

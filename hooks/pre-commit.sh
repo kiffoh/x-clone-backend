@@ -22,4 +22,6 @@ echo "→ Running formatting + lint checks..."
 # Single Maven invocation (much faster)
 ./mvnw -q spotless:apply
 
+git add $JAVA_FILES
+
 echo "✅ Pre-commit checks passed!"

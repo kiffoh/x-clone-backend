@@ -24,8 +24,12 @@ import java.lang.annotation.Target;
  * </ul>
  */
 @NotBlank(message = "Password is required")
-@Size(min = 10, max = 100)
-@Pattern(regexp = ValidationConstants.PASSWORD_PATTERN)
+@Size(min = ValidationConstants.MIN_PASSWORD_SIZE, max = ValidationConstants.MAX_PASSWORD_SIZE)
+@Pattern(
+    regexp = ValidationConstants.PASSWORD_PATTERN,
+    message =
+        "Password must contain at least one special character, "
+            + "capital letter, lowercase letter and number")
 @Target({ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
 @Constraint(validatedBy = {})

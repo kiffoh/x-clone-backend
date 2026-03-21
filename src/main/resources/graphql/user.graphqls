@@ -1,11 +1,40 @@
+"""
+Represents a registered account on the platform. Users have a public profile, can author posts, and participate in the follow graph
+"""
 type User {
+    """
+    Unique UUID identifier
+    """
     id: ID!
+    """
+    Display name shown on the user's profile
+
+    Size must be maximum of 50 characters
+    """
     displayName: String!
-    handle: String! # uniqueId
+    """
+    Unique username used to identify the account
+
+    Size must be minimum of 4 and a maximum of 15 characters
+    handle must contain alphanumeric and underscores only, cannot be purely numeric
+    """
+    handle: String!
+    """
+    Short user biography
+
+    Size must be a maximum of 160 characters
+    """
     bio: String
+    """
+    Profile image URL
+    """
     profileImage: String
+    """
+    Datetime of account creation
+    """
     createdAt: DateTime
-    status: UserStatus
+
+    # Do I need an updatedAt?
 
     posts(first: Int, after: String): PostConnection!
 
@@ -19,6 +48,9 @@ type User {
 # Double follow -> # Idempotent: returns success, no duplicate created
 # Look to claude chat for edge cases!
 
+"""
+Represents the status of a user's account
+"""
 enum UserStatus {
     ACTIVE
     SUSPENDED
@@ -26,8 +58,23 @@ enum UserStatus {
 }
 
 extend type Query {
+    """
+    Fetch authenticated user.
+
+    Authentication: Required (user can only fetch their own profile with me)
+    """
     me: User!
+    """
+    Fetch user with queried handle.
+
+    Authentication: Required
+    """
     userByHandle(handle: String!): User
+    """
+    Fetch user with queried ID.
+
+    Authentication: Required
+    """
     userById(id: ID!): User
     searchUsers(query: String!, first: Int, after: String): UserConnection!
     suggestedUsers(first: Int, after: String): UserConnection!
@@ -37,24 +84,25 @@ extend type Query {
 extend type Mutation {
     """
     Update user profile information.
-    
+
     Authentication: Required (user can only update their own profile)
     Admin can update any user by using adminUpdateUser mutation.
     """
     updateMyProfile(input: UpdateUserInput!): UserResponse!
+    # Cannot be undone (for MVP - could add restore later)
     """
     Delete the authenticated user's account.
     Soft delete - sets status to DELETED.
-    
+
     Authentication: Required
-    Cannot be undone (for MVP - could add restore later)
     """
-    deleteMyAccount: UserResponse!
+    deleteMyAccount: DeleteResponse!
 
     followUser(userId: ID!): UserResponse!
     unfollowUser(userId: ID!): UserResponse!
 }
 
+"""At least one field must be provided"""
 input UpdateUserInput {
     displayName: String,
     handle: String,
@@ -62,10 +110,12 @@ input UpdateUserInput {
     profileImage: String
 }
 
+"""
+Status of a mutation operation to the User entity
+"""
 type UserResponse implements MutationResponse {
     code: String!
     success: Boolean!
-    message: String!
     user: User
     errors: [Error!]
 }
