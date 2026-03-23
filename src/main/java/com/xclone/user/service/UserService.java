@@ -10,13 +10,13 @@ import com.xclone.user.model.entity.User;
 import com.xclone.user.model.enums.UserStatus;
 import com.xclone.user.repository.UserRepository;
 import com.xclone.validation.ValidHandle;
-import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 /** Coordinates resolver logic for the User GraphQL model. */

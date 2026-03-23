@@ -33,15 +33,24 @@ type User {
     Datetime of account creation
     """
     createdAt: DateTime
-
-    # Do I need an updatedAt?
+    """
+    Datetime of last account update
+    """
+    updatedAt: DateTime
 
     posts(first: Int, after: String): PostConnection!
 
+    """
+    Paginated list of users which follow this user profile
+    """
     followers(first: Int, after: String): UserConnection!
-    followerCount: Int!
+    """
+    Paginated list of users which this user profile follows
+    """
     following(first: Int, after: String): UserConnection!
-    followingCount: Int!
+    """
+    {@code true} if the authenticated user follows the user
+    """
     isFollowing: Boolean!
 }
 # Following yourself should fail
@@ -98,8 +107,8 @@ extend type Mutation {
     """
     deleteMyAccount: DeleteResponse!
 
-    followUser(userId: ID!): UserResponse!
-    unfollowUser(userId: ID!): UserResponse!
+    followUser(userIdToFollow: ID!): UserResponse!
+    unfollowUser(userIdToUnfollow: ID!): UserResponse!
 }
 
 """At least one field must be provided"""

@@ -3,6 +3,7 @@ package com.xclone.user.controller;
 import com.xclone.common.mutation.DeleteResponse;
 import com.xclone.exception.GraphQlErrorMapper;
 import com.xclone.exception.custom.DuplicateHandleException;
+import com.xclone.follow.service.FollowService;
 import com.xclone.security.jwt.JwtAuthenticationFilter;
 import com.xclone.security.user.CustomUserDetails;
 import com.xclone.user.dto.UserProfile;
@@ -11,20 +12,40 @@ import com.xclone.user.dto.mutation.UserResponse;
 import com.xclone.user.dto.request.UpdateUserInput;
 import com.xclone.user.service.UserService;
 import jakarta.validation.ConstraintViolationException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.graphql.data.method.annotation.Argument;
+import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
+import org.springframework.graphql.data.method.annotation.SchemaMapping;
+import org.springframework.graphql.execution.BatchLoaderRegistry;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
+import reactor.core.publisher.Mono;
 
 /** GraphQL controller resolving queries for the {@link com.xclone.user.model.entity.User} model. */
 @Controller
 public class UserController {
   private final UserService userService;
+  private final FollowService followService;
 
-  public UserController(UserService userService) {
+  public UserController(
+      UserService userService, FollowService followService, BatchLoaderRegistry registry) {
     this.userService = userService;
+    this.followService = followService;
+
+    registry
+        .forTypePair(UUID.class, UserProfile.class)
+        .registerMappedBatchLoader(
+            (userIds, env) -> {
+              Map<UUID, UserProfile> followers = new HashMap<>();
+              userIds.forEach(
+                  (userId) -> followers.put(userId, this.userService.getUserById(userId)));
+              return Mono.just(followers);
+            });
   }
 
   @QueryMapping
@@ -96,5 +117,24 @@ public class UserController {
     String userId = userDetails.getUsername();
     userService.deleteProfile(userId);
     return new DeleteResponse("200", true, null);
+  }
+
+  @SchemaMapping(typeName = "User", field = "followers")
+  private UserConnection followers(
+      UserProfile user, @Argument Integer first, @Argument String after) {
+    return followService.getFollowers(user.id(), first, after);
+  }
+
+  @SchemaMapping(typeName = "User", field = "following")
+  private UserConnection following(
+      UserProfile user, @Argument Integer first, @Argument String after) {
+    return followService.getFollowing(user.id(), first, after);
+  }
+
+  @BatchMapping(typeName = "User", field = "isFollowing")
+  private Map<UserProfile, Boolean> isFollowing(
+      List<UserProfile> users, @AuthenticationPrincipal CustomUserDetails userDetails) {
+    UUID userId = UUID.fromString(userDetails.getUsername());
+    return followService.getIsFollowing(userId, users);
   }
 }

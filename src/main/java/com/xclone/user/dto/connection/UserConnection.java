@@ -1,5 +1,6 @@
 package com.xclone.user.dto.connection;
 
+import com.xclone.common.connection.Connection;
 import com.xclone.common.connection.PageInfo;
 import java.util.List;
 
@@ -11,4 +12,5 @@ import java.util.List;
  * @param totalCount total number of matching users; currently equals the number of edges as
  *     pagination is not yet implemented
  */
-public record UserConnection(List<UserEdge> edges, PageInfo pageInfo, Integer totalCount) {}
+public record UserConnection(List<UserEdge> edges, PageInfo pageInfo, Integer totalCount)
+    implements Connection<UserEdge> {}

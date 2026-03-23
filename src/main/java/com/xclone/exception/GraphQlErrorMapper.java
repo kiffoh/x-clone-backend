@@ -6,6 +6,7 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import java.util.List;
 import org.springframework.graphql.GraphQlResponse;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 /**
  * Maps domain and validation exceptions to {@link FieldError} DTOs for GraphQL responses.
@@ -36,6 +37,12 @@ public class GraphQlErrorMapper {
         .toList();
   }
 
+  private static String getFieldName(ConstraintViolation<?> violation) {
+    // extract last path segment
+    String path = violation.getPropertyPath().toString();
+    return path.contains(".") ? path.substring(path.lastIndexOf('.') + 1) : path;
+  }
+
   /**
    * Maps a {@link DuplicateHandleException} to a list of {@link FieldError} DTOs.
    *
@@ -46,9 +53,13 @@ public class GraphQlErrorMapper {
     return List.of(new FieldError("handle", ex.getMessage()));
   }
 
-  private static String getFieldName(ConstraintViolation<?> violation) {
-    // extract last path segment
-    String path = violation.getPropertyPath().toString();
-    return path.contains(".") ? path.substring(path.lastIndexOf('.') + 1) : path;
+  /**
+   * Maps a {@link UsernameNotFoundException} to a list of {@link FieldError} DTOs.
+   *
+   * @param ex exception whose message is used as the field-level error message
+   * @return a list of {@link FieldError} instances representing the username not found exception
+   */
+  public static List<FieldError> fromUsernameNotFound(UsernameNotFoundException ex) {
+    return List.of(new FieldError("id", ex.getMessage()));
   }
 }
