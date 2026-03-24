@@ -54,7 +54,8 @@ public class FollowService {
             follows.hasPrevious(),
             edges.isEmpty() ? null : edges.getFirst().cursor(),
             edges.isEmpty() ? null : edges.getLast().cursor());
-    return new UserConnection(edges, pageInfo, follows.getTotalPages());
+    Integer totalCount = (int) follows.getTotalElements();
+    return new UserConnection(edges, pageInfo, totalCount);
   }
 
   /**

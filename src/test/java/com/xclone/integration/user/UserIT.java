@@ -9,6 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.xclone.common.mutation.DeleteResponse;
 import com.xclone.exception.dto.FieldError;
+import com.xclone.follow.model.entity.Follow;
+import com.xclone.follow.repository.FollowRepository;
 import com.xclone.integration.base.BaseIntegrationTest;
 import com.xclone.support.fixtures.UserFixtures;
 import com.xclone.support.helpers.AuthHelpers;
@@ -16,9 +18,11 @@ import com.xclone.user.dto.mutation.UserResponse;
 import com.xclone.user.model.entity.User;
 import com.xclone.user.model.enums.UserStatus;
 import com.xclone.user.repository.UserRepository;
+import com.xclone.validation.ValidationConstants;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -160,8 +164,8 @@ public class UserIT extends BaseIntegrationTest {
       assertThat(errors)
           .extracting(e -> e.getExtensions().get("field"), ResponseError::getMessage)
           .containsExactlyInAnyOrder(
-              tuple("handle", "size must be between 4 and 15"),
-              tuple("handle", "must match \"^(?![0-9]+$)[0-9a-zA-Z_]+$\""));
+              tuple("handle", ValidationConstants.INVALID_HANDLE_SIZE),
+              tuple("handle", ValidationConstants.INVALID_HANDLE_REGEX));
     }
   }
 
@@ -436,8 +440,8 @@ public class UserIT extends BaseIntegrationTest {
       assertThat(response.errors())
           .extracting(FieldError::field, FieldError::message)
           .containsExactlyInAnyOrder(
-              tuple("handle", "size must be between 4 and 15"),
-              tuple("handle", "must match \"^(?![0-9]+$)[0-9a-zA-Z_]+$\""));
+              tuple("handle", ValidationConstants.INVALID_HANDLE_SIZE),
+              tuple("handle", ValidationConstants.INVALID_HANDLE_REGEX));
     }
 
     @Test
@@ -562,6 +566,202 @@ public class UserIT extends BaseIntegrationTest {
       assertThat(response.code()).isEqualTo("200");
       assertNull(response.errors());
       assertThat(userAfterDelete.getStatus()).isEqualTo(UserStatus.DELETED);
+    }
+  }
+
+  @Nested
+  class schemaMappingTests {
+    @Autowired FollowRepository followRepository;
+
+    /**
+     * Circular follow system:
+     *
+     * <p>user 1 -> user 2 -> user 3 -> user 1
+     */
+    private Follow createFollow(User follower, User following) {
+      Follow f = new Follow();
+      f.setFollower(follower);
+      f.setFollowing(following);
+      return f;
+    }
+
+    private void seedFollowers() {
+      for (int i = 0; i < users.size(); i++) {
+        int j = (i + 1) % users.size();
+        Follow f = createFollow(users.get(i), users.get(j));
+        followRepository.save(f);
+      }
+    }
+
+    @BeforeEach
+    void setup() {
+      seedFollowers();
+    }
+
+    @AfterEach
+    void cleanup() {
+      followRepository.deleteAll();
+    }
+
+    @Test
+    void getUserWithFollowers() {
+      authenticatedTester()
+          .document(
+              String.format(
+                  """
+              {
+                 me {
+                   id
+                   handle
+                   followers(first: %d) {
+                     edges {
+                        node {
+                          id
+                          handle
+                       }
+                     }
+                     totalCount
+                   }
+                 }
+               }""",
+                  1))
+          .execute()
+          .path("me")
+          .matchesJson(
+              String.format(
+                  """
+                      {
+                        "id": "%s",
+                        "handle": "%s",
+                        "followers": {
+                          "edges": [
+                          {
+                            "node": {
+                              "id": "%s",
+                              "handle": "%s"
+                             }
+                          }
+                          ],
+                          "totalCount": 1
+                        }
+                      }""",
+                  users.get(0).getId(),
+                  users.get(0).getHandle(),
+                  users.get(2).getId(),
+                  users.get(2).getHandle()));
+    }
+
+    @Test
+    void getUserWithFollowing() {
+      authenticatedTester()
+          .document(
+              String.format(
+                  """
+              {
+                 me {
+                   id
+                   handle
+                   following(first: %d) {
+                     edges {
+                        node {
+                          id
+                          handle
+                       }
+                     }
+                     totalCount
+                   }
+                 }
+               }""",
+                  1))
+          .execute()
+          .path("me")
+          .matchesJson(
+              String.format(
+                  """
+                      {
+                        "id": "%s",
+                        "handle": "%s",
+                        "following": {
+                          "edges": [
+                          {
+                            "node": {
+                              "id": "%s",
+                              "handle": "%s"
+                             }
+                          }
+                          ],
+                          "totalCount": 1
+                        }
+                      }
+                      """,
+                  users.get(0).getId(),
+                  users.get(0).getHandle(),
+                  users.get(1).getId(),
+                  users.get(1).getHandle()));
+    }
+
+    @Test
+    void getUserWithFollowersAndIsFollowing() {
+      // After initialisation, both user 1 and user 2 follow user 0
+      // User 0 (authenticated user) only follows user 1
+      Follow f = createFollow(users.get(1), users.get(0));
+      followRepository.save(f);
+
+      authenticatedTester()
+          .document(
+              String.format(
+                  """
+              {
+                 me {
+                   id
+                   handle
+                   followers(first: %d) {
+                     edges {
+                        node {
+                          id
+                          handle
+                          isFollowing
+                       }
+                     }
+                     totalCount
+                   }
+                 }
+               }""",
+                  5))
+          .execute()
+          .path("me")
+          .matchesJson(
+              String.format(
+                  """
+                      {
+                        "id": "%s",
+                        "handle": "%s",
+                        "followers": {
+                          "edges": [
+                          {
+                            "node": {
+                              "id": "%s",
+                              "handle": "%s",
+                              "isFollowing": true
+                             }
+                          },
+                          {
+                            "node": {
+                              "id": "%s",
+                              "handle": "%s",
+                              "isFollowing": false
+                             }
+                          }
+                          ],
+                          "totalCount": 2
+                        }
+                      }""",
+                  users.get(0).getId(),
+                  users.get(0).getHandle(),
+                  users.get(1).getId(),
+                  users.get(1).getHandle(),
+                  users.get(2).getId(),
+                  users.get(2).getHandle()));
     }
   }
 }

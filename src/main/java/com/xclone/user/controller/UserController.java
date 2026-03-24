@@ -23,6 +23,7 @@ import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.graphql.execution.BatchLoaderRegistry;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import reactor.core.publisher.Mono;
 
@@ -132,8 +133,9 @@ public class UserController {
   }
 
   @BatchMapping(typeName = "User", field = "isFollowing")
-  private Map<UserProfile, Boolean> isFollowing(
-      List<UserProfile> users, @AuthenticationPrincipal CustomUserDetails userDetails) {
+  private Map<UserProfile, Boolean> isFollowing(List<UserProfile> users) {
+    CustomUserDetails userDetails =
+        (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     UUID userId = UUID.fromString(userDetails.getUsername());
     return followService.getIsFollowing(userId, users);
   }
