@@ -1,6 +1,8 @@
 package com.xclone.exception;
 
+import com.xclone.exception.custom.DuplicateFollowException;
 import com.xclone.exception.custom.DuplicateHandleException;
+import com.xclone.exception.custom.SelfFollowException;
 import com.xclone.exception.dto.FieldError;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
@@ -61,5 +63,38 @@ public class GraphQlErrorMapper {
    */
   public static List<FieldError> fromUsernameNotFound(UsernameNotFoundException ex) {
     return List.of(new FieldError("id", ex.getMessage()));
+  }
+
+  /**
+   * Maps a {@link DuplicateFollowException} to a list of {@link FieldError} DTOs.
+   *
+   * @param ex exception whose message is used as the field-level error message
+   * @return a list of {@link FieldError} instances representing the entity violation not found
+   *     exception
+   */
+  public static List<FieldError> fromDuplicateFollow(DuplicateFollowException ex) {
+    return List.of(new FieldError("userIdToFollow", ex.getMessage()));
+  }
+
+  /**
+   * Maps a {@link IllegalArgumentException} to a list of {@link FieldError} DTOs.
+   *
+   * @param ex exception whose message is used as the field-level error message
+   * @return a list of {@link FieldError} instances representing the entity violation not found
+   *     exception
+   */
+  public static List<FieldError> fromIllegalArgument(String field, IllegalArgumentException ex) {
+    return List.of(new FieldError(field, ex.getMessage()));
+  }
+
+  /**
+   * Maps a {@link SelfFollowException} to a list of {@link FieldError} DTOs.
+   *
+   * @param ex exception whose message is used as the field-level error message
+   * @return a list of {@link FieldError} instances representing the entity violation not found
+   *     exception
+   */
+  public static List<FieldError> fromSelfFollow(SelfFollowException ex) {
+    return List.of(new FieldError("userIdToFollow", ex.getMessage()));
   }
 }

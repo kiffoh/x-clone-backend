@@ -1,6 +1,8 @@
 package com.xclone.follow.controller;
 
 import com.xclone.exception.GraphQlErrorMapper;
+import com.xclone.exception.custom.DuplicateFollowException;
+import com.xclone.exception.custom.SelfFollowException;
 import com.xclone.follow.model.entity.Follow;
 import com.xclone.follow.service.FollowService;
 import com.xclone.security.jwt.JwtAuthenticationFilter;
@@ -26,7 +28,7 @@ public class FollowController {
   /**
    * Follows a user account on behalf of the authenticated user.
    *
-   * <p>Business exceptions are mapped with {@link GraphQlErrorMapper} in the style of
+   * <p>Business exceptions are mapped with {@link GraphQlErrorMapper} as per the ethos of
    * "errors-as-data".
    *
    * @param userDetails authenticated user; populated as part of the security chain with {@link
@@ -44,13 +46,20 @@ public class FollowController {
       return new UserResponse("201", true, updatedUser, null);
     } catch (UsernameNotFoundException ex) {
       return new UserResponse("404", false, null, GraphQlErrorMapper.fromUsernameNotFound(ex));
+    } catch (DuplicateFollowException ex) {
+      return new UserResponse("409", false, null, GraphQlErrorMapper.fromDuplicateFollow(ex));
+    } catch (SelfFollowException ex) {
+      return new UserResponse("400", false, null, GraphQlErrorMapper.fromSelfFollow(ex));
+    } catch (IllegalArgumentException ex) {
+      return new UserResponse(
+          "400", false, null, GraphQlErrorMapper.fromIllegalArgument("userIdToFollow", ex));
     }
   }
 
   /**
    * Unfollows a user account on behalf of the authenticated user.
    *
-   * <p>Business exceptions are mapped with {@link GraphQlErrorMapper} in the style of
+   * <p>Business exceptions are mapped with {@link GraphQlErrorMapper} as per the ethos of
    * "errors-as-data".
    *
    * @param userDetails authenticated user; populated as part of the security chain with {@link

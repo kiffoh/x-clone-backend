@@ -2,6 +2,9 @@ package com.xclone.follow.service;
 
 import com.xclone.common.connection.Cursor;
 import com.xclone.common.connection.PageInfo;
+import com.xclone.exception.custom.DuplicateFollowException;
+import com.xclone.exception.custom.SelfFollowException;
+import com.xclone.follow.model.FollowConstraintName;
 import com.xclone.follow.model.entity.Follow;
 import com.xclone.follow.model.enums.FollowSide;
 import com.xclone.follow.repository.FollowRepository;
@@ -17,6 +20,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.postgresql.util.PSQLException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -129,13 +134,26 @@ public class FollowService {
    */
   @Transactional
   public UserProfile followUser(UUID followerId, UUID followingId) {
-    User follower = getUserOrThrow(followerId);
-    User following = getUserOrThrow(followingId);
-    Follow follow = new Follow();
-    follow.setFollower(follower);
-    follow.setFollowing(following);
-    followRepository.save(follow);
-    return following.toUserProfile();
+    try {
+      User follower = getUserOrThrow(followerId);
+      User following = getUserOrThrow(followingId);
+      Follow follow = new Follow();
+      follow.setFollower(follower);
+      follow.setFollowing(following);
+      followRepository.saveAndFlush(follow);
+      return following.toUserProfile();
+    } catch (DataIntegrityViolationException ex) {
+      if (ex.contains(PSQLException.class)) {
+        PSQLException psql = (PSQLException) ex.getRootCause();
+        String constraintName = psql.getServerErrorMessage().getConstraint();
+        if (constraintName.equals(FollowConstraintName.FOLLOW_EXISTS)) {
+          throw new DuplicateFollowException("Follow already exists");
+        } else if (constraintName.equals(FollowConstraintName.SELF_FOLLOW)) {
+          throw new SelfFollowException("User cannot follow self");
+        }
+      }
+      throw ex;
+    }
   }
 
   /**

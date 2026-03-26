@@ -1,5 +1,6 @@
 package com.xclone.follow.model.entity;
 
+import com.xclone.follow.model.FollowConstraintName;
 import com.xclone.user.model.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -25,8 +26,11 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @Setter
 @Table(
     name = "follows",
-    uniqueConstraints = @UniqueConstraint(columnNames = {"follower_id", "following_id"}))
-@Check(name = "NO_SELF_FOLLOW", constraints = "follower_id != following_id")
+    uniqueConstraints =
+        @UniqueConstraint(
+            columnNames = {"follower_id", "following_id"},
+            name = FollowConstraintName.FOLLOW_EXISTS))
+@Check(name = FollowConstraintName.SELF_FOLLOW, constraints = "follower_id != following_id")
 @Entity
 @EntityListeners(AuditingEntityListener.class)
 public class Follow {
