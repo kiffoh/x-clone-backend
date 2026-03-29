@@ -1,5 +1,6 @@
 package com.xclone.common.connection;
 
+import com.xclone.exception.custom.InvalidCursorException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
@@ -28,10 +29,14 @@ public record Cursor(Instant createdAt, UUID id) {
    * @return the decoded {@code Cursor} instance
    */
   public static Cursor toCursor(String encodedCursor) {
-    Base64.Decoder decoder = Base64.getDecoder();
-    String[] parts = new String(decoder.decode(encodedCursor), StandardCharsets.UTF_8).split("_");
-    Instant createdAt = Instant.parse(parts[0]);
-    UUID id = UUID.fromString(parts[1]);
-    return new Cursor(createdAt, id);
+    try {
+      Base64.Decoder decoder = Base64.getDecoder();
+      String[] parts = new String(decoder.decode(encodedCursor), StandardCharsets.UTF_8).split("_");
+      Instant createdAt = Instant.parse(parts[0]);
+      UUID id = UUID.fromString(parts[1]);
+      return new Cursor(createdAt, id);
+    } catch (IllegalArgumentException ex) {
+      throw new InvalidCursorException("Malformed cursor: " + ex.getMessage());
+    }
   }
 }

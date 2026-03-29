@@ -38,21 +38,18 @@ public class FollowController {
    */
   @MutationMapping
   public UserResponse followUser(
-      @AuthenticationPrincipal CustomUserDetails userDetails, @Argument String userIdToFollow) {
-    String followerId = userDetails.getUsername();
+      @AuthenticationPrincipal CustomUserDetails userDetails, @Argument UUID userIdToFollow) {
+    UUID followerId = userDetails.getId();
     try {
-      UserProfile updatedUser =
-          followService.followUser(UUID.fromString(followerId), UUID.fromString(userIdToFollow));
+      UserProfile updatedUser = followService.followUser(followerId, userIdToFollow);
       return new UserResponse("201", true, updatedUser, null);
     } catch (UsernameNotFoundException ex) {
-      return new UserResponse("404", false, null, GraphQlErrorMapper.fromUsernameNotFound(ex));
+      return new UserResponse(
+          "404", false, null, GraphQlErrorMapper.fromUsernameNotFound("userIdToFollow", ex));
     } catch (DuplicateFollowException ex) {
       return new UserResponse("409", false, null, GraphQlErrorMapper.fromDuplicateFollow(ex));
     } catch (SelfFollowException ex) {
       return new UserResponse("400", false, null, GraphQlErrorMapper.fromSelfFollow(ex));
-    } catch (IllegalArgumentException ex) {
-      return new UserResponse(
-          "400", false, null, GraphQlErrorMapper.fromIllegalArgument("userIdToFollow", ex));
     }
   }
 
@@ -69,15 +66,14 @@ public class FollowController {
    */
   @MutationMapping
   public UserResponse unfollowUser(
-      @AuthenticationPrincipal CustomUserDetails userDetails, @Argument String userIdToUnfollow) {
-    String followerId = userDetails.getUsername();
+      @AuthenticationPrincipal CustomUserDetails userDetails, @Argument UUID userIdToUnfollow) {
+    UUID followerId = userDetails.getId();
     try {
-      UserProfile updatedUser =
-          followService.unfollowUser(
-              UUID.fromString(followerId), UUID.fromString(userIdToUnfollow));
+      UserProfile updatedUser = followService.unfollowUser(followerId, userIdToUnfollow);
       return new UserResponse("200", true, updatedUser, null);
     } catch (UsernameNotFoundException ex) {
-      return new UserResponse("404", false, null, GraphQlErrorMapper.fromUsernameNotFound(ex));
+      return new UserResponse(
+          "404", false, null, GraphQlErrorMapper.fromUsernameNotFound("userIdToUnfollow", ex));
     }
   }
 }
