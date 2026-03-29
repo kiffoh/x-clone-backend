@@ -49,7 +49,7 @@ public class UserService {
             false,
             edges.isEmpty() ? null : edges.getFirst().cursor(),
             edges.isEmpty() ? null : edges.getLast().cursor());
-    return new UserConnection(edges, pageInfo, edges.size());
+    return new UserConnection(edges, pageInfo);
   }
 
   public UserProfile getUserByHandle(@ValidHandle String handle) {
@@ -78,10 +78,10 @@ public class UserService {
    * @return user with relevant fields updated
    */
   @Transactional
-  public UserProfile updateProfile(String userId, @Valid UpdateUserInput updateUserInput) {
+  public UserProfile updateProfile(UUID userId, @Valid UpdateUserInput updateUserInput) {
     User user =
         userRepository
-            .findById(UUID.fromString(userId))
+            .findById(userId)
             .orElseThrow(
                 () ->
                     new IllegalStateException(
@@ -116,10 +116,10 @@ public class UserService {
    *     indicating a mismatch between the security context and the persisted state
    */
   @Transactional
-  public void deleteProfile(String userId) {
+  public void deleteProfile(UUID userId) {
     User user =
         userRepository
-            .findById(UUID.fromString(userId))
+            .findById(userId)
             .orElseThrow(
                 () ->
                     new IllegalStateException(
