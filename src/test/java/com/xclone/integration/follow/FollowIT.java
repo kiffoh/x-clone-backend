@@ -3,9 +3,7 @@ package com.xclone.integration.follow;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.xclone.common.connection.Cursor;
 import com.xclone.follow.repository.FollowRepository;
 import com.xclone.integration.base.BaseIntegrationTest;
 import com.xclone.support.fixtures.UserFixtures;
@@ -14,8 +12,6 @@ import com.xclone.user.dto.connection.UserConnection;
 import com.xclone.user.dto.mutation.UserResponse;
 import com.xclone.user.model.entity.User;
 import com.xclone.user.repository.UserRepository;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -92,21 +88,21 @@ public class FollowIT extends BaseIntegrationTest {
           .matchesJson(
               String.format(
                   """
-               {
-                    "code": "201",
-                    "success": true,
-                    "user": {
-                      "id": "%s",
-                      "followers": {
-                        "edges": [{
-                          "node": {
-                            "id": "%s"
-                           }
-                        }]
-                      }
-                    }
-                  }
-              """,
+                       {
+                            "code": "201",
+                            "success": true,
+                            "user": {
+                              "id": "%s",
+                              "followers": {
+                                "edges": [{
+                                  "node": {
+                                    "id": "%s"
+                                   }
+                                }]
+                              }
+                            }
+                          }
+                      """,
                   userToFollow.getId(), authenticatedUser.getId()));
 
       authenticatedTester
@@ -295,219 +291,6 @@ public class FollowIT extends BaseIntegrationTest {
           .isEqualTo("User with specified id does not exist");
       assertNull(followResponse.user());
     }
-
-    @Test
-    void paginationWithValidAfter_returnsNextUserConnection() {
-      User userToFollow1 = users.get(1);
-      User userToFollow2 = users.get(2);
-
-      // Follow 2 users
-      authenticatedTester
-          .document(
-              """
-                  mutation FollowUser($id: ID!) {
-                    followUser(userIdToFollow: $id) {
-                      code
-                      success
-                    }
-                  }
-                  """)
-          .variable("id", userToFollow1.getId())
-          .execute()
-          .path("followUser")
-          .matchesJson(
-              """
-               {
-                  "code": "201",
-                  "success": true
-               }
-              """);
-      authenticatedTester
-          .document(
-              """
-                  mutation FollowUser($id: ID!) {
-                    followUser(userIdToFollow: $id) {
-                      code
-                      success
-                    }
-                  }
-                  """)
-          .variable("id", userToFollow2.getId())
-          .execute()
-          .path("followUser")
-          .matchesJson(
-              """
-               {
-                  "code": "201",
-                  "success": true
-               }
-              """);
-
-      UserConnection firstPage =
-          authenticatedTester
-              .document(
-                  """
-                  {
-                    me {
-                      following(first: 1) {
-                        edges {
-                          node {
-                            id
-                          }
-                          cursor
-                        }
-                        pageInfo {
-                          hasNextPage
-                          hasPreviousPage
-                          endCursor
-                        }
-                      }
-                      followingCount
-                    }
-                  }
-                  """)
-              .execute()
-              .path("me.followingCount")
-              .entity(Long.class)
-              .isEqualTo(2L)
-              .path("me.following")
-              .entity(UserConnection.class)
-              .get();
-
-      String firstPageEndCursor = firstPage.pageInfo().endCursor();
-
-      // Followings are sorted by most recent -> second follow will be the first page
-      assertThat(firstPage.edges().getFirst().node().id()).isEqualTo(userToFollow2.getId());
-      assertThat(firstPage.edges().getFirst().cursor()).isEqualTo(firstPageEndCursor);
-      assertTrue(firstPage.pageInfo().hasNextPage());
-      assertFalse(firstPage.pageInfo().hasPreviousPage());
-
-      UserConnection secondPage =
-          authenticatedTester
-              .document(
-                  """
-                  query getFollowing($after: String) {
-                    me {
-                      following(first: 1, after: $after) {
-                        edges {
-                          node {
-                            id
-                          }
-                          cursor
-                        }
-                        pageInfo {
-                          hasNextPage
-                          hasPreviousPage
-                          endCursor
-                        }
-                      }
-                      followingCount
-                    }
-                  }
-                  """)
-              .variable("after", firstPageEndCursor)
-              .execute()
-              .path("me.followingCount")
-              .entity(Long.class)
-              .isEqualTo(2L)
-              .path("me.following")
-              .entity(UserConnection.class)
-              .get();
-
-      assertThat(secondPage.edges().getFirst().node().id()).isEqualTo(userToFollow1.getId());
-      assertThat(secondPage.edges().getFirst().cursor())
-          .isEqualTo(secondPage.pageInfo().endCursor());
-      assertFalse(secondPage.pageInfo().hasNextPage());
-    }
-
-    @Test
-    void paginationWithMalformedAfter_returnsProtocolError() {
-      String malformedAfter = "not-base64!";
-      // Act
-      authenticatedTester
-          .document(
-              """
-                  query getFollowing($after: String) {
-                    me {
-                      following(first: 1, after: $after) {
-                        edges {
-                          node {
-                            id
-                          }
-                        }
-                      }
-                    }
-                  }
-                  """)
-          .variable("after", malformedAfter)
-          .execute()
-          .errors()
-          .filter(error -> "BAD_REQUEST".equals(error.getExtensions().get("classification")))
-          .expect(error -> error.getMessage().contains("Malformed cursor"));
-    }
-
-    @Test
-    void paginationWithValidAfterButNoData_returnsEmptyConnection() {
-      String cursorPastEnd =
-          new Cursor(Instant.now().minus(1, ChronoUnit.HOURS), UUID.randomUUID()).encode();
-
-      // One follower in DB
-      authenticatedTester
-          .document(
-              """
-                  mutation FollowUser($id: ID!) {
-                    followUser(userIdToFollow: $id) {
-                      code
-                      success
-                    }
-                  }
-                  """)
-          .variable("id", users.get(1).getId())
-          .execute()
-          .path("followUser")
-          .matchesJson(
-              """
-               {
-                  "code": "201",
-                  "success": true
-               }
-              """);
-
-      // Act
-      UserConnection emptyData =
-          authenticatedTester
-              .document(
-                  """
-                  query getFollowing($after: String) {
-                    me {
-                      following(first: 1, after: $after) {
-                        edges {
-                          node {
-                            id
-                          }
-                          cursor
-                        }
-                        pageInfo {
-                          hasNextPage
-                        }
-                      }
-                      followingCount
-                    }
-                  }
-                  """)
-              .variable("after", cursorPastEnd)
-              .execute()
-              .path("me.followingCount")
-              .entity(Long.class)
-              .isEqualTo(1L)
-              .path("me.following")
-              .entity(UserConnection.class)
-              .get();
-
-      // Assert
-      assertThat(emptyData.edges()).hasSize(0);
-      assertFalse(emptyData.pageInfo().hasNextPage());
-    }
   }
 
   @Nested
@@ -650,15 +433,15 @@ public class FollowIT extends BaseIntegrationTest {
           .matchesJson(
               String.format(
                   """
-                  {
-                    "code": "200",
-                    "success": true,
-                    "user": {
-                      "id": "%s"
-                    },
-                    "errors": null
-                  }
-                  """,
+                      {
+                        "code": "200",
+                        "success": true,
+                        "user": {
+                          "id": "%s"
+                        },
+                        "errors": null
+                      }
+                      """,
                   userToUnfollow.getId()));
     }
 
@@ -695,17 +478,17 @@ public class FollowIT extends BaseIntegrationTest {
           authenticatedTester
               .document(
                   """
-                  mutation UnfollowUser($id: ID!) {
-                    unfollowUser(userIdToUnfollow: $id) {
-                      code
-                      success
-                      errors {
-                        field
-                        message
+                      mutation UnfollowUser($id: ID!) {
+                        unfollowUser(userIdToUnfollow: $id) {
+                          code
+                          success
+                          errors {
+                            field
+                            message
+                          }
+                        }
                       }
-                    }
-                  }
-                  """)
+                      """)
               .variable("id", UUID.randomUUID().toString())
               .execute()
               .path("unfollowUser")

@@ -7,21 +7,26 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.xclone.common.connection.Cursor;
 import com.xclone.common.mutation.DeleteResponse;
 import com.xclone.exception.dto.FieldError;
-import com.xclone.follow.model.entity.Follow;
 import com.xclone.follow.repository.FollowRepository;
 import com.xclone.integration.base.BaseIntegrationTest;
 import com.xclone.support.fixtures.UserFixtures;
 import com.xclone.support.helpers.AuthHelpers;
+import com.xclone.support.helpers.FollowHelpers;
+import com.xclone.user.dto.connection.UserConnection;
 import com.xclone.user.dto.mutation.UserResponse;
 import com.xclone.user.model.entity.User;
 import com.xclone.user.model.enums.UserStatus;
 import com.xclone.user.repository.UserRepository;
 import com.xclone.validation.ValidationConstants;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -573,30 +578,442 @@ public class UserIT extends BaseIntegrationTest {
   class schemaMappingTests {
     @Autowired FollowRepository followRepository;
 
-    /**
-     * Circular follow system:
-     *
-     * <p>user 1 -> user 2 -> user 3 -> user 1
-     */
-    private Follow createFollow(User follower, User following) {
-      Follow f = new Follow();
-      f.setFollower(follower);
-      f.setFollowing(following);
-      return f;
+    User authenticatedUser;
+    User user2;
+    User user3;
+
+    @AfterEach
+    void cleanup() {
+      followRepository.deleteAll();
     }
 
-    private void seedFollowers() {
-      for (int i = 0; i < users.size(); i++) {
-        int j = (i + 1) % users.size();
-        Follow f = createFollow(users.get(i), users.get(j));
-        followRepository.save(f);
+    @Nested
+    class followingTests {
+      /**
+       * Following system:
+       *
+       * <p>user 1 follows:
+       *
+       * <ul>
+       *   <li>user 2
+       *   <li>user 3
+       * </ul>
+       */
+      @BeforeEach
+      void setup() {
+        authenticatedUser = users.getFirst();
+        user2 = users.get(1);
+        user3 = users.get(2);
+        FollowHelpers.seedFollow(followRepository, authenticatedUser, user2);
+        FollowHelpers.seedFollow(followRepository, authenticatedUser, user3);
+      }
+
+      @Test
+      void followingNoCursor_returnsUserConnection() {
+        // Utilises the default first value (first 5 results)
+        authenticatedTester()
+            .document(
+                """
+                    {
+                       me {
+                         id
+                         following {
+                           edges {
+                              node {
+                                id
+                             }
+                           }
+                         }
+                         followingCount
+                       }
+                     }""")
+            .execute()
+            .path("me")
+            .matchesJson(
+                String.format(
+                    """
+                        {
+                          "id": "%s",
+                          "following": {
+                            "edges": [
+                            {
+                              "node": {
+                                "id": "%s"
+                               }
+                            },
+                            {
+                              "node": {
+                                "id": "%s"
+                               }
+                            }
+                            ]
+                          },
+                          "followingCount": 2
+                        }
+                        """,
+                    authenticatedUser.getId(), user2.getId(), user3.getId()));
+      }
+
+      @Test
+      void paginationWithValidAfter_returnsNextUserConnection() {
+        UserConnection firstPage =
+            authenticatedTester()
+                .document(
+                    """
+                        {
+                          me {
+                            following(first: 1) {
+                              edges {
+                                node {
+                                  id
+                                }
+                                cursor
+                              }
+                              pageInfo {
+                                hasNextPage
+                                endCursor
+                              }
+                            }
+                            followingCount
+                          }
+                        }
+                        """)
+                .execute()
+                .path("me.followingCount")
+                .entity(Long.class)
+                .isEqualTo(2L)
+                .path("me.following")
+                .entity(UserConnection.class)
+                .get();
+
+        String firstPageEndCursor = firstPage.pageInfo().endCursor();
+
+        // Followings are sorted by most recent -> second follow will be the first page
+        assertThat(firstPage.edges().getFirst().node().id()).isEqualTo(user3.getId());
+        assertThat(firstPage.edges().getFirst().cursor()).isEqualTo(firstPageEndCursor);
+        assertTrue(firstPage.pageInfo().hasNextPage());
+
+        UserConnection secondPage =
+            authenticatedTester()
+                .document(
+                    """
+                        query getFollowing($after: String) {
+                          me {
+                            following(first: 1, after: $after) {
+                              edges {
+                                node {
+                                  id
+                                }
+                                cursor
+                              }
+                              pageInfo {
+                                hasNextPage
+                                endCursor
+                              }
+                            }
+                            followingCount
+                          }
+                        }
+                        """)
+                .variable("after", firstPageEndCursor)
+                .execute()
+                .path("me.followingCount")
+                .entity(Long.class)
+                .isEqualTo(2L)
+                .path("me.following")
+                .entity(UserConnection.class)
+                .get();
+
+        assertThat(secondPage.edges().getFirst().node().id()).isEqualTo(user2.getId());
+        assertThat(secondPage.edges().getFirst().cursor())
+            .isEqualTo(secondPage.pageInfo().endCursor());
+        assertFalse(secondPage.pageInfo().hasNextPage());
+      }
+
+      @Test
+      void paginationWithMalformedAfter_returnsProtocolError() {
+        String malformedAfter = "not-base64!";
+        // Act
+        authenticatedTester()
+            .document(
+                """
+                    query getFollowing($after: String) {
+                      me {
+                        following(first: 1, after: $after) {
+                          edges {
+                            node {
+                              id
+                            }
+                          }
+                        }
+                      }
+                    }
+                    """)
+            .variable("after", malformedAfter)
+            .execute()
+            .errors()
+            .filter(error -> "BAD_REQUEST".equals(error.getExtensions().get("classification")))
+            .expect(error -> error.getMessage().contains("Malformed cursor"));
+      }
+
+      @Test
+      void paginationWithValidAfterButNoData_returnsEmptyConnection() {
+        String cursorPastEnd =
+            new Cursor(Instant.now().minus(1, ChronoUnit.HOURS), UUID.randomUUID()).encode();
+
+        // Act
+        UserConnection emptyData =
+            authenticatedTester()
+                .document(
+                    """
+                        query getFollowing($after: String) {
+                          me {
+                            following(first: 1, after: $after) {
+                              edges {
+                                node {
+                                  id
+                                }
+                                cursor
+                              }
+                              pageInfo {
+                                hasNextPage
+                              }
+                            }
+                            followingCount
+                          }
+                        }
+                        """)
+                .variable("after", cursorPastEnd)
+                .execute()
+                .path("me.followingCount")
+                .entity(Long.class)
+                .isEqualTo(2L)
+                .path("me.following")
+                .entity(UserConnection.class)
+                .get();
+
+        // Assert
+        assertThat(emptyData.edges()).hasSize(0);
+        assertFalse(emptyData.pageInfo().hasNextPage());
       }
     }
 
-    @BeforeEach
-    void setup() {
-      seedFollowers();
+    @Nested
+    class followersTests {
+      /**
+       * Following system:
+       *
+       * <p>user 1 is followed by:
+       *
+       * <ul>
+       *   <li>user 2
+       *   <li>user 3
+       * </ul>
+       */
+      @BeforeEach
+      void setup() {
+        authenticatedUser = users.getFirst();
+        user2 = users.get(1);
+        user3 = users.get(2);
+        FollowHelpers.seedFollow(followRepository, user2, authenticatedUser);
+        FollowHelpers.seedFollow(followRepository, user3, authenticatedUser);
+      }
+
+      @Test
+      void followersNoCursor_returnsUserConnection() {
+        authenticatedTester()
+            .document(
+                """
+                    {
+                       me {
+                         id
+                         followers {
+                           edges {
+                              node {
+                                id
+                             }
+                           }
+                         }
+                         followerCount
+                       }
+                     }""")
+            .execute()
+            .path("me")
+            .matchesJson(
+                String.format(
+                    """
+                        {
+                          "id": "%s",
+                          "followers": {
+                            "edges": [
+                            {
+                              "node": {
+                                "id": "%s"
+                               }
+                            },
+                            {
+                              "node": {
+                                "id": "%s"
+                               }
+                            }
+                            ]
+                          },
+                          "followerCount": 2
+                        }""",
+                    authenticatedUser.getId(),
+                    // user3 is a more recent follower -> displayed first
+                    user3.getId(),
+                    user2.getId()));
+      }
+
+      @Test
+      void paginationWithValidAfter_returnsNextUserConnection() {
+        UserConnection firstPage =
+            authenticatedTester()
+                .document(
+                    """
+                        {
+                          me {
+                            followers(first: 1) {
+                              edges {
+                                node {
+                                  id
+                                }
+                                cursor
+                              }
+                              pageInfo {
+                                hasNextPage
+                                endCursor
+                              }
+                            }
+                            followerCount
+                          }
+                        }
+                        """)
+                .execute()
+                .path("me.followerCount")
+                .entity(Long.class)
+                .isEqualTo(2L)
+                .path("me.followers")
+                .entity(UserConnection.class)
+                .get();
+
+        String firstPageEndCursor = firstPage.pageInfo().endCursor();
+
+        // Followings are sorted by most recent -> second follow will be the first page
+        assertThat(firstPage.edges().getFirst().node().id()).isEqualTo(user3.getId());
+        assertThat(firstPage.edges().getFirst().cursor()).isEqualTo(firstPageEndCursor);
+        assertTrue(firstPage.pageInfo().hasNextPage());
+
+        UserConnection secondPage =
+            authenticatedTester()
+                .document(
+                    """
+                        query getFollowers($after: String) {
+                          me {
+                            followers(first: 1, after: $after) {
+                              edges {
+                                node {
+                                  id
+                                }
+                                cursor
+                              }
+                              pageInfo {
+                                hasNextPage
+                                endCursor
+                              }
+                            }
+                            followerCount
+                          }
+                        }
+                        """)
+                .variable("after", firstPageEndCursor)
+                .execute()
+                .path("me.followerCount")
+                .entity(Long.class)
+                .isEqualTo(2L)
+                .path("me.followers")
+                .entity(UserConnection.class)
+                .get();
+
+        assertThat(secondPage.edges().getFirst().node().id()).isEqualTo(user2.getId());
+        assertThat(secondPage.edges().getFirst().cursor())
+            .isEqualTo(secondPage.pageInfo().endCursor());
+        assertFalse(secondPage.pageInfo().hasNextPage());
+      }
+
+      @Test
+      void paginationWithMalformedAfter_returnsProtocolError() {
+        String malformedAfter = "not-base64!";
+        // Act
+        authenticatedTester()
+            .document(
+                """
+                    query getFollowers($after: String) {
+                      me {
+                        followers(first: 1, after: $after) {
+                          edges {
+                            node {
+                              id
+                            }
+                          }
+                        }
+                      }
+                    }
+                    """)
+            .variable("after", malformedAfter)
+            .execute()
+            .errors()
+            .filter(error -> "BAD_REQUEST".equals(error.getExtensions().get("classification")))
+            .expect(error -> error.getMessage().contains("Malformed cursor"));
+      }
+
+      @Test
+      void paginationWithValidAfterButNoData_returnsEmptyConnection() {
+        String cursorPastEnd =
+            new Cursor(Instant.now().minus(1, ChronoUnit.HOURS), UUID.randomUUID()).encode();
+
+        // Act
+        UserConnection emptyData =
+            authenticatedTester()
+                .document(
+                    """
+                        query getFollowers($after: String) {
+                          me {
+                            followers(first: 1, after: $after) {
+                              edges {
+                                node {
+                                  id
+                                }
+                                cursor
+                              }
+                              pageInfo {
+                                hasNextPage
+                              }
+                            }
+                            followerCount
+                          }
+                        }
+                        """)
+                .variable("after", cursorPastEnd)
+                .execute()
+                .path("me.followerCount")
+                .entity(Long.class)
+                .isEqualTo(2L)
+                .path("me.followers")
+                .entity(UserConnection.class)
+                .get();
+
+        // Assert
+        assertThat(emptyData.edges()).hasSize(0);
+        assertFalse(emptyData.pageInfo().hasNextPage());
+      }
     }
+  }
+
+  @Nested
+  class batchMappingTests {
+    @Autowired FollowRepository followRepository;
 
     @AfterEach
     void cleanup() {
@@ -604,108 +1021,16 @@ public class UserIT extends BaseIntegrationTest {
     }
 
     @Test
-    void getUserWithFollowers() {
-      authenticatedTester()
-          .document(
-              String.format(
-                  """
-                      {
-                         me {
-                           id
-                           handle
-                           followers(first: %d) {
-                             edges {
-                                node {
-                                  id
-                                  handle
-                               }
-                             }
-                           }
-                           followerCount
-                         }
-                       }""",
-                  1))
-          .execute()
-          .path("me")
-          .matchesJson(
-              String.format(
-                  """
-                      {
-                        "id": "%s",
-                        "handle": "%s",
-                        "followers": {
-                          "edges": [
-                          {
-                            "node": {
-                              "id": "%s",
-                              "handle": "%s"
-                             }
-                          }
-                          ]
-                        },
-                        "followerCount": 1
-                      }""",
-                  users.get(0).getId(),
-                  users.get(0).getHandle(),
-                  users.get(2).getId(),
-                  users.get(2).getHandle()));
-    }
-
-    @Test
-    void getUserWithFollowing() {
-      authenticatedTester()
-          .document(
-              String.format(
-                  """
-                      {
-                         me {
-                           id
-                           handle
-                           following(first: %d) {
-                             edges {
-                                node {
-                                  id
-                                  handle
-                               }
-                             }
-                           }
-                           followingCount
-                         }
-                       }""",
-                  1))
-          .execute()
-          .path("me")
-          .matchesJson(
-              String.format(
-                  """
-                      {
-                        "id": "%s",
-                        "handle": "%s",
-                        "following": {
-                          "edges": [
-                          {
-                            "node": {
-                              "id": "%s",
-                              "handle": "%s"
-                             }
-                          }
-                          ]
-                        },
-                        "followingCount": 1
-                      }
-                      """,
-                  users.get(0).getId(),
-                  users.get(0).getHandle(),
-                  users.get(1).getId(),
-                  users.get(1).getHandle()));
-    }
-
-    @Test
     void getUserWithFollowersAndIsFollowing() {
-      // After initialisation, both user 1 and user 2 follow user 0
-      // User 0 (authenticated user) only follows user 1
-      Follow f = createFollow(users.get(1), users.get(0));
-      followRepository.save(f);
+      // Initialise
+      User authenticatedUser = users.getFirst();
+      User user2 = users.get(1);
+      User user3 = users.get(2);
+      // both user 1 and user 2 follow authenticatedUser
+      FollowHelpers.seedFollow(followRepository, user2, authenticatedUser);
+      FollowHelpers.seedFollow(followRepository, user3, authenticatedUser);
+      // authenticated user only follows user 3
+      FollowHelpers.seedFollow(followRepository, authenticatedUser, user3);
 
       authenticatedTester()
           .document(
@@ -714,12 +1039,10 @@ public class UserIT extends BaseIntegrationTest {
                       {
                          me {
                            id
-                           handle
                            followers(first: %d) {
                              edges {
                                 node {
                                   id
-                                  handle
                                   isFollowing
                                }
                              }
@@ -735,20 +1058,17 @@ public class UserIT extends BaseIntegrationTest {
                   """
                       {
                         "id": "%s",
-                        "handle": "%s",
                         "followers": {
                           "edges": [
                           {
                             "node": {
                               "id": "%s",
-                              "handle": "%s",
                               "isFollowing": true
                              }
                           },
                           {
                             "node": {
                               "id": "%s",
-                              "handle": "%s",
                               "isFollowing": false
                              }
                           }
@@ -756,12 +1076,7 @@ public class UserIT extends BaseIntegrationTest {
                         },
                         "followerCount": 2
                       }""",
-                  users.get(0).getId(),
-                  users.get(0).getHandle(),
-                  users.get(1).getId(),
-                  users.get(1).getHandle(),
-                  users.get(2).getId(),
-                  users.get(2).getHandle()));
+                  authenticatedUser.getId(), user3.getId(), user2.getId()));
     }
   }
 }
