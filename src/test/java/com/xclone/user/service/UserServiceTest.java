@@ -66,7 +66,6 @@ public class UserServiceTest {
       List<UUID> returnedUserIds =
           returnedUsers.edges().stream().map(user -> user.node().id()).toList();
 
-      assertThat(returnedUsers.totalCount()).isEqualTo(3);
       // Edges
       assertThat(returnedUserIds).isEqualTo(generatedUserIds);
       // Page info
@@ -96,7 +95,6 @@ public class UserServiceTest {
 
       UserConnection returnedUsers = userService.getUsersByHandle(query);
 
-      assertThat(returnedUsers.totalCount()).isEqualTo(1);
       // Edges
       assertThat(returnedUsers.edges().getFirst().node().id()).isEqualTo(firstUserId);
       // Page info
@@ -114,7 +112,6 @@ public class UserServiceTest {
 
       UserConnection returnedUsers = userService.getUsersByHandle(query);
 
-      assertThat(returnedUsers.totalCount()).isEqualTo(0);
       // Page info
       assertThat(returnedUsers.pageInfo().startCursor()).isNull();
       assertThat(returnedUsers.pageInfo().endCursor()).isNull();
@@ -131,12 +128,12 @@ public class UserServiceTest {
   class updateProfileTests {
 
     User existingUser;
-    String existingUserId;
+    UUID existingUserId;
 
     @BeforeEach
     void initialisation() {
       existingUser = UserFixtures.getDefaultUserWithRandomId();
-      existingUserId = existingUser.getId().toString();
+      existingUserId = existingUser.getId();
     }
 
     @Test

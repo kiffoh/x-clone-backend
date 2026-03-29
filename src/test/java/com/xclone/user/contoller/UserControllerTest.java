@@ -1,7 +1,6 @@
 package com.xclone.user.contoller;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import com.xclone.config.GraphQlConfig;
@@ -136,26 +135,26 @@ public class UserControllerTest {
     User updatedUser = defaultUser.toBuilder().build();
     updatedUser.setDisplayName(newDisplayName);
     updatedUser.setHandle(newHandle);
-    when(userService.updateProfile(anyString(), any())).thenReturn(updatedUser.toUserProfile());
+    when(userService.updateProfile(any(UUID.class), any())).thenReturn(updatedUser.toUserProfile());
 
     tester
         .document(
             """
-            mutation UpdateProfile($input: UpdateUserInput!) {
-              updateMyProfile(input: $input) {
-                code
-                success
-                user {
-                  displayName
-                  handle
+                mutation UpdateProfile($input: UpdateUserInput!) {
+                  updateMyProfile(input: $input) {
+                    code
+                    success
+                    user {
+                      displayName
+                      handle
+                    }
+                    errors {
+                      field
+                      message
+                    }
+                  }
                 }
-                errors {
-                  field
-                  message
-                }
-              }
-            }
-            """)
+                """)
         .variable(
             "input",
             Map.of(
@@ -166,16 +165,16 @@ public class UserControllerTest {
         .matchesJson(
             String.format(
                 """
-            {
-              "code": "200",
-              "success": true,
-              "user": {
-                "displayName": "%s",
-                "handle": "%s"
-              },
-              "errors": null
-            }
-            """,
+                    {
+                      "code": "200",
+                      "success": true,
+                      "user": {
+                        "displayName": "%s",
+                        "handle": "%s"
+                      },
+                      "errors": null
+                    }
+                    """,
                 newDisplayName, newHandle));
   }
 
@@ -183,41 +182,41 @@ public class UserControllerTest {
   @WithMockCustomUser
   public void updateMyProfile_returnsDuplicateHandle() {
     User defaultUser = UserFixtures.getDefaultUserWithStaticId();
-    when(userService.updateProfile(anyString(), any()))
+    when(userService.updateProfile(any(UUID.class), any()))
         .thenThrow(new DuplicateHandleException("Handle already in use"));
 
     tester
         .document(
             """
-            mutation UpdateProfile($input: UpdateUserInput!) {
-              updateMyProfile(input: $input) {
-                code
-                success
-                user {
-                  displayName
-                  handle
+                mutation UpdateProfile($input: UpdateUserInput!) {
+                  updateMyProfile(input: $input) {
+                    code
+                    success
+                    user {
+                      displayName
+                      handle
+                    }
+                    errors {
+                      field
+                      message
+                    }
+                  }
                 }
-                errors {
-                  field
-                  message
-                }
-              }
-            }
-            """)
+                """)
         .variable("input", Map.of("handle", defaultUser.getHandle()))
         .execute()
         .path("updateMyProfile")
         .matchesJson(
             """
-            {
-              "code": "409",
-              "success": false,
-              "user": null,
-              "errors": [
-                { "field": "handle", "message" : "Handle already in use" }
-              ]
-            }
-            """);
+                {
+                  "code": "409",
+                  "success": false,
+                  "user": null,
+                  "errors": [
+                    { "field": "handle", "message" : "Handle already in use" }
+                  ]
+                }
+                """);
   }
 
   @Test
@@ -226,26 +225,26 @@ public class UserControllerTest {
     tester
         .document(
             """
-            mutation DeleteProfile {
-              deleteMyAccount {
-                code
-                success
-                errors {
-                  field
-                  message
+                mutation DeleteProfile {
+                  deleteMyAccount {
+                    code
+                    success
+                    errors {
+                      field
+                      message
+                    }
+                  }
                 }
-              }
-            }
-            """)
+                """)
         .execute()
         .path("deleteMyAccount")
         .matchesJson(
             """
-            {
-              "code": "200",
-              "success": true,
-              "errors": null
-            }
-            """);
+                {
+                  "code": "200",
+                  "success": true,
+                  "errors": null
+                }
+                """);
   }
 }

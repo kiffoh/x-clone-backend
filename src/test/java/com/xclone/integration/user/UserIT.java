@@ -609,21 +609,21 @@ public class UserIT extends BaseIntegrationTest {
           .document(
               String.format(
                   """
-              {
-                 me {
-                   id
-                   handle
-                   followers(first: %d) {
-                     edges {
-                        node {
-                          id
-                          handle
-                       }
-                     }
-                     totalCount
-                   }
-                 }
-               }""",
+                      {
+                         me {
+                           id
+                           handle
+                           followers(first: %d) {
+                             edges {
+                                node {
+                                  id
+                                  handle
+                               }
+                             }
+                           }
+                           followerCount
+                         }
+                       }""",
                   1))
           .execute()
           .path("me")
@@ -641,9 +641,9 @@ public class UserIT extends BaseIntegrationTest {
                               "handle": "%s"
                              }
                           }
-                          ],
-                          "totalCount": 1
-                        }
+                          ]
+                        },
+                        "followerCount": 1
                       }""",
                   users.get(0).getId(),
                   users.get(0).getHandle(),
@@ -657,21 +657,21 @@ public class UserIT extends BaseIntegrationTest {
           .document(
               String.format(
                   """
-              {
-                 me {
-                   id
-                   handle
-                   following(first: %d) {
-                     edges {
-                        node {
-                          id
-                          handle
-                       }
-                     }
-                     totalCount
-                   }
-                 }
-               }""",
+                      {
+                         me {
+                           id
+                           handle
+                           following(first: %d) {
+                             edges {
+                                node {
+                                  id
+                                  handle
+                               }
+                             }
+                           }
+                           followingCount
+                         }
+                       }""",
                   1))
           .execute()
           .path("me")
@@ -689,9 +689,9 @@ public class UserIT extends BaseIntegrationTest {
                               "handle": "%s"
                              }
                           }
-                          ],
-                          "totalCount": 1
-                        }
+                          ]
+                        },
+                        "followingCount": 1
                       }
                       """,
                   users.get(0).getId(),
@@ -711,22 +711,22 @@ public class UserIT extends BaseIntegrationTest {
           .document(
               String.format(
                   """
-              {
-                 me {
-                   id
-                   handle
-                   followers(first: %d) {
-                     edges {
-                        node {
-                          id
-                          handle
-                          isFollowing
-                       }
-                     }
-                     totalCount
-                   }
-                 }
-               }""",
+                      {
+                         me {
+                           id
+                           handle
+                           followers(first: %d) {
+                             edges {
+                                node {
+                                  id
+                                  handle
+                                  isFollowing
+                               }
+                             }
+                           }
+                           followerCount
+                         }
+                       }""",
                   5))
           .execute()
           .path("me")
@@ -752,9 +752,9 @@ public class UserIT extends BaseIntegrationTest {
                               "isFollowing": false
                              }
                           }
-                          ],
-                          "totalCount": 2
-                        }
+                          ]
+                        },
+                        "followerCount": 2
                       }""",
                   users.get(0).getId(),
                   users.get(0).getHandle(),

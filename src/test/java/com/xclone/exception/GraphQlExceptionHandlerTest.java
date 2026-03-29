@@ -17,7 +17,7 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 public class GraphQlExceptionHandlerTest {
-  GraphQlExceptionHandler graphQlExceptionHandler = new GraphQlExceptionHandler();
+  GlobalGraphQlExceptionHandler graphQlExceptionHandler = new GlobalGraphQlExceptionHandler();
   Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
 
   @Test

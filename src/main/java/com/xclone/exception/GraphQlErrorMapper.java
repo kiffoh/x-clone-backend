@@ -61,8 +61,8 @@ public class GraphQlErrorMapper {
    * @param ex exception whose message is used as the field-level error message
    * @return a list of {@link FieldError} instances representing the username not found exception
    */
-  public static List<FieldError> fromUsernameNotFound(UsernameNotFoundException ex) {
-    return List.of(new FieldError("id", ex.getMessage()));
+  public static List<FieldError> fromUsernameNotFound(String field, UsernameNotFoundException ex) {
+    return List.of(new FieldError(field, ex.getMessage()));
   }
 
   /**
