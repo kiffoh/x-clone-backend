@@ -22,9 +22,9 @@ import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.postgresql.util.PSQLException;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,7 +42,7 @@ public class FollowService {
     this.userRepository = userRepository;
   }
 
-  private UserConnection toUserConnection(Page<Follow> follows, FollowSide side) {
+  private UserConnection toUserConnection(Slice<Follow> follows, FollowSide side) {
     List<UserEdge> edges =
         follows.stream()
             .map(
@@ -59,8 +59,7 @@ public class FollowService {
             follows.hasPrevious(),
             edges.isEmpty() ? null : edges.getFirst().cursor(),
             edges.isEmpty() ? null : edges.getLast().cursor());
-    Integer totalCount = (int) follows.getTotalElements();
-    return new UserConnection(edges, pageInfo, totalCount);
+    return new UserConnection(edges, pageInfo);
   }
 
   /**
@@ -76,7 +75,7 @@ public class FollowService {
   @Transactional
   public UserConnection getFollowers(UUID followingId, Integer first, String after) {
     Pageable pageable = PageRequest.ofSize(first);
-    Page<Follow> followers;
+    Slice<Follow> followers;
     if (after == null) {
       followers =
           followRepository.findAllByFollowing_IdOrderByCreatedAtDescIdAsc(followingId, pageable);
@@ -87,6 +86,10 @@ public class FollowService {
               followingId, cursor.id(), cursor.createdAt(), pageable);
     }
     return toUserConnection(followers, FollowSide.FOLLOWER);
+  }
+
+  public long getFollowerCount(UUID id) {
+    return followRepository.countByFollowing_Id(id);
   }
 
   /**
@@ -102,7 +105,7 @@ public class FollowService {
   @Transactional
   public UserConnection getFollowing(UUID followerId, Integer first, String after) {
     Pageable pageable = PageRequest.ofSize(first);
-    Page<Follow> followings;
+    Slice<Follow> followings;
     if (after == null) {
       followings =
           followRepository.findAllByFollower_IdOrderByCreatedAtDescIdAsc(followerId, pageable);
@@ -115,13 +118,17 @@ public class FollowService {
     return toUserConnection(followings, FollowSide.FOLLOWING);
   }
 
+  public long getFollowingCount(UUID id) {
+    return followRepository.countByFollower_Id(id);
+  }
+
   private User getUserOrThrow(UUID userId) {
     return userRepository
         .findById(userId)
         .orElseThrow(
             () -> {
               log.warn("User with id {} does not exist", userId);
-              return new UsernameNotFoundException("User with specified id does not exist.");
+              return new UsernameNotFoundException("User with specified id does not exist");
             });
   }
 

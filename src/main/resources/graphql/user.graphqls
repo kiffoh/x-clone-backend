@@ -43,11 +43,19 @@ type User {
     """
     Paginated list of users which follow this user profile
     """
-    followers(first: Int, after: String): UserConnection!
+    followers(first: Int = 10, after: String): UserConnection!
+    """
+    Total number of account which follow this user
+    """
+    followerCount: Long!
     """
     Paginated list of users which this user profile follows
     """
-    following(first: Int, after: String): UserConnection!
+    following(first: Int = 10, after: String): UserConnection!
+    """
+    Total number of accounts this user is following
+    """
+    followingCount: Long!
     """
     {@code true} if the authenticated user follows the user
     """

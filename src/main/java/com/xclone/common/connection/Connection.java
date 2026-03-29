@@ -11,6 +11,4 @@ public interface Connection<T> {
   List<T> edges();
 
   PageInfo pageInfo();
-
-  Integer totalCount();
 }
