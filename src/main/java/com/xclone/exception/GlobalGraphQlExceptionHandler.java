@@ -57,7 +57,7 @@ public class GlobalGraphQlExceptionHandler {
   }
 
   @GraphQlExceptionHandler(BindException.class)
-  public GraphQLError handleBindExceptionMismatch(BindException ex) {
+  public GraphQLError handleBindException(BindException ex) {
     log.error("Invalid request: {} - {} ", ex.getClass().getSimpleName(), ex.getMessage(), ex);
 
     String message = "Invalid input format";

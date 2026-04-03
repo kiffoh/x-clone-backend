@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.tuple;
 
 import com.xclone.user.dto.request.UpdateUserInput;
 import com.xclone.validation.ValidationConstants;
-import graphql.ErrorType;
 import graphql.GraphQLError;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
@@ -15,8 +14,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
+import org.springframework.graphql.execution.ErrorType;
+import org.springframework.validation.BeanPropertyBindingResult;
+import org.springframework.validation.BindException;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
 
-public class GraphQlExceptionHandlerTest {
+public class GlobalGraphQlExceptionHandlerTest {
   GlobalGraphQlExceptionHandler graphQlExceptionHandler = new GlobalGraphQlExceptionHandler();
   Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
 
@@ -36,7 +40,7 @@ public class GraphQlExceptionHandlerTest {
         .containsExactlyInAnyOrder(
             tuple(
                 ValidationConstants.INVALID_HANDLE_REGEX,
-                ErrorType.ValidationError,
+                ErrorType.BAD_REQUEST,
                 Map.of("field", "handle")));
   }
 
@@ -56,12 +60,28 @@ public class GraphQlExceptionHandlerTest {
         .containsExactlyInAnyOrder(
             tuple(
                 ValidationConstants.INVALID_HANDLE_REGEX,
-                ErrorType.ValidationError,
+                ErrorType.BAD_REQUEST,
                 Map.of("field", "handle")),
             tuple(
                 ValidationConstants.INVALID_HANDLE_SIZE,
-                ErrorType.ValidationError,
+                ErrorType.BAD_REQUEST,
                 Map.of("field", "handle")));
+  }
+
+  @Test
+  void handlesBindException() {
+    FieldError fieldError =
+        new FieldError(
+            "object", "field", "not a valid UUID", false, null, null, "not a valid UUID");
+    BindingResult bindingResult = new BeanPropertyBindingResult(new Object(), "object");
+    bindingResult.addError(fieldError);
+    BindException ex = new BindException(bindingResult);
+
+    GraphQLError formattedExceptions = graphQlExceptionHandler.handleBindException(ex);
+
+    assertThat(formattedExceptions.getMessage())
+        .isEqualTo("Invalid value 'not a valid UUID' for argument");
+    assertThat(formattedExceptions.getErrorType()).isEqualTo(ErrorType.BAD_REQUEST);
   }
 
   @Test
@@ -70,6 +90,6 @@ public class GraphQlExceptionHandlerTest {
     GraphQLError formattedExceptions = graphQlExceptionHandler.handleGenericException(ex);
 
     assertThat(formattedExceptions.getMessage()).isEqualTo("An unexpected error occurred");
-    assertThat(formattedExceptions.getErrorType()).isEqualTo(ErrorType.DataFetchingException);
+    assertThat(formattedExceptions.getErrorType()).isEqualTo(ErrorType.INTERNAL_ERROR);
   }
 }
