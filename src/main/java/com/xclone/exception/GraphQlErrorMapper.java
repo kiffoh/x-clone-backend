@@ -77,17 +77,6 @@ public class GraphQlErrorMapper {
   }
 
   /**
-   * Maps a {@link IllegalArgumentException} to a list of {@link FieldError} DTOs.
-   *
-   * @param ex exception whose message is used as the field-level error message
-   * @return a list of {@link FieldError} instances representing the entity violation not found
-   *     exception
-   */
-  public static List<FieldError> fromIllegalArgument(String field, IllegalArgumentException ex) {
-    return List.of(new FieldError(field, ex.getMessage()));
-  }
-
-  /**
    * Maps a {@link SelfFollowException} to a list of {@link FieldError} DTOs.
    *
    * @param ex exception whose message is used as the field-level error message

@@ -20,7 +20,6 @@ import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.method.annotation.SchemaMapping;
-import org.springframework.graphql.execution.BatchLoaderRegistry;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
@@ -31,8 +30,7 @@ public class UserController {
   private final UserService userService;
   private final FollowService followService;
 
-  public UserController(
-      UserService userService, FollowService followService, BatchLoaderRegistry registry) {
+  public UserController(UserService userService, FollowService followService) {
     this.userService = userService;
     this.followService = followService;
   }
