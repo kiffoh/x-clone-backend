@@ -101,7 +101,8 @@ public class UserControllerTest {
   public void searchUsers_returnsUserProfile() {
     String query = "exam";
     UserConnection userConnection = UserFixtures.getDefaultUserConnection();
-    when(userService.getUsersByHandle(query)).thenReturn(userConnection);
+    Integer first = 10;
+    when(userService.getUsersByHandle(query, first, null)).thenReturn(userConnection);
     String request =
         String.format(
             """

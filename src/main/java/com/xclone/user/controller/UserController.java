@@ -54,7 +54,7 @@ public class UserController {
   @QueryMapping
   public UserConnection searchUsers(
       @Argument String query, @Argument Integer first, @Argument String after) {
-    return userService.getUsersByHandle(query);
+    return userService.getUsersByHandle(query, first, after);
   }
 
   //  @QueryMapping

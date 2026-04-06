@@ -93,8 +93,8 @@ extend type Query {
     Authentication: Required
     """
     userById(id: ID!): User
-    searchUsers(query: String!, first: Int, after: String): UserConnection!
-    suggestedUsers(first: Int, after: String): UserConnection!
+    searchUsers(query: String!, first: Int = 10, after: String): UserConnection!
+    suggestedUsers(first: Int = 10, after: String): UserConnection!
 }
 
 # create User in authorisation type

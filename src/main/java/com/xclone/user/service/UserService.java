@@ -1,5 +1,6 @@
 package com.xclone.user.service;
 
+import com.xclone.common.connection.Cursor;
 import com.xclone.common.connection.PageInfo;
 import com.xclone.exception.custom.DuplicateHandleException;
 import com.xclone.user.dto.UserProfile;
@@ -15,6 +16,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -38,15 +42,19 @@ public class UserService {
    * @param users the users to wrap; may be empty
    * @return a connection containing edges, page metadata, and total count
    */
-  public static UserConnection toUserConnection(List<User> users) {
+  public static UserConnection toUserConnection(Slice<User> users) {
     List<UserEdge> edges =
         users.stream()
-            .map(user -> new UserEdge(user.toUserProfile(), user.getId().toString()))
+            .map(
+                user -> {
+                  Cursor cursor = new Cursor(user.getUpdatedAt(), user.getId());
+                  return new UserEdge(user.toUserProfile(), cursor.encode());
+                })
             .toList();
     PageInfo pageInfo =
         new PageInfo(
-            false,
-            false,
+            users.hasNext(),
+            users.hasPrevious(),
             edges.isEmpty() ? null : edges.getFirst().cursor(),
             edges.isEmpty() ? null : edges.getLast().cursor());
     return new UserConnection(edges, pageInfo);
@@ -62,8 +70,17 @@ public class UserService {
     return user.map(User::toUserProfile).orElse(null);
   }
 
-  public UserConnection getUsersByHandle(String query) {
-    List<User> users = userRepository.findAllByHandleContaining(query);
+  public UserConnection getUsersByHandle(String query, Integer first, String after) {
+    Pageable pageable = PageRequest.ofSize(first);
+    Slice<User> users;
+    if (after == null) {
+      users = userRepository.findAllByHandleContainingOrderByCreatedAtDescIdAsc(query, pageable);
+    } else {
+      Cursor cursor = Cursor.toCursor(after);
+      users =
+          userRepository.findAllByHandleContainingNextPage(
+              query, cursor.id(), cursor.createdAt(), pageable);
+    }
     return toUserConnection(users);
   }
 

@@ -6,6 +6,10 @@ import com.xclone.user.service.UserService;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.SliceImpl;
 
 public class UserFixtures {
   public static final UUID DEFAULT_USER_ID =
@@ -55,6 +59,8 @@ public class UserFixtures {
                   return user;
                 })
             .toList();
-    return UserService.toUserConnection(generatedUsers);
+    Pageable pageable = PageRequest.ofSize(10);
+    Slice<User> userSlice = new SliceImpl<>(generatedUsers, pageable, false);
+    return UserService.toUserConnection(userSlice);
   }
 }
