@@ -2,6 +2,7 @@ package com.xclone.user.repository;
 
 import com.xclone.user.model.entity.User;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
@@ -25,6 +26,19 @@ public interface UserRepository extends JpaRepository<User, UUID> {
           + " order by u.createdAt desc, u.id asc")
   Slice<User> findAllByHandleContainingNextPage(
       @Param("query") String query,
+      @Param("cursorId") UUID cursorId,
+      @Param("cursorCreatedAt") Instant cursorCreatedAt,
+      Pageable pageable);
+
+  Slice<User> findAllByIdNotIn(List<UUID> userIds, Pageable pageable);
+
+  @Query(
+      "select u from User u where u.id NOT IN :userIds and "
+          + "((u.createdAt < :cursorCreatedAt) "
+          + "or (u.createdAt = :cursorCreatedAt and u.id > :cursorId))"
+          + " order by u.createdAt desc, u.id asc")
+  Slice<User> findAllByIdNotInNext(
+      @Param("userIds") List<UUID> userIds,
       @Param("cursorId") UUID cursorId,
       @Param("cursorCreatedAt") Instant cursorCreatedAt,
       Pageable pageable);

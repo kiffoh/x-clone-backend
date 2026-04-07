@@ -57,14 +57,13 @@ public class UserController {
     return userService.getUsersByHandle(query, first, after);
   }
 
-  //  @QueryMapping
-  //  public UserConnection suggestedUsers(
-  //      @AuthenticationPrincipal CustomUserDetails userDetails,
-  //      @Argument Integer first,
-  //      @Argument String after) {
-  //    User authenticatedUser = userDetails.getUser();
-  //    return userService.getSuggestedUsers(userDetails.getUser());
-  //  }
+  @QueryMapping
+  public UserConnection suggestedUsers(
+      @AuthenticationPrincipal CustomUserDetails userDetails,
+      @Argument Integer first,
+      @Argument String after) {
+    return userService.getSuggestedUsers(userDetails.getId(), first, after);
+  }
 
   /**
    * Triggers the {@link UserService#updateProfile(UUID, UpdateUserInput)} with the authenticated

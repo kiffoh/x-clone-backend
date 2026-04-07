@@ -22,6 +22,9 @@ public interface FollowRepository extends JpaRepository<Follow, UUID> {
 
   Slice<Follow> findAllByFollower_IdOrderByCreatedAtDescIdAsc(UUID followerId, Pageable pageable);
 
+  @Query("select f.following.id from Follow f where f.follower.id = :followerId")
+  List<UUID> findFollowingIdsByFollowerId(@Param("followerId") UUID followingId);
+
   @Query(
       "select f from Follow f where f.follower.id = :followerId and "
           + "((f.createdAt < :cursorCreatedAt) "

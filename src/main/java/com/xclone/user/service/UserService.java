@@ -3,6 +3,7 @@ package com.xclone.user.service;
 import com.xclone.common.connection.Cursor;
 import com.xclone.common.connection.PageInfo;
 import com.xclone.exception.custom.DuplicateHandleException;
+import com.xclone.follow.repository.FollowRepository;
 import com.xclone.user.dto.UserProfile;
 import com.xclone.user.dto.connection.UserConnection;
 import com.xclone.user.dto.connection.UserEdge;
@@ -30,8 +31,11 @@ import org.springframework.validation.annotation.Validated;
 public class UserService {
   private final UserRepository userRepository;
 
-  public UserService(UserRepository userRepository) {
+  private final FollowRepository followRepository;
+
+  public UserService(UserRepository userRepository, FollowRepository followRepository) {
     this.userRepository = userRepository;
+    this.followRepository = followRepository;
   }
 
   /**
@@ -142,5 +146,22 @@ public class UserService {
                     new IllegalStateException(
                         "Authenticated user not found in database: " + userId));
     user.setStatus(UserStatus.DELETED);
+  }
+
+  public UserConnection getSuggestedUsers(UUID id, Integer first, String after) {
+    Pageable pageable = PageRequest.ofSize(first);
+    List<UUID> userIdsToExclude = followRepository.findFollowingIdsByFollowerId(id);
+    userIdsToExclude.add(id);
+
+    Slice<User> users;
+    if (after == null) {
+      users = userRepository.findAllByIdNotIn(userIdsToExclude, pageable);
+    } else {
+      Cursor cursor = Cursor.toCursor(after);
+      users =
+          userRepository.findAllByIdNotInNext(
+              userIdsToExclude, cursor.id(), cursor.createdAt(), pageable);
+    }
+    return toUserConnection(users);
   }
 }
