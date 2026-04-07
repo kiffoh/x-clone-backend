@@ -93,7 +93,17 @@ extend type Query {
     Authentication: Required
     """
     userById(id: ID!): User
+    """
+    Fetch users whose handles contain the given query string.
+
+    Authentication: Required
+    """
     searchUsers(query: String!, first: Int = 10, after: String): UserConnection!
+    """
+    Fetch user accounts which the authenticated user does not follow.
+
+    Authentication: Required
+    """
     suggestedUsers(first: Int = 10, after: String): UserConnection!
 }
 
@@ -114,8 +124,17 @@ extend type Mutation {
     Authentication: Required
     """
     deleteMyAccount: DeleteResponse!
+    """
+    Create follow between authenticated user profile (following) and queried id (follower).
 
+    Authentication: Required
+    """
     followUser(userIdToFollow: ID!): UserResponse!
+    """
+    Delete follow between authenticated user profile (following) and queried id (follower).
+
+    Authentication: Required
+    """
     unfollowUser(userIdToUnfollow: ID!): UserResponse!
 }
 
