@@ -20,32 +20,38 @@ public interface FollowRepository extends JpaRepository<Follow, UUID> {
 
   List<Follow> findAllByFollower_IdAndFollowing_IdIn(UUID followerId, List<UUID> followingIds);
 
-  Slice<Follow> findAllByFollower_IdOrderByCreatedAtDescIdAsc(UUID followerId, Pageable pageable);
-
-  @Query("select f.following.id from Follow f where f.follower.id = :followerId")
-  List<UUID> findFollowingIdsByFollowerId(@Param("followerId") UUID followingId);
+  @Query(
+      "select f from Follow f where f.follower.id = :followerId "
+          + " order by f.createdAt desc, f.id asc")
+  Slice<Follow> findFirstPageOfFollowing(@Param("followerId") UUID followerId, Pageable pageable);
 
   @Query(
       "select f from Follow f where f.follower.id = :followerId and "
           + "((f.createdAt < :cursorCreatedAt) "
           + "or (f.createdAt = :cursorCreatedAt and f.id > :cursorId))"
           + " order by f.createdAt desc, f.id asc")
-  Slice<Follow> findFollowerNextPage(
+  Slice<Follow> findNextPageOfFollowing(
       @Param("followerId") UUID followerId,
       @Param("cursorId") UUID cursorId,
       @Param("cursorCreatedAt") Instant cursorCreatedAt,
       Pageable pageable);
 
+  @Query("select f.following.id from Follow f where f.follower.id = :followerId")
+  List<UUID> findFollowingIdsByFollowerId(@Param("followerId") UUID followerId);
+
   Integer countByFollowing_Id(UUID followingId);
 
-  Slice<Follow> findAllByFollowing_IdOrderByCreatedAtDescIdAsc(UUID followingId, Pageable pageable);
+  @Query(
+      "select f from Follow f where f.following.id = :followingId "
+          + " order by f.createdAt desc, f.id asc")
+  Slice<Follow> findFirstPageOfFollowers(@Param("followingId") UUID followingId, Pageable pageable);
 
   @Query(
       "select f from Follow f where f.following.id = :followingId and "
           + "((f.createdAt < :cursorCreatedAt) "
           + "or (f.createdAt = :cursorCreatedAt and f.id > :cursorId))"
           + " order by f.createdAt desc, f.id asc")
-  Slice<Follow> findFollowingNextPage(
+  Slice<Follow> findNextPageOfFollowers(
       @Param("followingId") UUID followingId,
       @Param("cursorId") UUID cursorId,
       @Param("cursorCreatedAt") Instant cursorCreatedAt,

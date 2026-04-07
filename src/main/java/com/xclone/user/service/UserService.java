@@ -166,15 +166,15 @@ public class UserService {
    *   <li>The authenticated user themselves
    * </ul>
    *
-   * @param id unique UUID for user entity
+   * @param followerId unique UUID for user entity
    * @param first desired number of results
    * @param after optional cursor of where the previous pagination finished
    * @return a list of users sorted by the creation date of the user's account
    */
-  public UserConnection getSuggestedUsers(UUID id, Integer first, String after) {
+  public UserConnection getSuggestedUsers(UUID followerId, Integer first, String after) {
     Pageable pageable = PageRequest.ofSize(first);
-    List<UUID> userIdsToExclude = followRepository.findFollowingIdsByFollowerId(id);
-    userIdsToExclude.add(id);
+    List<UUID> userIdsToExclude = followRepository.findFollowingIdsByFollowerId(followerId);
+    userIdsToExclude.add(followerId);
 
     Slice<User> users;
     if (after == null) {

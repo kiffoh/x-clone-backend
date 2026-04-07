@@ -77,12 +77,11 @@ public class FollowService {
     Pageable pageable = PageRequest.ofSize(first);
     Slice<Follow> followers;
     if (after == null) {
-      followers =
-          followRepository.findAllByFollowing_IdOrderByCreatedAtDescIdAsc(followingId, pageable);
+      followers = followRepository.findFirstPageOfFollowers(followingId, pageable);
     } else {
       Cursor cursor = Cursor.toCursor(after);
       followers =
-          followRepository.findFollowingNextPage(
+          followRepository.findNextPageOfFollowers(
               followingId, cursor.id(), cursor.createdAt(), pageable);
     }
     return toUserConnection(followers, FollowSide.FOLLOWER);
@@ -107,12 +106,11 @@ public class FollowService {
     Pageable pageable = PageRequest.ofSize(first);
     Slice<Follow> followings;
     if (after == null) {
-      followings =
-          followRepository.findAllByFollower_IdOrderByCreatedAtDescIdAsc(followerId, pageable);
+      followings = followRepository.findFirstPageOfFollowing(followerId, pageable);
     } else {
       Cursor cursor = Cursor.toCursor(after);
       followings =
-          followRepository.findFollowerNextPage(
+          followRepository.findNextPageOfFollowing(
               followerId, cursor.id(), cursor.createdAt(), pageable);
     }
     return toUserConnection(followings, FollowSide.FOLLOWING);

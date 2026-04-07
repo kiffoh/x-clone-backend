@@ -44,15 +44,13 @@ public class FollowServiceTests {
 
     @Test
     void afterIsNull_UserConnection() {
-      when(followRepository.findAllByFollowing_IdOrderByCreatedAtDescIdAsc(
-              eq(followingId), any(Pageable.class)))
+      when(followRepository.findFirstPageOfFollowers(eq(followingId), any(Pageable.class)))
           .thenReturn(mockFollows);
 
       UserConnection result = followService.getFollowers(followingId, first, null);
 
       assertNotNull(result);
-      verify(followRepository)
-          .findAllByFollowing_IdOrderByCreatedAtDescIdAsc(eq(followingId), any(Pageable.class));
+      verify(followRepository).findFirstPageOfFollowers(eq(followingId), any(Pageable.class));
     }
 
     @Test
@@ -60,7 +58,7 @@ public class FollowServiceTests {
       UUID cursorId = UUID.randomUUID();
       Instant cursorCreatedAt = Instant.now();
       Cursor cursor = new Cursor(cursorCreatedAt, cursorId);
-      when(followRepository.findFollowingNextPage(
+      when(followRepository.findNextPageOfFollowing(
               eq(followingId), eq(cursorId), eq(cursorCreatedAt), any(Pageable.class)))
           .thenReturn(mockFollows);
 
@@ -68,7 +66,7 @@ public class FollowServiceTests {
 
       assertNotNull(result);
       verify(followRepository)
-          .findFollowingNextPage(
+          .findNextPageOfFollowing(
               eq(followingId), eq(cursorId), eq(cursorCreatedAt), any(Pageable.class));
     }
   }
