@@ -56,6 +56,15 @@ public class GlobalGraphQlExceptionHandler {
     return field;
   }
 
+  /**
+   * Handles invalid JSON in requests by returning a {@link BindException} protocol error, logging
+   * the exception class, message, and full stack trace.
+   *
+   * <p>If a field error is present, it is returned as part of the error message.
+   *
+   * @param ex the unhandled exception
+   * @return a GraphQL protocol error with a client-safe message
+   */
   @GraphQlExceptionHandler(BindException.class)
   public GraphQLError handleBindException(BindException ex) {
     log.error("Invalid request: {} - {} ", ex.getClass().getSimpleName(), ex.getMessage(), ex);
@@ -89,8 +98,17 @@ public class GlobalGraphQlExceptionHandler {
         .build();
   }
 
+  /**
+   * Handles an invalid cursor by returning an {@link InvalidCursorException} protocol error,
+   * logging the exception class, message, and full stack trace.
+   *
+   * @param ex the unhandled exception
+   * @return a GraphQL protocol error with a client-safe message
+   */
   @GraphQlExceptionHandler(InvalidCursorException.class)
   public GraphQLError handleInvalidCursor(InvalidCursorException ex) {
+    log.error("Invalid request: {} - {} ", ex.getClass().getSimpleName(), ex.getMessage(), ex);
+
     return GraphQLError.newError()
         .message(ex.getMessage()) // e.g., "The provided cursor is malformed"
         .errorType(ErrorType.BAD_REQUEST)

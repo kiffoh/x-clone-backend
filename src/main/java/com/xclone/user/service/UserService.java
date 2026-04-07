@@ -74,6 +74,14 @@ public class UserService {
     return user.map(User::toUserProfile).orElse(null);
   }
 
+  /**
+   * Fetches a paginated of accounts whose handles contain the given query string.
+   *
+   * @param query the substring to search for within user handles
+   * @param first desired number of results
+   * @param after optional cursor of where the previous pagination finished
+   * @return a list of users sorted by the creation date of the user's account
+   */
   public UserConnection getUsersByHandle(String query, Integer first, String after) {
     Pageable pageable = PageRequest.ofSize(first);
     Slice<User> users;
@@ -148,6 +156,21 @@ public class UserService {
     user.setStatus(UserStatus.DELETED);
   }
 
+  /**
+   * Fetches a paginated list of accounts that the authenticated user does not follow.
+   *
+   * <p>The result excludes:
+   *
+   * <ul>
+   *   <li>Users already followed by the authenticated user
+   *   <li>The authenticated user themselves
+   * </ul>
+   *
+   * @param id unique UUID for user entity
+   * @param first desired number of results
+   * @param after optional cursor of where the previous pagination finished
+   * @return a list of users sorted by the creation date of the user's account
+   */
   public UserConnection getSuggestedUsers(UUID id, Integer first, String after) {
     Pageable pageable = PageRequest.ofSize(first);
     List<UUID> userIdsToExclude = followRepository.findFollowingIdsByFollowerId(id);
