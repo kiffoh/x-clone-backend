@@ -1,7 +1,9 @@
 package com.xclone.user.service;
 
+import com.xclone.common.connection.Cursor;
 import com.xclone.common.connection.PageInfo;
 import com.xclone.exception.custom.DuplicateHandleException;
+import com.xclone.follow.repository.FollowRepository;
 import com.xclone.user.dto.UserProfile;
 import com.xclone.user.dto.connection.UserConnection;
 import com.xclone.user.dto.connection.UserEdge;
@@ -10,13 +12,16 @@ import com.xclone.user.model.entity.User;
 import com.xclone.user.model.enums.UserStatus;
 import com.xclone.user.repository.UserRepository;
 import com.xclone.validation.ValidHandle;
-import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 /** Coordinates resolver logic for the User GraphQL model. */
@@ -26,8 +31,11 @@ import org.springframework.validation.annotation.Validated;
 public class UserService {
   private final UserRepository userRepository;
 
-  public UserService(UserRepository userRepository) {
+  private final FollowRepository followRepository;
+
+  public UserService(UserRepository userRepository, FollowRepository followRepository) {
     this.userRepository = userRepository;
+    this.followRepository = followRepository;
   }
 
   /**
@@ -38,18 +46,22 @@ public class UserService {
    * @param users the users to wrap; may be empty
    * @return a connection containing edges, page metadata, and total count
    */
-  public static UserConnection toUserConnection(List<User> users) {
+  public static UserConnection toUserConnection(Slice<User> users) {
     List<UserEdge> edges =
         users.stream()
-            .map(user -> new UserEdge(user.toUserProfile(), user.getId().toString()))
+            .map(
+                user -> {
+                  Cursor cursor = new Cursor(user.getUpdatedAt(), user.getId());
+                  return new UserEdge(user.toUserProfile(), cursor.encode());
+                })
             .toList();
     PageInfo pageInfo =
         new PageInfo(
-            false,
-            false,
+            users.hasNext(),
+            users.hasPrevious(),
             edges.isEmpty() ? null : edges.getFirst().cursor(),
             edges.isEmpty() ? null : edges.getLast().cursor());
-    return new UserConnection(edges, pageInfo, edges.size());
+    return new UserConnection(edges, pageInfo);
   }
 
   public UserProfile getUserByHandle(@ValidHandle String handle) {
@@ -62,8 +74,25 @@ public class UserService {
     return user.map(User::toUserProfile).orElse(null);
   }
 
-  public UserConnection getUsersByHandle(String query) {
-    List<User> users = userRepository.findAllByHandleContaining(query);
+  /**
+   * Fetches a paginated of accounts whose handles contain the given query string.
+   *
+   * @param query the substring to search for within user handles
+   * @param first desired number of results
+   * @param after optional cursor of where the previous pagination finished
+   * @return a list of users sorted by the creation date of the user's account
+   */
+  public UserConnection getUsersByHandle(String query, Integer first, String after) {
+    Pageable pageable = PageRequest.ofSize(first);
+    Slice<User> users;
+    if (after == null) {
+      users = userRepository.findAllByHandleContainingOrderByCreatedAtDescIdAsc(query, pageable);
+    } else {
+      Cursor cursor = Cursor.toCursor(after);
+      users =
+          userRepository.findAllByHandleContainingNextPage(
+              query, cursor.id(), cursor.createdAt(), pageable);
+    }
     return toUserConnection(users);
   }
 
@@ -78,10 +107,10 @@ public class UserService {
    * @return user with relevant fields updated
    */
   @Transactional
-  public UserProfile updateProfile(String userId, @Valid UpdateUserInput updateUserInput) {
+  public UserProfile updateProfile(UUID userId, @Valid UpdateUserInput updateUserInput) {
     User user =
         userRepository
-            .findById(UUID.fromString(userId))
+            .findById(userId)
             .orElseThrow(
                 () ->
                     new IllegalStateException(
@@ -116,14 +145,46 @@ public class UserService {
    *     indicating a mismatch between the security context and the persisted state
    */
   @Transactional
-  public void deleteProfile(String userId) {
+  public void deleteProfile(UUID userId) {
     User user =
         userRepository
-            .findById(UUID.fromString(userId))
+            .findById(userId)
             .orElseThrow(
                 () ->
                     new IllegalStateException(
                         "Authenticated user not found in database: " + userId));
     user.setStatus(UserStatus.DELETED);
+  }
+
+  /**
+   * Fetches a paginated list of accounts that the authenticated user does not follow.
+   *
+   * <p>The result excludes:
+   *
+   * <ul>
+   *   <li>Users already followed by the authenticated user
+   *   <li>The authenticated user themselves
+   * </ul>
+   *
+   * @param followerId unique UUID for user entity
+   * @param first desired number of results
+   * @param after optional cursor of where the previous pagination finished
+   * @return a list of users sorted by the creation date of the user's account
+   */
+  public UserConnection getSuggestedUsers(UUID followerId, Integer first, String after) {
+    Pageable pageable = PageRequest.ofSize(first);
+    List<UUID> userIdsToExclude = followRepository.findFollowingIdsByFollowerId(followerId);
+    userIdsToExclude.add(followerId);
+
+    Slice<User> users;
+    if (after == null) {
+      users = userRepository.findAllByIdNotIn(userIdsToExclude, pageable);
+    } else {
+      Cursor cursor = Cursor.toCursor(after);
+      users =
+          userRepository.findAllByIdNotInNext(
+              userIdsToExclude, cursor.id(), cursor.createdAt(), pageable);
+    }
+    return toUserConnection(users);
   }
 }

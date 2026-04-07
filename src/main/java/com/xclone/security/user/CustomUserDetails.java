@@ -6,6 +6,7 @@ import com.xclone.user.model.enums.UserStatus;
 import java.io.Serial;
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -27,9 +28,18 @@ public class CustomUserDetails implements UserDetails {
     return user.getPasswordHash();
   }
 
+  /**
+   * Implemented as unique user handle to satisfy interface.
+   *
+   * @return user handle
+   */
   @Override
   public String getUsername() {
-    return user.getId().toString();
+    return user.getHandle();
+  }
+
+  public UUID getId() {
+    return user.getId();
   }
 
   public User getUser() {

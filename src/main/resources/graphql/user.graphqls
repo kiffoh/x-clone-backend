@@ -33,15 +33,32 @@ type User {
     Datetime of account creation
     """
     createdAt: DateTime
-
-    # Do I need an updatedAt?
+    """
+    Datetime of last account update
+    """
+    updatedAt: DateTime
 
     posts(first: Int, after: String): PostConnection!
 
-    followers(first: Int, after: String): UserConnection!
-    followerCount: Int!
-    following(first: Int, after: String): UserConnection!
-    followingCount: Int!
+    """
+    Paginated list of users which follow this user profile
+    """
+    followers(first: Int = 10, after: String): UserConnection!
+    """
+    Total number of account which follow this user
+    """
+    followerCount: Long!
+    """
+    Paginated list of users which this user profile follows
+    """
+    following(first: Int = 10, after: String): UserConnection!
+    """
+    Total number of accounts this user is following
+    """
+    followingCount: Long!
+    """
+    {@code true} if the authenticated user follows the user
+    """
     isFollowing: Boolean!
 }
 # Following yourself should fail
@@ -76,8 +93,18 @@ extend type Query {
     Authentication: Required
     """
     userById(id: ID!): User
-    searchUsers(query: String!, first: Int, after: String): UserConnection!
-    suggestedUsers(first: Int, after: String): UserConnection!
+    """
+    Fetch users whose handles contain the given query string.
+
+    Authentication: Required
+    """
+    searchUsers(query: String!, first: Int = 10, after: String): UserConnection!
+    """
+    Fetch user accounts which the authenticated user does not follow.
+
+    Authentication: Required
+    """
+    suggestedUsers(first: Int = 10, after: String): UserConnection!
 }
 
 # create User in authorisation type
@@ -97,9 +124,18 @@ extend type Mutation {
     Authentication: Required
     """
     deleteMyAccount: DeleteResponse!
+    """
+    Create follow between authenticated user profile (following) and queried id (follower).
 
-    followUser(userId: ID!): UserResponse!
-    unfollowUser(userId: ID!): UserResponse!
+    Authentication: Required
+    """
+    followUser(userIdToFollow: ID!): UserResponse!
+    """
+    Delete follow between authenticated user profile (following) and queried id (follower).
+
+    Authentication: Required
+    """
+    unfollowUser(userIdToUnfollow: ID!): UserResponse!
 }
 
 """At least one field must be provided"""

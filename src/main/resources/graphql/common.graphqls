@@ -3,6 +3,10 @@
 A date-time with an offset from UTC/Greenwich in the ISO-8601 calendar system
 """
 scalar DateTime
+"""
+Data type allowing for numbers with a value greater than ~2.15 billion
+"""
+scalar Long
 
 # Pagination (Relay pattern)
 """
@@ -32,7 +36,6 @@ A paginated list of connected users
 type UserConnection {
     edges: [UserEdge!]!
     pageInfo: PageInfo!
-    totalCount: Int
 }
 
 """

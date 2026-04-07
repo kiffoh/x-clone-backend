@@ -4,11 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
+import com.xclone.common.connection.Cursor;
 import com.xclone.exception.custom.DuplicateHandleException;
 import com.xclone.integration.validation.ValidationIT;
 import com.xclone.support.fixtures.UserFixtures;
 import com.xclone.user.dto.UserProfile;
 import com.xclone.user.dto.connection.UserConnection;
+import com.xclone.user.dto.connection.UserEdge;
 import com.xclone.user.dto.request.UpdateUserInput;
 import com.xclone.user.model.entity.User;
 import com.xclone.user.repository.UserRepository;
@@ -23,6 +25,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.SliceImpl;
 
 /**
  * The unit testing for the following functions has been skipped as they are thin services and
@@ -58,24 +64,27 @@ public class UserServiceTest {
                     return user;
                   })
               .toList();
-      List<UUID> generatedUserIds = generatedUsers.stream().map(User::getId).toList();
+      List<UserProfile> generatedUserProfiles =
+          generatedUsers.stream().map(User::toUserProfile).toList();
+      int first = 10;
+      Slice<User> userSlice = new SliceImpl<>(generatedUsers, Pageable.ofSize(first), false);
+      Pageable pageable = PageRequest.ofSize(first);
 
-      when(userRepository.findAllByHandleContaining(query)).thenReturn(generatedUsers);
+      when(userRepository.findAllByHandleContainingOrderByCreatedAtDescIdAsc(query, pageable))
+          .thenReturn(userSlice);
 
-      UserConnection returnedUsers = userService.getUsersByHandle(query);
-      List<UUID> returnedUserIds =
-          returnedUsers.edges().stream().map(user -> user.node().id()).toList();
+      UserConnection usersByHandle = userService.getUsersByHandle(query, first, null);
+      List<UserProfile> returnedUsers = usersByHandle.edges().stream().map(UserEdge::node).toList();
 
-      assertThat(returnedUsers.totalCount()).isEqualTo(3);
       // Edges
-      assertThat(returnedUserIds).isEqualTo(generatedUserIds);
+      assertThat(returnedUsers).isEqualTo(generatedUserProfiles);
       // Page info
-      assertThat(returnedUsers.pageInfo().startCursor())
-          .isEqualTo(generatedUserIds.getFirst().toString());
-      assertThat(returnedUsers.pageInfo().endCursor())
-          .isEqualTo(generatedUserIds.getLast().toString());
-      assertThat(returnedUsers.pageInfo().hasNextPage()).isFalse();
-      assertThat(returnedUsers.pageInfo().hasPreviousPage()).isFalse();
+      Cursor startCursor = Cursor.toCursor(usersByHandle.pageInfo().startCursor());
+      Cursor endCursor = Cursor.toCursor(usersByHandle.pageInfo().endCursor());
+      assertThat(startCursor.id()).isEqualTo(returnedUsers.getFirst().id());
+      assertThat(endCursor.id()).isEqualTo(returnedUsers.getLast().id());
+      assertThat(usersByHandle.pageInfo().hasNextPage()).isFalse();
+      assertThat(usersByHandle.pageInfo().hasPreviousPage()).isFalse();
     }
 
     @Test
@@ -92,16 +101,22 @@ public class UserServiceTest {
                   })
               .toList();
       UUID firstUserId = generatedUser.getFirst().getId();
-      when(userRepository.findAllByHandleContaining(query)).thenReturn(generatedUser);
+      int first = 10;
+      Slice<User> userSlice = new SliceImpl<>(generatedUser, Pageable.ofSize(first), false);
+      Pageable pageable = PageRequest.ofSize(first);
 
-      UserConnection returnedUsers = userService.getUsersByHandle(query);
+      when(userRepository.findAllByHandleContainingOrderByCreatedAtDescIdAsc(query, pageable))
+          .thenReturn(userSlice);
 
-      assertThat(returnedUsers.totalCount()).isEqualTo(1);
+      UserConnection returnedUsers = userService.getUsersByHandle(query, first, null);
+
       // Edges
       assertThat(returnedUsers.edges().getFirst().node().id()).isEqualTo(firstUserId);
       // Page info
-      assertThat(returnedUsers.pageInfo().startCursor()).isEqualTo(firstUserId.toString());
-      assertThat(returnedUsers.pageInfo().endCursor()).isEqualTo(firstUserId.toString());
+      Cursor startCursor = Cursor.toCursor(returnedUsers.pageInfo().startCursor());
+      Cursor endCursor = Cursor.toCursor(returnedUsers.pageInfo().endCursor());
+      assertThat(startCursor.id()).isEqualTo(firstUserId);
+      assertThat(endCursor.id()).isEqualTo(firstUserId);
       assertThat(returnedUsers.pageInfo().hasNextPage()).isFalse();
       assertThat(returnedUsers.pageInfo().hasPreviousPage()).isFalse();
     }
@@ -110,11 +125,15 @@ public class UserServiceTest {
     public void getUsersByHandle_noUsers_returnsUserConnection() {
       String query = "random";
       List<User> generatedUsers = List.of();
-      when(userRepository.findAllByHandleContaining(query)).thenReturn(generatedUsers);
+      int first = 10;
+      Slice<User> userSlice = new SliceImpl<>(generatedUsers, Pageable.ofSize(first), false);
+      Pageable pageable = PageRequest.ofSize(first);
 
-      UserConnection returnedUsers = userService.getUsersByHandle(query);
+      when(userRepository.findAllByHandleContainingOrderByCreatedAtDescIdAsc(query, pageable))
+          .thenReturn(userSlice);
 
-      assertThat(returnedUsers.totalCount()).isEqualTo(0);
+      UserConnection returnedUsers = userService.getUsersByHandle(query, first, null);
+
       // Page info
       assertThat(returnedUsers.pageInfo().startCursor()).isNull();
       assertThat(returnedUsers.pageInfo().endCursor()).isNull();
@@ -131,12 +150,12 @@ public class UserServiceTest {
   class updateProfileTests {
 
     User existingUser;
-    String existingUserId;
+    UUID existingUserId;
 
     @BeforeEach
     void initialisation() {
       existingUser = UserFixtures.getDefaultUserWithRandomId();
-      existingUserId = existingUser.getId().toString();
+      existingUserId = existingUser.getId();
     }
 
     @Test
