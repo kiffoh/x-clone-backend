@@ -45,7 +45,7 @@ public class UserIT extends BaseIntegrationTest {
   @Autowired AuthHelpers authHelpers;
   @Autowired HttpGraphQlTester graphQlTester;
 
-  List<String> handles = List.of("example1", "example2", "example3");
+  List<String> handles = List.of("example1", "example2", "example3", "example4");
 
   List<User> users;
 
@@ -232,7 +232,6 @@ public class UserIT extends BaseIntegrationTest {
                   """
                       {
                         searchUsers(query: "%s") {
-                          totalCount
                           edges {
                             node {
                               handle
@@ -243,9 +242,6 @@ public class UserIT extends BaseIntegrationTest {
                       """,
                   query))
           .execute()
-          .path("searchUsers.totalCount")
-          .entity(Integer.class)
-          .isEqualTo(3)
           .path("searchUsers.edges[*].node.handle")
           .entityList(String.class)
           .satisfies(handles -> handles.forEach((handle -> assertThat(handle).contains(query))));
@@ -260,7 +256,6 @@ public class UserIT extends BaseIntegrationTest {
                   """
                       {
                         searchUsers(query: "%s") {
-                          totalCount
                           edges {
                             node {
                               handle
@@ -271,9 +266,6 @@ public class UserIT extends BaseIntegrationTest {
                       """,
                   query))
           .execute()
-          .path("searchUsers.totalCount")
-          .entity(Integer.class)
-          .isEqualTo(1)
           .path("searchUsers.edges[*].node.handle")
           .entityList(String.class)
           .satisfies(handles -> handles.forEach((handle -> assertThat(handle).contains(query))));
@@ -288,7 +280,6 @@ public class UserIT extends BaseIntegrationTest {
                   """
                       {
                         searchUsers(query: "%s") {
-                          totalCount
                           edges {
                             node {
                               handle
@@ -299,12 +290,128 @@ public class UserIT extends BaseIntegrationTest {
                       """,
                   query))
           .execute()
-          .path("searchUsers.totalCount")
-          .entity(Integer.class)
-          .isEqualTo(0)
           .path("searchUsers.edges[*].node.handle")
           .entityList(String.class)
           .hasSize(0);
+    }
+  }
+
+  @Nested
+  class suggestedUsersTests {
+    @Autowired FollowRepository followRepository;
+
+    User authenticatedUser;
+    User user2;
+    User user3;
+    User user4;
+
+    @AfterEach
+    void cleanup() {
+      followRepository.deleteAll();
+    }
+
+    @BeforeEach
+    void setup() {
+      authenticatedUser = users.getFirst();
+      user2 = users.get(1);
+      user3 = users.get(2);
+      user4 = users.get(3);
+    }
+
+    @Test
+    void suggestedUsers_moreThanOneUserNotFollowing_returnsUserConnection() {
+      // authenticated user only follows user2
+      FollowHelpers.seedFollow(followRepository, authenticatedUser, user2);
+
+      List<UUID> response =
+          authenticatedTester()
+              .document(
+                  """
+              {
+                suggestedUsers {
+                  edges {
+                    node {
+                      id
+                    }
+                   }
+                 }
+              }
+              """)
+              .execute()
+              .path("suggestedUsers.edges[*].node.id")
+              .entityList(UUID.class)
+              .get();
+
+      assertThat(response).hasSize(2);
+      // Self and following are not returned
+      assertFalse(response.contains(authenticatedUser.getId()));
+      assertFalse(response.contains(user2.getId()));
+      // Users that authenticated user does not follow
+      assertTrue(response.contains(user3.getId()));
+      assertTrue(response.contains(user4.getId()));
+    }
+
+    @Test
+    void suggestedUsers_oneUserNotFollowing_returnsUserConnection() {
+      // authenticated user follows user2 + user3
+      FollowHelpers.seedFollow(followRepository, authenticatedUser, user2);
+      FollowHelpers.seedFollow(followRepository, authenticatedUser, user3);
+
+      List<UUID> response =
+          authenticatedTester()
+              .document(
+                  """
+              {
+                suggestedUsers {
+                  edges {
+                    node {
+                      id
+                    }
+                   }
+                 }
+              }
+              """)
+              .execute()
+              .path("suggestedUsers.edges[*].node.id")
+              .entityList(UUID.class)
+              .get();
+
+      assertThat(response).hasSize(1);
+      // Self and following are not returned
+      assertFalse(response.contains(authenticatedUser.getId()));
+      assertFalse(response.contains(user2.getId()));
+      assertFalse(response.contains(user3.getId()));
+      // Users that authenticated user does not follow
+      assertTrue(response.contains(user4.getId()));
+    }
+
+    @Test
+    void suggestedUsers_followingAllUsers_returnsEmptyUserConnection() {
+      // authenticated user only follows user2
+      FollowHelpers.seedFollow(followRepository, authenticatedUser, user2);
+      FollowHelpers.seedFollow(followRepository, authenticatedUser, user3);
+      FollowHelpers.seedFollow(followRepository, authenticatedUser, user4);
+
+      List<UUID> response =
+          authenticatedTester()
+              .document(
+                  """
+              {
+                suggestedUsers {
+                  edges {
+                    node {
+                      id
+                    }
+                   }
+                 }
+              }
+              """)
+              .execute()
+              .path("suggestedUsers.edges[*].node.id")
+              .entityList(UUID.class)
+              .get();
+
+      assertThat(response).hasSize(0);
     }
   }
 
