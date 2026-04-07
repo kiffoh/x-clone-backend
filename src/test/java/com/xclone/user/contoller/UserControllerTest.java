@@ -1,15 +1,18 @@
 package com.xclone.user.contoller;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.xclone.config.GraphQlConfig;
 import com.xclone.exception.custom.DuplicateHandleException;
+import com.xclone.follow.service.FollowService;
 import com.xclone.support.fixtures.UserFixtures;
 import com.xclone.user.controller.UserController;
 import com.xclone.user.dto.connection.UserConnection;
 import com.xclone.user.model.entity.User;
 import com.xclone.user.service.UserService;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -24,6 +27,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 public class UserControllerTest {
 
   @MockitoBean private UserService userService;
+
+  @MockitoBean private FollowService followService;
 
   @Autowired GraphQlTester tester;
 
@@ -100,7 +105,8 @@ public class UserControllerTest {
   @Test
   public void searchUsers_returnsUserProfile() {
     String query = "exam";
-    UserConnection userConnection = UserFixtures.getDefaultUserConnection();
+    List<String> handles = List.of("exampleHandle", "exampleHandle1", "exampleHandle2");
+    UserConnection userConnection = UserFixtures.getDefaultUserConnection(handles);
     Integer first = 10;
     when(userService.getUsersByHandle(query, first, null)).thenReturn(userConnection);
     String request =
@@ -108,10 +114,8 @@ public class UserControllerTest {
             """
                 {
                   searchUsers(query: "%s") {
-                    totalCount
                     edges {
                       node {
-                        id
                         handle
                       }
                      }
@@ -119,12 +123,15 @@ public class UserControllerTest {
                 }
                 """,
             query);
-    tester
-        .document(request)
-        .execute()
-        .path("searchUsers.totalCount")
-        .entity(Integer.class)
-        .isEqualTo(3);
+    List<String> response =
+        tester
+            .document(request)
+            .execute()
+            .path("searchUsers.edges[*].node.handle")
+            .entityList(String.class)
+            .get();
+
+    assertTrue(response.containsAll(handles));
   }
 
   @Test

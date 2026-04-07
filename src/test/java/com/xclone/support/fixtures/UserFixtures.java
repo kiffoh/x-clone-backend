@@ -47,8 +47,7 @@ public class UserFixtures {
     return user;
   }
 
-  public static UserConnection getDefaultUserConnection() {
-    List<String> handles = List.of("exampleHandle", "exampleHandle1", "exampleHandle2");
+  public static UserConnection getDefaultUserConnection(List<String> handles) {
     List<User> generatedUsers =
         handles.stream()
             .map(
