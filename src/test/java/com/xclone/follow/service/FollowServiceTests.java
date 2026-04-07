@@ -58,7 +58,7 @@ public class FollowServiceTests {
       UUID cursorId = UUID.randomUUID();
       Instant cursorCreatedAt = Instant.now();
       Cursor cursor = new Cursor(cursorCreatedAt, cursorId);
-      when(followRepository.findNextPageOfFollowing(
+      when(followRepository.findNextPageOfFollowers(
               eq(followingId), eq(cursorId), eq(cursorCreatedAt), any(Pageable.class)))
           .thenReturn(mockFollows);
 
@@ -66,7 +66,7 @@ public class FollowServiceTests {
 
       assertNotNull(result);
       verify(followRepository)
-          .findNextPageOfFollowing(
+          .findNextPageOfFollowers(
               eq(followingId), eq(cursorId), eq(cursorCreatedAt), any(Pageable.class));
     }
   }
