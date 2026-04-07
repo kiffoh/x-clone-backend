@@ -3,6 +3,7 @@ package com.xclone.exception;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
+import com.xclone.exception.custom.InvalidCursorException;
 import com.xclone.user.dto.request.UpdateUserInput;
 import com.xclone.validation.ValidationConstants;
 import graphql.GraphQLError;
@@ -81,6 +82,16 @@ public class GlobalGraphQlExceptionHandlerTest {
 
     assertThat(formattedExceptions.getMessage())
         .isEqualTo("Invalid value 'not a valid UUID' for argument");
+    assertThat(formattedExceptions.getErrorType()).isEqualTo(ErrorType.BAD_REQUEST);
+  }
+
+  @Test
+  void handlesInvalidCursorException() {
+    InvalidCursorException ex = new InvalidCursorException("The provided cursor is malformed");
+
+    GraphQLError formattedExceptions = graphQlExceptionHandler.handleInvalidCursor(ex);
+
+    assertThat(formattedExceptions.getMessage()).isEqualTo("The provided cursor is malformed");
     assertThat(formattedExceptions.getErrorType()).isEqualTo(ErrorType.BAD_REQUEST);
   }
 
