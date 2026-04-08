@@ -10,6 +10,7 @@ import com.xclone.user.dto.UserProfile;
 import com.xclone.user.dto.connection.UserConnection;
 import com.xclone.user.dto.mutation.UserResponse;
 import com.xclone.user.dto.request.UpdateUserInput;
+import com.xclone.user.model.entity.User;
 import com.xclone.user.service.UserService;
 import jakarta.validation.ConstraintViolationException;
 import java.util.List;
@@ -24,7 +25,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 
-/** GraphQL controller resolving queries for the {@link com.xclone.user.model.entity.User} model. */
+/** GraphQL controller resolving queries for the {@link User} model. */
 @Controller
 public class UserController {
   private final UserService userService;
