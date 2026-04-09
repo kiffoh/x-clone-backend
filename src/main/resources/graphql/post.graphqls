@@ -38,9 +38,7 @@ type Post {
 extend type Query {
     # TODO - searchPosts
     getPost(postId: ID!): Post
-    feed(first: Int = 10, after: String): PostConnection! # Nullable if feed isn't updated?
-    # Or should it be [Post!]! as the feed will always contain posts, just not new posts?
-    # Should it not be PostConnection as it will be paginated?
+    feed(first: Int = 10, after: String): PostConnection!
 }
 
 # I want updatedAt to update but I imagine I do this in the postgres end?
