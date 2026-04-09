@@ -13,7 +13,9 @@ import com.xclone.user.dto.connection.UserConnection;
 import com.xclone.user.dto.connection.UserEdge;
 import com.xclone.user.model.entity.User;
 import com.xclone.user.repository.UserRepository;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.postgresql.util.PSQLException;
@@ -170,6 +172,19 @@ public class FollowService {
     User following = getUserOrThrow(followingId);
     followRepository.deleteByFollowerAndFollowing(follower, following);
     return following.toUserProfile();
+  }
+
+  /**
+   * Queries the follow table determine which of the given users the authenticated user is
+   * following.
+   *
+   * @param userId unique identifier of the authenticated user
+   * @param users a list of users to check whether the authenticated user follows
+   * @return a set of user ids of accounts which the authenticated user follows
+   */
+  public Set<UUID> getFollowingIdsInUsers(UUID userId, List<UserProfile> users) {
+    List<UUID> idsToCheck = users.stream().map(UserProfile::id).toList();
+    return new HashSet<>(followRepository.findFollowingIdsInList(userId, idsToCheck));
   }
 
   public List<UUID> getFollowingIds(UUID followerId) {

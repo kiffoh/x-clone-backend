@@ -74,8 +74,8 @@ public class UserService {
     return user.map(User::toUserProfile).orElse(null);
   }
 
-  public List<User> getUsersById(List<UUID> userIds) {
-    return userRepository.findAllById(userIds);
+  public List<UserProfile> getUsersById(List<UUID> userIds) {
+    return userRepository.findAllById(userIds).stream().map(User::toUserProfile).toList();
   }
 
   /**

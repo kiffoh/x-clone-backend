@@ -5,7 +5,6 @@ import com.xclone.post.dto.connection.PostConnection;
 import com.xclone.post.service.PostService;
 import com.xclone.security.user.CustomUserDetails;
 import com.xclone.user.dto.UserProfile;
-import com.xclone.user.model.entity.User;
 import com.xclone.user.service.UserService;
 import java.util.List;
 import java.util.Map;
@@ -38,9 +37,9 @@ public class PostController {
   @BatchMapping(typeName = "Post", field = "author")
   public Map<PostProfile, UserProfile> author(List<PostProfile> posts) {
     List<UUID> authorIds = posts.stream().map(PostProfile::authorId).toList();
-    List<User> users = userService.getUsersById(authorIds);
+    List<UserProfile> users = userService.getUsersById(authorIds);
     Map<UUID, UserProfile> uuidUserMap =
-        users.stream().collect(Collectors.toMap(User::getId, User::toUserProfile));
+        users.stream().collect(Collectors.toMap(UserProfile::id, Function.identity()));
 
     return posts.stream()
         .collect(Collectors.toMap(Function.identity(), post -> uuidUserMap.get(post.authorId())));

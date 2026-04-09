@@ -18,7 +18,11 @@ public interface FollowRepository extends JpaRepository<Follow, UUID> {
 
   Integer countByFollower_Id(UUID followerId);
 
-  List<Follow> findAllByFollower_IdAndFollowing_IdIn(UUID followerId, List<UUID> followingIds);
+  @Query(
+      "select f.following.id from Follow f"
+          + " where f.follower.id = :followerId and f.following.id in :userIds")
+  List<UUID> findFollowingIdsInList(
+      @Param("followerId") UUID followerId, @Param("userIds") List<UUID> userIds);
 
   @Query(
       "select f from Follow f where f.follower.id = :followerId "

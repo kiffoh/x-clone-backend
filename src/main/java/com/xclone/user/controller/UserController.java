@@ -13,7 +13,6 @@ import com.xclone.user.dto.request.UpdateUserInput;
 import com.xclone.user.model.entity.User;
 import com.xclone.user.service.UserService;
 import jakarta.validation.ConstraintViolationException;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -134,7 +133,7 @@ public class UserController {
   private Map<UserProfile, Boolean> isFollowing(List<UserProfile> users) {
     CustomUserDetails userDetails =
         (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-    Set<UUID> followingIds = new HashSet<>(followService.getFollowingIds(userDetails.getId()));
+    Set<UUID> followingIds = followService.getFollowingIdsInUsers(userDetails.getId(), users);
     return users.stream()
         .collect(Collectors.toMap(Function.identity(), user -> followingIds.contains(user.id())));
   }
