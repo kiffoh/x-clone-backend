@@ -6,10 +6,12 @@ import com.xclone.post.service.PostService;
 import com.xclone.security.user.CustomUserDetails;
 import com.xclone.user.dto.UserProfile;
 import com.xclone.user.service.UserService;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.graphql.data.method.annotation.Argument;
+import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
-import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 
@@ -24,9 +26,9 @@ public class PostController {
     this.userService = userService;
   }
 
-  @SchemaMapping(typeName = "Post", field = "author")
-  public UserProfile author(PostProfile post) {
-    return userService.getUserById(post.authorId());
+  @BatchMapping(typeName = "Post", field = "author")
+  public Map<PostProfile, UserProfile> author(List<PostProfile> posts) {
+    return userService.getAuthorsFromPosts(posts);
   }
 
   @QueryMapping

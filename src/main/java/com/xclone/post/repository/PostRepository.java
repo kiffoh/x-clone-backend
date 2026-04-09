@@ -15,15 +15,18 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface PostRepository extends JpaRepository<Post, UUID> {
   @Query(
-      "select p from Post p where p.author.id <> :userId and p.author.id in :followingIds"
-          + " order by p.createdAt desc, p.id asc")
+      "select p from Post p where p.status = com.xclone.common.enums.Status.ACTIVE"
+          + " and p.author.id <> :userId"
+          + " and p.author.id in :followingIds order by p.createdAt desc, p.id asc")
   Slice<Post> findFirstPageOfFeed(
       @Param("userId") UUID userId,
       @Param("followingIds") List<UUID> followingIds,
       Pageable pageable);
 
   @Query(
-      "select p from Post p where p.author.id <> :userId and p.author.id in :followingIds"
+      "select p from Post p where p.status = com.xclone.common.enums.Status.ACTIVE"
+          + " and p.author.id <> :userId"
+          + " and p.author.id in :followingIds"
           + " and ((p.createdAt < :cursorCreatedAt)"
           + " or (p.createdAt = :cursorCreatedAt and p.id > :cursorId))"
           + " order by p.createdAt desc, p.id asc")

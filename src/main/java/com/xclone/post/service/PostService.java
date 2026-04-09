@@ -2,7 +2,7 @@ package com.xclone.post.service;
 
 import com.xclone.common.connection.Cursor;
 import com.xclone.common.connection.PageInfo;
-import com.xclone.follow.repository.FollowRepository;
+import com.xclone.follow.service.FollowService;
 import com.xclone.post.dto.PostProfile;
 import com.xclone.post.dto.connection.PostConnection;
 import com.xclone.post.dto.connection.PostEdge;
@@ -19,11 +19,11 @@ import org.springframework.stereotype.Service;
 @Service
 public class PostService {
   private final PostRepository postRepository;
-  private final FollowRepository followRepository;
+  private final FollowService followService;
 
-  public PostService(PostRepository postRepository, FollowRepository followRepository) {
+  public PostService(PostRepository postRepository, FollowService followService) {
     this.postRepository = postRepository;
-    this.followRepository = followRepository;
+    this.followService = followService;
   }
 
   private PostConnection toPostConnection(Slice<Post> posts) {
@@ -70,7 +70,7 @@ public class PostService {
    */
   public PostConnection getFeed(UUID userId, Integer first, String after) {
     Pageable pageable = Pageable.ofSize(first);
-    List<UUID> followingIds = followRepository.findFollowingIdsByFollowerId(userId);
+    List<UUID> followingIds = followService.getFollowingIds(userId);
     Slice<Post> feed;
     if (after == null) {
       feed = postRepository.findFirstPageOfFeed(userId, followingIds, pageable);

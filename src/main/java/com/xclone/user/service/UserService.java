@@ -4,6 +4,7 @@ import com.xclone.common.connection.Cursor;
 import com.xclone.common.connection.PageInfo;
 import com.xclone.exception.custom.DuplicateHandleException;
 import com.xclone.follow.repository.FollowRepository;
+import com.xclone.post.dto.PostProfile;
 import com.xclone.user.dto.UserProfile;
 import com.xclone.user.dto.connection.UserConnection;
 import com.xclone.user.dto.connection.UserEdge;
@@ -14,8 +15,11 @@ import com.xclone.user.repository.UserRepository;
 import com.xclone.validation.ValidHandle;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -94,6 +98,22 @@ public class UserService {
               query, cursor.id(), cursor.createdAt(), pageable);
     }
     return toUserConnection(users);
+  }
+
+  /**
+   * Obtains the user entities for the author of each post.
+   *
+   * @param posts list of posts
+   * @return each post mapped to the authors user profile
+   */
+  public Map<PostProfile, UserProfile> getAuthorsFromPosts(List<PostProfile> posts) {
+    List<UUID> authorIds = posts.stream().map(PostProfile::authorId).toList();
+    List<User> users = userRepository.findAllById(authorIds);
+    Map<UUID, UserProfile> uuidUserMap =
+        users.stream().collect(Collectors.toMap(User::getId, User::toUserProfile));
+
+    return posts.stream()
+        .collect(Collectors.toMap(Function.identity(), post -> uuidUserMap.get(post.authorId())));
   }
 
   /**

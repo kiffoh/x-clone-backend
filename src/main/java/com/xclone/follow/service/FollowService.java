@@ -200,4 +200,8 @@ public class FollowService {
         });
     return isFollowingMap;
   }
+
+  public List<UUID> getFollowingIds(UUID followerId) {
+    return followRepository.findFollowingIdsByFollowerId(followerId);
+  }
 }
