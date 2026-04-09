@@ -13,12 +13,8 @@ import com.xclone.user.dto.connection.UserConnection;
 import com.xclone.user.dto.connection.UserEdge;
 import com.xclone.user.model.entity.User;
 import com.xclone.user.repository.UserRepository;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.postgresql.util.PSQLException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -174,31 +170,6 @@ public class FollowService {
     User following = getUserOrThrow(followingId);
     followRepository.deleteByFollowerAndFollowing(follower, following);
     return following.toUserProfile();
-  }
-
-  /**
-   * Queries the follow table determine which of the given users the authenticated user is
-   * following.
-   *
-   * @param userId unique identifier of the authenticated user
-   * @param users a list of users to check whether the authenticated user follows
-   * @return a map of user ids to a boolean which is {@code true} if the authenticated user follows
-   *     the user
-   */
-  @Transactional
-  public Map<UserProfile, Boolean> getIsFollowing(UUID userId, List<UserProfile> users) {
-    Map<UserProfile, Boolean> isFollowingMap = new HashMap<>();
-    List<UUID> idsToCheck = users.stream().map(UserProfile::id).toList();
-    List<Follow> follows =
-        followRepository.findAllByFollower_IdAndFollowing_IdIn(userId, idsToCheck);
-    Set<UUID> followingUserIds =
-        follows.stream().map(follow -> follow.getFollowing().getId()).collect(Collectors.toSet());
-    users.forEach(
-        user -> {
-          boolean isFollowing = followingUserIds.contains(user.id());
-          isFollowingMap.put(user, isFollowing);
-        });
-    return isFollowingMap;
   }
 
   public List<UUID> getFollowingIds(UUID followerId) {

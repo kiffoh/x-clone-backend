@@ -5,10 +5,13 @@ import com.xclone.post.dto.connection.PostConnection;
 import com.xclone.post.service.PostService;
 import com.xclone.security.user.CustomUserDetails;
 import com.xclone.user.dto.UserProfile;
+import com.xclone.user.model.entity.User;
 import com.xclone.user.service.UserService;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
@@ -26,9 +29,21 @@ public class PostController {
     this.userService = userService;
   }
 
+  /**
+   * Obtains the user entities for the author of each post.
+   *
+   * @param posts list of posts
+   * @return each post mapped to the authors user profile
+   */
   @BatchMapping(typeName = "Post", field = "author")
   public Map<PostProfile, UserProfile> author(List<PostProfile> posts) {
-    return userService.getAuthorsFromPosts(posts);
+    List<UUID> authorIds = posts.stream().map(PostProfile::authorId).toList();
+    List<User> users = userService.getUsersById(authorIds);
+    Map<UUID, UserProfile> uuidUserMap =
+        users.stream().collect(Collectors.toMap(User::getId, User::toUserProfile));
+
+    return posts.stream()
+        .collect(Collectors.toMap(Function.identity(), post -> uuidUserMap.get(post.authorId())));
   }
 
   @QueryMapping

@@ -62,6 +62,10 @@ public class PostIT extends BaseIntegrationTest {
     userRepository.deleteAll();
   }
 
+  /**
+   * Author resolution is covered in {@link getPostTests}. TODO: Add further tests when post
+   * vertical slice is implemented in more detail
+   */
   @Nested
   class schemaMappingTests {}
 
@@ -72,15 +76,15 @@ public class PostIT extends BaseIntegrationTest {
       authenticatedTester
           .document(
               """
-              query GetPost($id: ID!) {
-                getPost(postId: $id) {
-                  messageContent
-                  author {
-                    id
+                  query GetPost($id: ID!) {
+                    getPost(postId: $id) {
+                      messageContent
+                      author {
+                        id
+                      }
+                    }
                   }
-                }
-              }
-              """)
+                  """)
           .variable("id", posts.getFirst().getId())
           .execute()
           .path("getPost.messageContent")
@@ -96,15 +100,15 @@ public class PostIT extends BaseIntegrationTest {
       authenticatedTester
           .document(
               """
-              query GetPost($id: ID!) {
-                getPost(postId: $id) {
-                  messageContent
-                  author {
-                    id
+                  query GetPost($id: ID!) {
+                    getPost(postId: $id) {
+                      messageContent
+                      author {
+                        id
+                      }
+                    }
                   }
-                }
-              }
-              """)
+                  """)
           .variable("id", posts.get(1).getId())
           .execute()
           .path("getPost.messageContent")
@@ -120,15 +124,15 @@ public class PostIT extends BaseIntegrationTest {
       authenticatedTester
           .document(
               """
-              query GetPost($id: ID!) {
-                getPost(postId: $id) {
-                  messageContent
-                  author {
-                    id
+                  query GetPost($id: ID!) {
+                    getPost(postId: $id) {
+                      messageContent
+                      author {
+                        id
+                      }
+                    }
                   }
-                }
-              }
-              """)
+                  """)
           .variable("id", "not a valid UUID")
           .execute()
           .errors()
@@ -141,15 +145,15 @@ public class PostIT extends BaseIntegrationTest {
       authenticatedTester
           .document(
               """
-              query GetPost($id: ID!) {
-                getPost(postId: $id) {
-                  messageContent
-                  author {
-                    id
+                  query GetPost($id: ID!) {
+                    getPost(postId: $id) {
+                      messageContent
+                      author {
+                        id
+                      }
+                    }
                   }
-                }
-              }
-              """)
+                  """)
           .variable("id", UUID.randomUUID())
           .execute()
           .path("getPost")
@@ -164,37 +168,37 @@ public class PostIT extends BaseIntegrationTest {
       authenticatedTester
           .document(
               """
-              {
-                feed {
-                  edges {
-                    node {
-                      messageContent
-                      author {
-                        id
+                  {
+                    feed {
+                      edges {
+                        node {
+                          messageContent
+                          author {
+                            id
+                          }
+                        }
                       }
                     }
                   }
-                }
-              }
-              """)
+                  """)
           .execute()
           .path("feed")
           .matchesJson(
               String.format(
                   """
-                  {
-                    "edges": [
-                    {
-                      "node": {
-                        "messageContent": "%s",
-                        "author": {
-                          "id": "%s"
+                      {
+                        "edges": [
+                        {
+                          "node": {
+                            "messageContent": "%s",
+                            "author": {
+                              "id": "%s"
+                            }
+                          }
                         }
+                        ]
                       }
-                    }
-                    ]
-                  }
-                  """,
+                      """,
                   posts.get(1).getMessageContent(), users.get(1).getId()));
     }
 
@@ -206,45 +210,45 @@ public class PostIT extends BaseIntegrationTest {
       authenticatedTester
           .document(
               """
-              {
-                feed {
-                  edges {
-                    node {
-                      messageContent
-                      author {
-                        id
+                  {
+                    feed {
+                      edges {
+                        node {
+                          messageContent
+                          author {
+                            id
+                          }
+                        }
                       }
                     }
                   }
-                }
-              }
-              """)
+                  """)
           .execute()
           .path("feed")
           .matchesJson(
               String.format(
                   """
-                  {
-                    "edges": [
-                    {
-                      "node": {
-                        "messageContent": "%s",
-                        "author": {
-                          "id": "%s"
+                      {
+                        "edges": [
+                        {
+                          "node": {
+                            "messageContent": "%s",
+                            "author": {
+                              "id": "%s"
+                            }
+                          }
+                        },
+                        {
+                          "node": {
+                            "messageContent": "%s",
+                            "author": {
+                              "id": "%s"
+                            }
+                          }
                         }
+                        ]
                       }
-                    },
-                    {
-                      "node": {
-                        "messageContent": "%s",
-                        "author": {
-                          "id": "%s"
-                        }
-                      }
-                    }
-                    ]
-                  }
-                  """,
+                      """,
                   posts.get(1).getMessageContent(),
                   users.get(1).getId(),
                   posts.get(2).getMessageContent(),
@@ -259,15 +263,15 @@ public class PostIT extends BaseIntegrationTest {
           authenticatedTester
               .document(
                   """
-              query GetFeed($first: Int){
-                feed(first: $first) {
-                  pageInfo {
-                    hasNextPage
-                    endCursor
-                  }
-                }
-              }
-              """)
+                      query GetFeed($first: Int){
+                        feed(first: $first) {
+                          pageInfo {
+                            hasNextPage
+                            endCursor
+                          }
+                        }
+                      }
+                      """)
               .variable("first", 1)
               .execute()
               .path("feed.pageInfo.hasNextPage")
@@ -281,22 +285,22 @@ public class PostIT extends BaseIntegrationTest {
       authenticatedTester
           .document(
               """
-              query GetFeed($first: Int, $cursor: String){
-                feed(first: $first, after: $cursor) {
-                  edges {
-                    node {
-                      messageContent
-                      author {
-                        id
+                  query GetFeed($first: Int, $cursor: String){
+                    feed(first: $first, after: $cursor) {
+                      edges {
+                        node {
+                          messageContent
+                          author {
+                            id
+                          }
+                        }
+                      }
+                      pageInfo {
+                        hasNextPage
                       }
                     }
                   }
-                  pageInfo {
-                    hasNextPage
-                  }
-                }
-              }
-              """)
+                  """)
           .variable("first", 1)
           .variable("cursor", endCursor)
           .execute()
@@ -304,22 +308,22 @@ public class PostIT extends BaseIntegrationTest {
           .matchesJson(
               String.format(
                   """
-                  {
-                    "edges": [
                       {
-                        "node": {
-                          "messageContent": "%s",
-                          "author": {
-                            "id": "%s"
+                        "edges": [
+                          {
+                            "node": {
+                              "messageContent": "%s",
+                              "author": {
+                                "id": "%s"
+                              }
+                            }
                           }
+                        ],
+                        "pageInfo": {
+                          "hasNextPage": false
                         }
                       }
-                    ],
-                    "pageInfo": {
-                      "hasNextPage": false
-                    }
-                  }
-                  """,
+                      """,
                   // Most recent posts are displayed first
                   // Posts created in ascending numerical order
                   // Therefore older posts shown in last page request
@@ -341,19 +345,19 @@ public class PostIT extends BaseIntegrationTest {
       authenticatedTester
           .document(
               """
-              {
-                feed {
-                  edges {
-                    node {
-                      messageContent
-                      author {
-                        id
+                  {
+                    feed {
+                      edges {
+                        node {
+                          messageContent
+                          author {
+                            id
+                          }
+                        }
                       }
                     }
                   }
-                }
-              }
-              """)
+                  """)
           .execute()
           .path("feed.edges")
           .entityList(PostProfile.class)

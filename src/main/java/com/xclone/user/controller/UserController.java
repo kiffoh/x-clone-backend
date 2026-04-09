@@ -13,9 +13,13 @@ import com.xclone.user.dto.request.UpdateUserInput;
 import com.xclone.user.model.entity.User;
 import com.xclone.user.service.UserService;
 import jakarta.validation.ConstraintViolationException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
@@ -130,6 +134,8 @@ public class UserController {
   private Map<UserProfile, Boolean> isFollowing(List<UserProfile> users) {
     CustomUserDetails userDetails =
         (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-    return followService.getIsFollowing(userDetails.getId(), users);
+    Set<UUID> followingIds = new HashSet<>(followService.getFollowingIds(userDetails.getId()));
+    return users.stream()
+        .collect(Collectors.toMap(Function.identity(), user -> followingIds.contains(user.id())));
   }
 }

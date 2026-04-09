@@ -37,7 +37,10 @@ public class Post {
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;
 
-  @JoinColumn(name = "author_id", nullable = false)
+  @Column(name = "author_id", nullable = false)
+  private UUID authorId;
+
+  @JoinColumn(name = "author_id", insertable = false, updatable = false)
   @ManyToOne(fetch = FetchType.LAZY)
   private User author;
 
@@ -65,7 +68,7 @@ public class Post {
   public PostProfile toPostProfile() {
     return new PostProfile(
         id,
-        author.getId(),
+        authorId,
         messageContent,
         createdAt.atOffset(ZoneOffset.UTC),
         updatedAt.atOffset(ZoneOffset.UTC));
