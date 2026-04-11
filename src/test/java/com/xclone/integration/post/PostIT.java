@@ -13,7 +13,6 @@ import com.xclone.user.model.entity.User;
 import com.xclone.user.repository.UserRepository;
 import java.util.List;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -40,6 +39,7 @@ public class PostIT extends BaseIntegrationTest {
 
   @BeforeEach
   void setup() {
+    cleanupDBs();
     // Adds 3 users to the DB under the handles
     users =
         handles.stream().map(UserFixtures::createUserWithHandle).map(userRepository::save).toList();
@@ -54,8 +54,7 @@ public class PostIT extends BaseIntegrationTest {
     posts = PostHelpers.seedPosts(messageContents, users, postRepository);
   }
 
-  @AfterEach
-  void cleanup() {
+  void cleanupDBs() {
     // Flushes DBs
     postRepository.deleteAll();
     followRepository.deleteAll();

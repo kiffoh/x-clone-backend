@@ -6,6 +6,7 @@ import com.xclone.post.service.PostService;
 import com.xclone.security.user.CustomUserDetails;
 import com.xclone.user.dto.UserProfile;
 import com.xclone.user.service.UserService;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -37,12 +38,19 @@ public class PostController {
   @BatchMapping(typeName = "Post", field = "author")
   public Map<PostProfile, UserProfile> author(List<PostProfile> posts) {
     List<UUID> authorIds = posts.stream().map(PostProfile::authorId).toList();
-    List<UserProfile> users = userService.getUsersById(authorIds);
+    List<UserProfile> users = userService.getActiveUsersById(authorIds);
     Map<UUID, UserProfile> uuidUserMap =
         users.stream().collect(Collectors.toMap(UserProfile::id, Function.identity()));
 
-    return posts.stream()
-        .collect(Collectors.toMap(Function.identity(), post -> uuidUserMap.get(post.authorId())));
+    Map<PostProfile, UserProfile> authors = new HashMap<>();
+    posts.forEach(
+        post -> {
+          UserProfile author = uuidUserMap.get(post.authorId());
+          if (author != null) {
+            authors.put(post, author);
+          }
+        });
+    return authors;
   }
 
   @QueryMapping

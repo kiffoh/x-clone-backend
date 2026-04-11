@@ -26,12 +26,14 @@ public interface FollowRepository extends JpaRepository<Follow, UUID> {
 
   @Query(
       "select f from Follow f where f.follower.id = :followerId "
+          + " and f.follower.status = com.xclone.user.model.enums.UserStatus.ACTIVE"
           + " order by f.createdAt desc, f.id asc")
   Slice<Follow> findFirstPageOfFollowing(@Param("followerId") UUID followerId, Pageable pageable);
 
   @Query(
-      "select f from Follow f where f.follower.id = :followerId and "
-          + "((f.createdAt < :cursorCreatedAt) "
+      "select f from Follow f where f.follower.id = :followerId "
+          + " and f.follower.status = com.xclone.user.model.enums.UserStatus.ACTIVE"
+          + " and ((f.createdAt < :cursorCreatedAt) "
           + "or (f.createdAt = :cursorCreatedAt and f.id > :cursorId))"
           + " order by f.createdAt desc, f.id asc")
   Slice<Follow> findNextPageOfFollowing(
@@ -46,13 +48,15 @@ public interface FollowRepository extends JpaRepository<Follow, UUID> {
   Integer countByFollowing_Id(UUID followingId);
 
   @Query(
-      "select f from Follow f where f.following.id = :followingId "
+      "select f from Follow f where f.following.id = :followingId"
+          + " and f.following.status = com.xclone.user.model.enums.UserStatus.ACTIVE"
           + " order by f.createdAt desc, f.id asc")
   Slice<Follow> findFirstPageOfFollowers(@Param("followingId") UUID followingId, Pageable pageable);
 
   @Query(
-      "select f from Follow f where f.following.id = :followingId and "
-          + "((f.createdAt < :cursorCreatedAt) "
+      "select f from Follow f where f.following.id = :followingId"
+          + " and f.following.status = com.xclone.user.model.enums.UserStatus.ACTIVE"
+          + " and ((f.createdAt < :cursorCreatedAt) "
           + "or (f.createdAt = :cursorCreatedAt and f.id > :cursorId))"
           + " order by f.createdAt desc, f.id asc")
   Slice<Follow> findNextPageOfFollowers(

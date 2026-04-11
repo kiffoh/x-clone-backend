@@ -74,8 +74,16 @@ public class UserService {
     return user.map(User::toUserProfile).orElse(null);
   }
 
-  public List<UserProfile> getUsersById(List<UUID> userIds) {
-    return userRepository.findAllById(userIds).stream().map(User::toUserProfile).toList();
+  /**
+   * Fetches user profiles from input list which are have an active status.
+   *
+   * @param userIds list of user ids to query
+   * @return list of user ids which have an active status
+   */
+  public List<UserProfile> getActiveUsersById(List<UUID> userIds) {
+    return userRepository.findAllActiveUsersByIdIn(userIds).stream()
+        .map(User::toUserProfile)
+        .toList();
   }
 
   /**

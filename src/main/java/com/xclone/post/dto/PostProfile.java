@@ -12,8 +12,8 @@ import java.util.UUID;
  * @param id UUID of the post
  * @param authorId UUID of the author
  * @param messageContent optional text content of a post
- * @param createdAt datetime of user entity creation
- * @param updatedAt datetime of last update of user entity
+ * @param createdAt datetime of post entity creation
+ * @param updatedAt datetime of last update of post entity
  */
 public record PostProfile(
     UUID id,

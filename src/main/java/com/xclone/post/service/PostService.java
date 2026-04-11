@@ -63,6 +63,8 @@ public class PostService {
    *   <li>Posts from the authenticated user
    * </ul>
    *
+   * <p>Note: no transaction boundary is required as no lazy associations are traversed.
+   *
    * @param userId unique UUID for user entity
    * @param first desired number of results
    * @param after optional cursor of where the previous pagination finished

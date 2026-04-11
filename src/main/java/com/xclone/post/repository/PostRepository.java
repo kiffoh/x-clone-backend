@@ -14,17 +14,36 @@ import org.springframework.stereotype.Repository;
 /** JPA repository for {@link Post} entities. */
 @Repository
 public interface PostRepository extends JpaRepository<Post, UUID> {
+  /**
+   * Gets first page of feed.
+   *
+   * @param userId excluded from results even if present in followingIds
+   * @param followingIds IDs of users whose posts are included in the feed
+   * @param pageable page size for the query
+   */
   @Query(
-      "select p from Post p where p.status = com.xclone.common.enums.Status.ACTIVE"
+      "select p from Post p join p.author a"
+          + " where a.status = com.xclone.user.model.enums.UserStatus.ACTIVE"
+          + " and p.status = com.xclone.common.enums.Status.ACTIVE"
           + " and p.authorId <> :userId"
-          + " and p.authorId in :followingIds order by p.createdAt desc, p.id asc")
+          + " and p.authorId in :followingIds"
+          + " order by p.createdAt desc, p.id asc")
   Slice<Post> findFirstPageOfFeed(
       @Param("userId") UUID userId,
       @Param("followingIds") List<UUID> followingIds,
       Pageable pageable);
 
+  /**
+   * Gets next page of feed after the cursor.
+   *
+   * @param userId excluded from results even if present in followingIds
+   * @param followingIds IDs of users whose posts are included in the feed
+   * @param pageable page size for the query
+   */
   @Query(
-      "select p from Post p where p.status = com.xclone.common.enums.Status.ACTIVE"
+      "select p from Post p join p.author a"
+          + " where a.status = com.xclone.user.model.enums.UserStatus.ACTIVE"
+          + " and p.status = com.xclone.common.enums.Status.ACTIVE"
           + " and p.authorId <> :userId"
           + " and p.authorId in :followingIds"
           + " and ((p.createdAt < :cursorCreatedAt)"
