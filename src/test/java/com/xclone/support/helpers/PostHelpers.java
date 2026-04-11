@@ -14,8 +14,8 @@ public class PostHelpers {
    * @param messageContents list of strings containing each posts text content
    * @param authors list of users which each post belongs to
    * @param postRepository interface for connecting Post entities to the database
-   * @throws IllegalArgumentException if messageContents and authors are different lengths
    * @return list of posts from database
+   * @throws IllegalArgumentException if messageContents and authors are different lengths
    */
   public static List<Post> seedPosts(
       List<String> messageContents, List<User> authors, PostRepository postRepository) {

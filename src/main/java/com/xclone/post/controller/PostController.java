@@ -53,11 +53,25 @@ public class PostController {
     return authors;
   }
 
+  /**
+   * Resolves the graphql getPost query.
+   *
+   * @param postId unique identifier of the post
+   * @return public facing {@link PostProfile} dto
+   */
   @QueryMapping
   public PostProfile getPost(@Argument UUID postId) {
     return postService.getPost(postId);
   }
 
+  /**
+   * Resolves the graphql get feed query.
+   *
+   * @param userDetails authenticated user set in the security context
+   * @param first optional number of posts; defaults to 10 in graphql schema
+   * @param after optional cursor for cursor-pagination
+   * @return a paginated list of posts
+   */
   @QueryMapping
   public PostConnection feed(
       @AuthenticationPrincipal CustomUserDetails userDetails,

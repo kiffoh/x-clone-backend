@@ -62,8 +62,8 @@ public class PostIT extends BaseIntegrationTest {
   }
 
   /**
-   * Author resolution is covered in {@link getPostTests}. TODO: Add further tests when post
-   * vertical slice is implemented in more detail
+   * Author resolution is covered in {@link com.xclone.integration.post.PostIT.getPostTests}. TODO:
+   * Add further tests when post vertical slice is implemented in more detail
    */
   @Nested
   class schemaMappingTests {}

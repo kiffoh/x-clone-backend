@@ -187,6 +187,12 @@ public class FollowService {
     return new HashSet<>(followRepository.findFollowingIdsInList(userId, idsToCheck));
   }
 
+  /**
+   * Retrieves all user ids that the queried user id is following.
+   *
+   * @param followerId unique identifier of follower in the {@link Follow} relationship
+   * @return list of user ids
+   */
   public List<UUID> getFollowingIds(UUID followerId) {
     return followRepository.findFollowingIdsByFollowerId(followerId);
   }

@@ -38,6 +38,8 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
    *
    * @param userId excluded from results even if present in followingIds
    * @param followingIds IDs of users whose posts are included in the feed
+   * @param cursorId id to query after
+   * @param createdAt datetime to query after
    * @param pageable page size for the query
    */
   @Query(
