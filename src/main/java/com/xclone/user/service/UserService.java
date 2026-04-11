@@ -75,6 +75,18 @@ public class UserService {
   }
 
   /**
+   * Fetches user profiles from input list which have an active status.
+   *
+   * @param userIds list of user ids to query
+   * @return list of user profiles which have an active status
+   */
+  public List<UserProfile> getActiveUsersById(List<UUID> userIds) {
+    return userRepository.findAllActiveUsersByIdIn(userIds).stream()
+        .map(User::toUserProfile)
+        .toList();
+  }
+
+  /**
    * Fetches a paginated of accounts whose handles contain the given query string.
    *
    * @param query the substring to search for within user handles

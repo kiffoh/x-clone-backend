@@ -10,11 +10,15 @@ import com.xclone.user.dto.UserProfile;
 import com.xclone.user.dto.connection.UserConnection;
 import com.xclone.user.dto.mutation.UserResponse;
 import com.xclone.user.dto.request.UpdateUserInput;
+import com.xclone.user.model.entity.User;
 import com.xclone.user.service.UserService;
 import jakarta.validation.ConstraintViolationException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
@@ -24,7 +28,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 
-/** GraphQL controller resolving queries for the {@link com.xclone.user.model.entity.User} model. */
+/** GraphQL controller resolving queries for the {@link User} model. */
 @Controller
 public class UserController {
   private final UserService userService;
@@ -129,6 +133,8 @@ public class UserController {
   private Map<UserProfile, Boolean> isFollowing(List<UserProfile> users) {
     CustomUserDetails userDetails =
         (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-    return followService.getIsFollowing(userDetails.getId(), users);
+    Set<UUID> followingIds = followService.getFollowingIdsInUsers(userDetails.getId(), users);
+    return users.stream()
+        .collect(Collectors.toMap(Function.identity(), user -> followingIds.contains(user.id())));
   }
 }

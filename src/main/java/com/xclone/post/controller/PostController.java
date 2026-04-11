@@ -1,0 +1,82 @@
+package com.xclone.post.controller;
+
+import com.xclone.post.dto.PostProfile;
+import com.xclone.post.dto.connection.PostConnection;
+import com.xclone.post.service.PostService;
+import com.xclone.security.user.CustomUserDetails;
+import com.xclone.user.dto.UserProfile;
+import com.xclone.user.service.UserService;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import org.springframework.graphql.data.method.annotation.Argument;
+import org.springframework.graphql.data.method.annotation.BatchMapping;
+import org.springframework.graphql.data.method.annotation.QueryMapping;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.stereotype.Controller;
+
+/** GraphQL controller for post-related operations. */
+@Controller
+public class PostController {
+  private final PostService postService;
+  private final UserService userService;
+
+  public PostController(PostService postService, UserService userService) {
+    this.postService = postService;
+    this.userService = userService;
+  }
+
+  /**
+   * Obtains the user entities for the author of each post.
+   *
+   * @param posts list of posts
+   * @return each post mapped to the authors user profile
+   */
+  @BatchMapping(typeName = "Post", field = "author")
+  public Map<PostProfile, UserProfile> author(List<PostProfile> posts) {
+    List<UUID> authorIds = posts.stream().map(PostProfile::authorId).toList();
+    List<UserProfile> users = userService.getActiveUsersById(authorIds);
+    Map<UUID, UserProfile> uuidUserMap =
+        users.stream().collect(Collectors.toMap(UserProfile::id, Function.identity()));
+
+    Map<PostProfile, UserProfile> authors = new HashMap<>();
+    posts.forEach(
+        post -> {
+          UserProfile author = uuidUserMap.get(post.authorId());
+          if (author != null) {
+            authors.put(post, author);
+          }
+        });
+    return authors;
+  }
+
+  /**
+   * Resolves the graphql getPost query.
+   *
+   * @param postId unique identifier of the post
+   * @return public facing {@link PostProfile} dto
+   */
+  @QueryMapping
+  public PostProfile getPost(@Argument UUID postId) {
+    return postService.getPost(postId);
+  }
+
+  /**
+   * Resolves the graphql get feed query.
+   *
+   * @param userDetails authenticated user set in the security context
+   * @param first optional number of posts; defaults to 10 in graphql schema
+   * @param after optional cursor for cursor-pagination
+   * @return a paginated list of posts
+   */
+  @QueryMapping
+  public PostConnection feed(
+      @AuthenticationPrincipal CustomUserDetails userDetails,
+      @Argument Integer first,
+      @Argument String after) {
+    return postService.getFeed(userDetails.getId(), first, after);
+  }
+}

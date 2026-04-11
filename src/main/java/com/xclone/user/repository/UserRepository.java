@@ -46,4 +46,9 @@ public interface UserRepository extends JpaRepository<User, UUID> {
   boolean existsByHandle(String handle);
 
   boolean existsByHandleAndIdNot(String handle, UUID id);
+
+  @Query(
+      "select u from User u where u.id in :userIds"
+          + " and u.status = com.xclone.user.model.enums.UserStatus.ACTIVE")
+  List<User> findAllActiveUsersByIdIn(@Param("userIds") List<UUID> userIds);
 }

@@ -4,7 +4,7 @@ type Post {
     messageContent: String # Optional — null for pure reposts (and useful for media when introduced)
 
     # Core fields
-    createdAt: DateTime! 
+    createdAt: DateTime!
     updatedAt: DateTime
     status: Status # Changed visible to STATUS enum
     # Deleted posts will display as something like 'this content isn't available anymore' -> Comment threads are still visible
@@ -15,7 +15,7 @@ type Post {
     likes(first: Int, after: String): UserConnection! # Who liked this
 
     # Comments functionality
-    parent: Post 
+    parent: Post
     comments(first: Int, after: String): PostConnection!
     commentCount: Int!
 
@@ -37,12 +37,10 @@ type Post {
 
 extend type Query {
     # TODO - searchPosts
-    getPost(id: ID!): PostResponse!
-    feed(first: Int, after: String): PostConnection!
+    getPost(postId: ID!): Post
+    feed(first: Int = 10, after: String): PostConnection!
 }
 
-# I want updatedAt to update but I imagine I do this in the postgres end?
-# Should I put all my updates in the same mutation?
 extend type Mutation {
     # Create
     createPost(input: CreatePostInput!): PostResponse!
