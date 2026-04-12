@@ -46,10 +46,7 @@ public class Post {
   private User author;
 
   // TODO add nullable=true when reposts are added
-  @Column(
-      name = "message_content",
-      columnDefinition = "TEXT",
-      length = ValidationConstants.MAX_MESSAGE_CONTENT_SIZE)
+  @Column(name = "message_content", length = ValidationConstants.MAX_MESSAGE_CONTENT_SIZE)
   private String messageContent;
 
   @CreatedDate

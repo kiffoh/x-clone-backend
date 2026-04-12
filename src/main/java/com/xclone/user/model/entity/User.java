@@ -53,10 +53,10 @@ public class User {
   @Column(name = "password_hash", nullable = false)
   private String passwordHash;
 
-  @Column(columnDefinition = "TEXT")
+  @Column(length = ValidationConstants.MAX_BIO_SIZE)
   private String bio;
 
-  @Column(name = "profile_image", length = 500)
+  @Column(name = "profile_image", length = ValidationConstants.MAX_PROFILE_IMAGE_SIZE)
   private String profileImage;
 
   @Enumerated(EnumType.STRING)

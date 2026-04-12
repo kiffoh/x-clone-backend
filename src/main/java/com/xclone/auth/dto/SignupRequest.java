@@ -41,6 +41,9 @@ public record SignupRequest(
     @Schema(description = "Display name shown on the user's profile.", nullable = true)
         @Size(max = ValidationConstants.MAX_DISPLAY_NAME_SIZE)
         String displayName,
-    @Schema(description = "Short user biography.", nullable = true) @Size(max = 160) String bio,
-    @Schema(description = "Profile image URL.", nullable = true) @Size(max = 500)
+    @Schema(description = "Short user biography.", nullable = true)
+        @Size(max = ValidationConstants.MAX_BIO_SIZE)
+        String bio,
+    @Schema(description = "Profile image URL.", nullable = true)
+        @Size(max = ValidationConstants.MAX_PROFILE_IMAGE_SIZE)
         String profileImage) {}
