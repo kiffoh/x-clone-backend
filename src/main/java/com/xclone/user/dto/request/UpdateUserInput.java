@@ -21,5 +21,5 @@ import jakarta.validation.constraints.Size;
 public record UpdateUserInput(
     @Size(max = ValidationConstants.MAX_DISPLAY_NAME_SIZE) String displayName,
     @ValidHandle String handle,
-    @Size(max = 160) String bio,
-    @Size(max = 500) String profileImage) {}
+    @Size(max = ValidationConstants.MAX_BIO_SIZE) String bio,
+    @Size(max = ValidationConstants.MAX_PROFILE_IMAGE_SIZE) String profileImage) {}

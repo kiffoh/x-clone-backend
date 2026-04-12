@@ -135,6 +135,8 @@ public class PostService {
       throw new NotPostAuthorException("Only the author can update the post");
     }
 
+    post.setMessageContent(input.messageContent());
+
     return post.toPostProfile();
   }
 
