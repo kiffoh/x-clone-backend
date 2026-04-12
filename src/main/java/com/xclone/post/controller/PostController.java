@@ -2,6 +2,7 @@ package com.xclone.post.controller;
 
 import com.xclone.common.mutation.DeleteResponse;
 import com.xclone.exception.GraphQlErrorMapper;
+import com.xclone.exception.custom.NotPostAuthorException;
 import com.xclone.post.dto.PostProfile;
 import com.xclone.post.dto.connection.PostConnection;
 import com.xclone.post.dto.mutation.PostResponse;
@@ -122,9 +123,9 @@ public class PostController {
     try {
       PostProfile updatedPost = postService.updatePost(input, userDetails.getId());
       return new PostResponse("200", true, updatedPost, null);
-    } catch (IllegalAccessException ex) {
+    } catch (NotPostAuthorException ex) {
       return new PostResponse(
-          "403", false, null, GraphQlErrorMapper.fromIllegalAccess("updatePost", ex));
+          "403", false, null, GraphQlErrorMapper.fromNotPostAuthor("updatePost", ex));
     } catch (ConstraintViolationException ex) {
       return new PostResponse("400", false, null, GraphQlErrorMapper.fromConstraintViolations(ex));
     }
@@ -148,9 +149,9 @@ public class PostController {
     try {
       postService.deletePost(postId, userDetails.getId());
       return new DeleteResponse("200", true, null);
-    } catch (IllegalAccessException ex) {
+    } catch (NotPostAuthorException ex) {
       return new DeleteResponse(
-          "403", false, GraphQlErrorMapper.fromIllegalAccess("deletePost", ex));
+          "403", false, GraphQlErrorMapper.fromNotPostAuthor("deletePost", ex));
     }
   }
 }

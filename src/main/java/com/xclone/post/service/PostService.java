@@ -3,6 +3,7 @@ package com.xclone.post.service;
 import com.xclone.common.connection.Cursor;
 import com.xclone.common.connection.PageInfo;
 import com.xclone.common.enums.Status;
+import com.xclone.exception.custom.NotPostAuthorException;
 import com.xclone.follow.service.FollowService;
 import com.xclone.post.dto.PostProfile;
 import com.xclone.post.dto.connection.PostConnection;
@@ -97,7 +98,7 @@ public class PostService {
    * Creates a post entity with the provided input fields using a {@link Transactional} view, *
    * ensuring for an accurate and consistent view of the post entity.
    *
-   * @param input DTO with post details to be updated
+   * @param input DTO with post details to be created
    * @param authorId unique uuid of the authenticated user
    * @return the created post
    */
@@ -106,7 +107,8 @@ public class PostService {
     Post post = new Post();
     post.setAuthorId(authorId);
     post.setMessageContent(input.messageContent());
-    return post.toPostProfile();
+    Post savedPost = postRepository.save(post);
+    return savedPost.toPostProfile();
   }
 
   /**
@@ -118,23 +120,19 @@ public class PostService {
    * @param input DTO with post details to be updated
    * @param userId unique uuid of the authenticated user
    * @return post with the relevant fields updated
-   * @throws IllegalAccessException when the author of the post does not match the userId parameter
+   * @throws NotPostAuthorException when the author of the post does not match the userId parameter
    * @throws EntityNotFoundException when post cannot be found in the database
    */
   @Transactional
   public PostProfile updatePost(@Valid UpdatePostInput input, UUID userId)
-      throws IllegalAccessException {
+      throws NotPostAuthorException {
     Post post =
         postRepository
             .findById(input.id())
             .orElseThrow(() -> new EntityNotFoundException("Post does not exist"));
 
-    if (post.getAuthorId() != userId) {
-      throw new IllegalAccessException("Only the author can update a post");
-    }
-
-    if (input.messageContent() != null && !input.messageContent().isBlank()) {
-      post.setMessageContent(input.messageContent());
+    if (!userId.equals(post.getAuthorId())) {
+      throw new NotPostAuthorException("Only the author can update the post");
     }
 
     return post.toPostProfile();
@@ -144,22 +142,22 @@ public class PostService {
    * Soft deletes the post by marking their status as {@link Status#DELETED}. Relies on JPA dirty
    * checking within the transaction — no explicit {@code save()} is needed.
    *
-   * <p>Only the author of a post can update the post
+   * <p>Only the author of a post can delete the post
    *
    * @param postId unique identifier of the post to be soft-deleted
    * @param userId unique uuid of the authenticated user
-   * @throws IllegalAccessException when the author of the post does not match the userId parameter
+   * @throws NotPostAuthorException when the author of the post does not match the userId parameter
    * @throws EntityNotFoundException when post cannot be found in the database
    */
   @Transactional
-  public void deletePost(UUID postId, UUID userId) throws IllegalAccessException {
+  public void deletePost(UUID postId, UUID userId) throws NotPostAuthorException {
     Post post =
         postRepository
             .findById(postId)
             .orElseThrow(() -> new EntityNotFoundException("Post does not exist"));
 
-    if (post.getAuthorId() != userId) {
-      throw new IllegalAccessException("Only the author can delete a post");
+    if (!userId.equals(post.getAuthorId())) {
+      throw new NotPostAuthorException("Only the author can delete the post");
     }
 
     post.setStatus(Status.DELETED);

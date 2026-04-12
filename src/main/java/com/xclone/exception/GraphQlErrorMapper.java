@@ -2,6 +2,7 @@ package com.xclone.exception;
 
 import com.xclone.exception.custom.DuplicateFollowException;
 import com.xclone.exception.custom.DuplicateHandleException;
+import com.xclone.exception.custom.NotPostAuthorException;
 import com.xclone.exception.custom.SelfFollowException;
 import com.xclone.exception.dto.FieldError;
 import jakarta.validation.ConstraintViolation;
@@ -89,13 +90,13 @@ public class GraphQlErrorMapper {
   }
 
   /**
-   * Maps a {@link IllegalAccessException} to a list of {@link FieldError} DTOs.
+   * Maps a {@link NotPostAuthorException} to a list of {@link FieldError} DTOs.
    *
-   * @param field function responsible for triggering the exception
+   * @param field field responsible for triggering the exception
    * @param ex exception whose message is used as the field-level error message
-   * @return a list of {@link FieldError} instances representing the username not found exception
+   * @return a list of {@link FieldError} instances
    */
-  public static List<FieldError> fromIllegalAccess(String field, IllegalAccessException ex) {
+  public static List<FieldError> fromNotPostAuthor(String field, NotPostAuthorException ex) {
     return List.of(new FieldError(field, ex.getMessage()));
   }
 }

@@ -2,6 +2,7 @@ package com.xclone.post.dto.request;
 
 import com.xclone.validation.ValidationConstants;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.util.UUID;
 
@@ -12,7 +13,7 @@ import java.util.UUID;
  * @param messageContent the message content of the post
  */
 public record UpdatePostInput(
-    @NotBlank UUID id,
+    @NotNull UUID id,
     @NotBlank(message = "Post message content is required")
         @Size(max = ValidationConstants.MAX_MESSAGE_CONTENT_SIZE)
         String messageContent) {}
