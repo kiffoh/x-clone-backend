@@ -58,6 +58,7 @@ public class GraphQlErrorMapper {
   /**
    * Maps a {@link UsernameNotFoundException} to a list of {@link FieldError} DTOs.
    *
+   * @param field field responsible for triggering the exception
    * @param ex exception whose message is used as the field-level error message
    * @return a list of {@link FieldError} instances representing the username not found exception
    */
@@ -85,5 +86,16 @@ public class GraphQlErrorMapper {
    */
   public static List<FieldError> fromSelfFollow(SelfFollowException ex) {
     return List.of(new FieldError("userIdToFollow", ex.getMessage()));
+  }
+
+  /**
+   * Maps a {@link IllegalAccessException} to a list of {@link FieldError} DTOs.
+   *
+   * @param field function responsible for triggering the exception
+   * @param ex exception whose message is used as the field-level error message
+   * @return a list of {@link FieldError} instances representing the username not found exception
+   */
+  public static List<FieldError> fromIllegalAccess(String field, IllegalAccessException ex) {
+    return List.of(new FieldError(field, ex.getMessage()));
   }
 }
