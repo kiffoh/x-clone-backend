@@ -19,8 +19,8 @@ import jakarta.validation.constraints.Size;
 public record SignupRequest(
     @Schema(
             requiredMode = Schema.RequiredMode.REQUIRED,
-            minLength = 4,
-            maxLength = 15,
+            minLength = ValidationConstants.MIN_HANDLE_SIZE,
+            maxLength = ValidationConstants.MAX_HANDLE_SIZE,
             pattern = ValidationConstants.HANDLE_PATTERN,
             description =
                 "Unique username used to identify the account. "
@@ -30,8 +30,8 @@ public record SignupRequest(
         String handle,
     @Schema(
             requiredMode = Schema.RequiredMode.REQUIRED,
-            minLength = 10,
-            maxLength = 100,
+            minLength = ValidationConstants.MIN_PASSWORD_SIZE,
+            maxLength = ValidationConstants.MAX_PASSWORD_SIZE,
             pattern = ValidationConstants.PASSWORD_PATTERN,
             description =
                 "Account password. "
@@ -39,7 +39,7 @@ public record SignupRequest(
         @ValidPassword
         String password,
     @Schema(description = "Display name shown on the user's profile.", nullable = true)
-        @Size(max = 50)
+        @Size(max = ValidationConstants.MAX_DISPLAY_NAME_SIZE)
         String displayName,
     @Schema(description = "Short user biography.", nullable = true) @Size(max = 160) String bio,
     @Schema(description = "Profile image URL.", nullable = true) @Size(max = 500)
