@@ -12,7 +12,7 @@ import com.xclone.user.dto.UserProfile;
 import com.xclone.user.dto.connection.UserConnection;
 import com.xclone.user.dto.connection.UserEdge;
 import com.xclone.user.model.entity.User;
-import com.xclone.user.repository.UserRepository;
+import com.xclone.user.service.UserService;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -23,7 +23,6 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,11 +32,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class FollowService {
 
   private final FollowRepository followRepository;
-  private final UserRepository userRepository;
+  private final UserService userService;
 
-  public FollowService(FollowRepository followRepository, UserRepository userRepository) {
+  public FollowService(FollowRepository followRepository, UserService userService) {
     this.followRepository = followRepository;
-    this.userRepository = userRepository;
+    this.userService = userService;
   }
 
   private UserConnection toUserConnection(Slice<Follow> follows, FollowSide side) {
@@ -118,16 +117,6 @@ public class FollowService {
     return followRepository.countByFollower_Id(id);
   }
 
-  private User getUserOrThrow(UUID userId) {
-    return userRepository
-        .findById(userId)
-        .orElseThrow(
-            () -> {
-              log.warn("User with id {} does not exist", userId);
-              return new UsernameNotFoundException("User with specified id does not exist");
-            });
-  }
-
   /**
    * Adds a new follow entity to the follow table.
    *
@@ -138,8 +127,8 @@ public class FollowService {
   @Transactional
   public UserProfile followUser(UUID followerId, UUID followingId) {
     try {
-      User follower = getUserOrThrow(followerId);
-      User following = getUserOrThrow(followingId);
+      User follower = userService.getUserOrThrow(followerId);
+      User following = userService.getUserOrThrow(followingId);
       Follow follow = new Follow();
       follow.setFollower(follower);
       follow.setFollowing(following);
@@ -168,8 +157,8 @@ public class FollowService {
    */
   @Transactional
   public UserProfile unfollowUser(UUID followerId, UUID followingId) {
-    User follower = getUserOrThrow(followerId);
-    User following = getUserOrThrow(followingId);
+    User follower = userService.getUserOrThrow(followerId);
+    User following = userService.getUserOrThrow(followingId);
     followRepository.deleteByFollowerAndFollowing(follower, following);
     return following.toUserProfile();
   }
