@@ -25,4 +25,6 @@ public final class ValidationConstants {
   public static final int MAX_BIO_SIZE = 160;
 
   public static final int MAX_MESSAGE_CONTENT_SIZE = 280;
+  public static final String INVALID_MESSAGE_CONTENT_SIZE =
+      String.format("size must be between %d and %d", 0, MAX_MESSAGE_CONTENT_SIZE);
 }

@@ -5,6 +5,7 @@ import com.xclone.exception.custom.DuplicateHandleException;
 import com.xclone.exception.custom.NotPostAuthorException;
 import com.xclone.exception.custom.SelfFollowException;
 import com.xclone.exception.dto.FieldError;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import java.util.List;
@@ -97,6 +98,17 @@ public class GraphQlErrorMapper {
    * @return a list of {@link FieldError} instances
    */
   public static List<FieldError> fromNotPostAuthor(String field, NotPostAuthorException ex) {
+    return List.of(new FieldError(field, ex.getMessage()));
+  }
+
+  /**
+   * Maps a {@link NotPostAuthorException} to a list of {@link FieldError} DTOs.
+   *
+   * @param field field responsible for triggering the exception
+   * @param ex exception whose message is used as the field-level error message
+   * @return a list of {@link FieldError} instances
+   */
+  public static List<FieldError> fromEntityNotFound(String field, EntityNotFoundException ex) {
     return List.of(new FieldError(field, ex.getMessage()));
   }
 }

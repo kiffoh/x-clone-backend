@@ -13,6 +13,7 @@ import com.xclone.security.jwt.JwtAuthenticationFilter;
 import com.xclone.security.user.CustomUserDetails;
 import com.xclone.user.dto.UserProfile;
 import com.xclone.user.service.UserService;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ConstraintViolationException;
 import java.util.HashMap;
 import java.util.List;
@@ -101,8 +102,12 @@ public class PostController {
   @MutationMapping
   public PostResponse createPost(
       @AuthenticationPrincipal CustomUserDetails userDetails, @Argument CreatePostInput input) {
-    PostProfile post = postService.createPost(input, userDetails.getId());
-    return new PostResponse("200", true, post, null);
+    try {
+      PostProfile post = postService.createPost(input, userDetails.getId());
+      return new PostResponse("200", true, post, null);
+    } catch (ConstraintViolationException ex) {
+      return new PostResponse("400", false, null, GraphQlErrorMapper.fromConstraintViolations(ex));
+    }
   }
 
   /**
@@ -125,7 +130,10 @@ public class PostController {
       return new PostResponse("200", true, updatedPost, null);
     } catch (NotPostAuthorException ex) {
       return new PostResponse(
-          "403", false, null, GraphQlErrorMapper.fromNotPostAuthor("updatePost", ex));
+          "403", false, null, GraphQlErrorMapper.fromNotPostAuthor("updatePostContent", ex));
+    } catch (EntityNotFoundException ex) {
+      return new PostResponse(
+          "404", false, null, GraphQlErrorMapper.fromEntityNotFound("updatePostContent", ex));
     } catch (ConstraintViolationException ex) {
       return new PostResponse("400", false, null, GraphQlErrorMapper.fromConstraintViolations(ex));
     }
@@ -152,6 +160,11 @@ public class PostController {
     } catch (NotPostAuthorException ex) {
       return new DeleteResponse(
           "403", false, GraphQlErrorMapper.fromNotPostAuthor("deletePost", ex));
+    } catch (EntityNotFoundException ex) {
+      return new DeleteResponse(
+          "404", false, GraphQlErrorMapper.fromEntityNotFound("deletePost", ex));
+    } catch (ConstraintViolationException ex) {
+      return new DeleteResponse("400", false, GraphQlErrorMapper.fromConstraintViolations(ex));
     }
   }
 }
