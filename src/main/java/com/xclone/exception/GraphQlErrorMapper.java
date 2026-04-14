@@ -2,6 +2,8 @@ package com.xclone.exception;
 
 import com.xclone.exception.custom.DuplicateFollowException;
 import com.xclone.exception.custom.DuplicateHandleException;
+import com.xclone.exception.custom.NotPostAuthorException;
+import com.xclone.exception.custom.PostNotFoundException;
 import com.xclone.exception.custom.SelfFollowException;
 import com.xclone.exception.dto.FieldError;
 import jakarta.validation.ConstraintViolation;
@@ -58,6 +60,7 @@ public class GraphQlErrorMapper {
   /**
    * Maps a {@link UsernameNotFoundException} to a list of {@link FieldError} DTOs.
    *
+   * @param field field responsible for triggering the exception
    * @param ex exception whose message is used as the field-level error message
    * @return a list of {@link FieldError} instances representing the username not found exception
    */
@@ -85,5 +88,27 @@ public class GraphQlErrorMapper {
    */
   public static List<FieldError> fromSelfFollow(SelfFollowException ex) {
     return List.of(new FieldError("userIdToFollow", ex.getMessage()));
+  }
+
+  /**
+   * Maps a {@link NotPostAuthorException} to a list of {@link FieldError} DTOs.
+   *
+   * @param field field responsible for triggering the exception
+   * @param ex exception whose message is used as the field-level error message
+   * @return a list of {@link FieldError} instances
+   */
+  public static List<FieldError> fromNotPostAuthor(String field, NotPostAuthorException ex) {
+    return List.of(new FieldError(field, ex.getMessage()));
+  }
+
+  /**
+   * Maps a {@link PostNotFoundException} to a list of {@link FieldError} DTOs.
+   *
+   * @param field field responsible for triggering the exception
+   * @param ex exception whose message is used as the field-level error message
+   * @return a list of {@link FieldError} instances
+   */
+  public static List<FieldError> fromPostNotFound(String field, PostNotFoundException ex) {
+    return List.of(new FieldError(field, ex.getMessage()));
   }
 }

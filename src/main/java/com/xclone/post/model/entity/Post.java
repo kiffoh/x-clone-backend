@@ -3,6 +3,7 @@ package com.xclone.post.model.entity;
 import com.xclone.common.enums.Status;
 import com.xclone.post.dto.PostProfile;
 import com.xclone.user.model.entity.User;
+import com.xclone.validation.ValidationConstants;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -44,7 +45,8 @@ public class Post {
   @ManyToOne(fetch = FetchType.LAZY)
   private User author;
 
-  @Column(name = "message_content", columnDefinition = "TEXT")
+  // TODO add nullable=true when reposts are added
+  @Column(name = "message_content", length = ValidationConstants.MAX_MESSAGE_CONTENT_SIZE)
   private String messageContent;
 
   @CreatedDate

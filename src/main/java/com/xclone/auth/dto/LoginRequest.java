@@ -15,8 +15,8 @@ import jakarta.validation.constraints.NotBlank;
 public record LoginRequest(
     @Schema(
             requiredMode = Schema.RequiredMode.REQUIRED,
-            minLength = 4,
-            maxLength = 15,
+            minLength = ValidationConstants.MIN_HANDLE_SIZE,
+            maxLength = ValidationConstants.MAX_HANDLE_SIZE,
             pattern = ValidationConstants.HANDLE_PATTERN,
             description =
                 "Unique username used to identify the account. "
@@ -26,8 +26,8 @@ public record LoginRequest(
         String handle,
     @Schema(
             requiredMode = Schema.RequiredMode.REQUIRED,
-            minLength = 10,
-            maxLength = 100,
+            minLength = ValidationConstants.MIN_PASSWORD_SIZE,
+            maxLength = ValidationConstants.MAX_PASSWORD_SIZE,
             pattern = ValidationConstants.PASSWORD_PATTERN,
             description =
                 "Account password. "

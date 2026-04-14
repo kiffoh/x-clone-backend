@@ -3,6 +3,7 @@ package com.xclone.user.model.entity;
 import com.xclone.user.dto.UserProfile;
 import com.xclone.user.model.enums.UserRole;
 import com.xclone.user.model.enums.UserStatus;
+import com.xclone.validation.ValidationConstants;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -40,19 +41,22 @@ public class User {
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;
 
-  @Column(name = "display_name", nullable = false, length = 100)
+  @Column(
+      name = "display_name",
+      nullable = false,
+      length = ValidationConstants.MAX_DISPLAY_NAME_SIZE)
   private String displayName;
 
-  @Column(nullable = false, length = 100, unique = true)
+  @Column(nullable = false, length = ValidationConstants.MAX_HANDLE_SIZE, unique = true)
   private String handle;
 
-  @Column(name = "password_hash", nullable = false, length = 255)
+  @Column(name = "password_hash", nullable = false)
   private String passwordHash;
 
-  @Column(columnDefinition = "TEXT")
+  @Column(length = ValidationConstants.MAX_BIO_SIZE)
   private String bio;
 
-  @Column(name = "profile_image", length = 500)
+  @Column(name = "profile_image", length = ValidationConstants.MAX_PROFILE_IMAGE_SIZE)
   private String profileImage;
 
   @Enumerated(EnumType.STRING)

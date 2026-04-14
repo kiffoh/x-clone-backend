@@ -20,4 +20,11 @@ public final class ValidationConstants {
   public static final String INVALID_PASSWORD_REGEX =
       "Password must contain at least one special character,"
           + " capital letter, lowercase letter and number";
+  public static final int MAX_DISPLAY_NAME_SIZE = 50;
+  public static final int MAX_PROFILE_IMAGE_SIZE = 500;
+  public static final int MAX_BIO_SIZE = 160;
+
+  public static final int MAX_MESSAGE_CONTENT_SIZE = 280;
+  public static final String INVALID_MESSAGE_CONTENT_SIZE =
+      String.format("size must be between %d and %d", 0, MAX_MESSAGE_CONTENT_SIZE);
 }

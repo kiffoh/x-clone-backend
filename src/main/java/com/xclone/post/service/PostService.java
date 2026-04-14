@@ -2,21 +2,30 @@ package com.xclone.post.service;
 
 import com.xclone.common.connection.Cursor;
 import com.xclone.common.connection.PageInfo;
+import com.xclone.common.enums.Status;
+import com.xclone.exception.custom.NotPostAuthorException;
+import com.xclone.exception.custom.PostNotFoundException;
 import com.xclone.follow.service.FollowService;
 import com.xclone.post.dto.PostProfile;
 import com.xclone.post.dto.connection.PostConnection;
 import com.xclone.post.dto.connection.PostEdge;
+import com.xclone.post.dto.request.CreatePostInput;
+import com.xclone.post.dto.request.UpdatePostInput;
 import com.xclone.post.model.entity.Post;
 import com.xclone.post.repository.PostRepository;
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
 
 /** Service layer responsible for post-related operations. */
 @Service
+@Validated
 public class PostService {
   private final PostRepository postRepository;
   private final FollowService followService;
@@ -83,5 +92,75 @@ public class PostService {
               userId, followingIds, cursor.id(), cursor.createdAt(), pageable);
     }
     return toPostConnection(feed);
+  }
+
+  /**
+   * Creates a post entity with the provided input fields using a {@link Transactional} view,
+   * ensuring for atomicity and that dirty checking applies.
+   *
+   * @param input DTO with post details to be created
+   * @param authorId unique uuid of the authenticated user
+   * @return the created post
+   */
+  @Transactional
+  public PostProfile createPost(@Valid CreatePostInput input, UUID authorId) {
+    Post post = new Post();
+    post.setAuthorId(authorId);
+    post.setMessageContent(input.messageContent());
+    Post savedPost = postRepository.save(post);
+    return savedPost.toPostProfile();
+  }
+
+  /**
+   * Updates the post entity with the provided input fields using a {@link Transactional} view,
+   * ensuring for atomicity and that dirty checking applies.
+   *
+   * <p>Only the author of a post can update the post
+   *
+   * @param input DTO with post details to be updated
+   * @param userId unique uuid of the authenticated user
+   * @return post with the relevant fields updated
+   * @throws NotPostAuthorException when the author of the post does not match the userId parameter
+   * @throws PostNotFoundException when post cannot be found in the database
+   */
+  @Transactional
+  public PostProfile updatePost(@Valid UpdatePostInput input, UUID userId) {
+    Post post =
+        postRepository
+            .findById(input.id())
+            .orElseThrow(() -> new PostNotFoundException("Post does not exist"));
+
+    if (!userId.equals(post.getAuthorId())) {
+      throw new NotPostAuthorException("Only the author can update the post");
+    }
+
+    post.setMessageContent(input.messageContent());
+
+    return post.toPostProfile();
+  }
+
+  /**
+   * Soft deletes the post by marking their status as {@link Status#DELETED}. Relies on JPA dirty
+   * checking within the transaction — no explicit {@code save()} is needed.
+   *
+   * <p>Only the author of a post can delete the post
+   *
+   * @param postId unique identifier of the post to be soft-deleted
+   * @param userId unique uuid of the authenticated user
+   * @throws NotPostAuthorException when the author of the post does not match the userId parameter
+   * @throws PostNotFoundException when post cannot be found in the database
+   */
+  @Transactional
+  public void deletePost(UUID postId, UUID userId) {
+    Post post =
+        postRepository
+            .findById(postId)
+            .orElseThrow(() -> new PostNotFoundException("Post does not exist"));
+
+    if (!userId.equals(post.getAuthorId())) {
+      throw new NotPostAuthorException("Only the author can delete the post");
+    }
+
+    post.setStatus(Status.DELETED);
   }
 }

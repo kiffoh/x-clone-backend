@@ -52,7 +52,7 @@ extend type Mutation {
     updatePostContent(input: UpdatePostInput!): PostResponse!
 
     # Delete (works for all post types)
-    deletePost(input: DeletePostInput!): PostResponse!
+    deletePost(postId: ID!): DeleteResponse!
 
     # Likes
     likePost(input: UpdatePostLikesInput): PostResponse!
@@ -97,7 +97,6 @@ input CreateQuoteInput {
 type PostResponse implements MutationResponse {
     code: String!
     success: Boolean!
-    message: String!
     post: Post
     errors: [Error!]
 }
