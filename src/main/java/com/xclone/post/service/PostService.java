@@ -4,6 +4,7 @@ import com.xclone.common.connection.Cursor;
 import com.xclone.common.connection.PageInfo;
 import com.xclone.common.enums.Status;
 import com.xclone.exception.custom.NotPostAuthorException;
+import com.xclone.exception.custom.PostNotFoundException;
 import com.xclone.follow.service.FollowService;
 import com.xclone.post.dto.PostProfile;
 import com.xclone.post.dto.connection.PostConnection;
@@ -12,7 +13,6 @@ import com.xclone.post.dto.request.CreatePostInput;
 import com.xclone.post.dto.request.UpdatePostInput;
 import com.xclone.post.model.entity.Post;
 import com.xclone.post.repository.PostRepository;
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Optional;
@@ -95,8 +95,8 @@ public class PostService {
   }
 
   /**
-   * Creates a post entity with the provided input fields using a {@link Transactional} view, *
-   * ensuring for an accurate and consistent view of the post entity.
+   * Creates a post entity with the provided input fields using a {@link Transactional} view,
+   * ensuring for atomicity and that dirty checking applies.
    *
    * @param input DTO with post details to be created
    * @param authorId unique uuid of the authenticated user
@@ -113,7 +113,7 @@ public class PostService {
 
   /**
    * Updates the post entity with the provided input fields using a {@link Transactional} view,
-   * ensuring for an accurate and consistent view of the post entity.
+   * ensuring for atomicity and that dirty checking applies.
    *
    * <p>Only the author of a post can update the post
    *
@@ -121,15 +121,14 @@ public class PostService {
    * @param userId unique uuid of the authenticated user
    * @return post with the relevant fields updated
    * @throws NotPostAuthorException when the author of the post does not match the userId parameter
-   * @throws EntityNotFoundException when post cannot be found in the database
+   * @throws PostNotFoundException when post cannot be found in the database
    */
   @Transactional
-  public PostProfile updatePost(@Valid UpdatePostInput input, UUID userId)
-      throws NotPostAuthorException {
+  public PostProfile updatePost(@Valid UpdatePostInput input, UUID userId) {
     Post post =
         postRepository
             .findById(input.id())
-            .orElseThrow(() -> new EntityNotFoundException("Post does not exist"));
+            .orElseThrow(() -> new PostNotFoundException("Post does not exist"));
 
     if (!userId.equals(post.getAuthorId())) {
       throw new NotPostAuthorException("Only the author can update the post");
@@ -149,14 +148,14 @@ public class PostService {
    * @param postId unique identifier of the post to be soft-deleted
    * @param userId unique uuid of the authenticated user
    * @throws NotPostAuthorException when the author of the post does not match the userId parameter
-   * @throws EntityNotFoundException when post cannot be found in the database
+   * @throws PostNotFoundException when post cannot be found in the database
    */
   @Transactional
-  public void deletePost(UUID postId, UUID userId) throws NotPostAuthorException {
+  public void deletePost(UUID postId, UUID userId) {
     Post post =
         postRepository
             .findById(postId)
-            .orElseThrow(() -> new EntityNotFoundException("Post does not exist"));
+            .orElseThrow(() -> new PostNotFoundException("Post does not exist"));
 
     if (!userId.equals(post.getAuthorId())) {
       throw new NotPostAuthorException("Only the author can delete the post");

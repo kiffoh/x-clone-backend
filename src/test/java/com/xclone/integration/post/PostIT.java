@@ -392,31 +392,37 @@ public class PostIT extends BaseIntegrationTest {
       authenticatedTester
           .document(
               """
-              mutation CreatePost($input: CreatePostInput!) {
-                createPost(input: $input) {
-                  code
-                  success
-                  post {
-                    messageContent
+                  mutation CreatePost($input: CreatePostInput!) {
+                    createPost(input: $input) {
+                      code
+                      success
+                      post {
+                        messageContent
+                        author {
+                          id
+                        }
+                      }
+                    }
                   }
-                }
-              }
-              """)
+                  """)
           .variable("input", Map.of("messageContent", messageContent))
           .execute()
           .path("createPost")
           .matchesJson(
               String.format(
                   """
-              {
-                "code": "200",
-                "success": true,
-                "post": {
-                  "messageContent": "%s"
-                }
-              }
-              """,
-                  messageContent));
+                      {
+                        "code": "200",
+                        "success": true,
+                        "post": {
+                          "messageContent": "%s",
+                          "author": {
+                            "id": "%s"
+                          }
+                        }
+                      }
+                      """,
+                  messageContent, authenticatedUser.getId()));
 
       assertThat(postRepository.findAll()).hasSize(1);
     }
@@ -430,36 +436,36 @@ public class PostIT extends BaseIntegrationTest {
       authenticatedTester
           .document(
               """
-              mutation CreatePost($input: CreatePostInput!) {
-                createPost(input: $input) {
-                  code
-                  success
-                  post {
-                    messageContent
+                  mutation CreatePost($input: CreatePostInput!) {
+                    createPost(input: $input) {
+                      code
+                      success
+                      post {
+                        messageContent
+                      }
+                      errors {
+                        field
+                        message
+                      }
+                    }
                   }
-                  errors {
-                    field
-                    message
-                  }
-                }
-              }
-              """)
+                  """)
           .variable("input", Map.of("messageContent", longMessage))
           .execute()
           .path("createPost")
           .matchesJson(
               String.format(
                   """
-              {
-                "code": "400",
-                "success": false,
-                "post": null,
-                "errors": [{
-                  "field": "messageContent",
-                  "message": "%s"
-                }]
-              }
-              """,
+                      {
+                        "code": "400",
+                        "success": false,
+                        "post": null,
+                        "errors": [{
+                          "field": "messageContent",
+                          "message": "%s"
+                        }]
+                      }
+                      """,
                   ValidationConstants.INVALID_MESSAGE_CONTENT_SIZE));
 
       assertThat(postRepository.findAll()).hasSize(0);
@@ -472,20 +478,20 @@ public class PostIT extends BaseIntegrationTest {
       authenticatedTester
           .document(
               """
-              mutation CreatePost($input: CreatePostInput!) {
-                createPost(input: $input) {
-                  code
-                  success
-                  post {
-                    messageContent
+                  mutation CreatePost($input: CreatePostInput!) {
+                    createPost(input: $input) {
+                      code
+                      success
+                      post {
+                        messageContent
+                      }
+                      errors {
+                        field
+                        message
+                      }
+                    }
                   }
-                  errors {
-                    field
-                    message
-                  }
-                }
-              }
-              """)
+                  """)
           .variable("input", null)
           .execute()
           .errors()
@@ -519,20 +525,20 @@ public class PostIT extends BaseIntegrationTest {
           authenticatedTester
               .document(
                   """
-              mutation UpdatePost($input: UpdatePostInput!) {
-                updatePostContent(input: $input) {
-                  code
-                  success
-                  post {
-                    messageContent
-                  }
-                  errors {
-                    field
-                    message
-                  }
-                }
-              }
-              """)
+                      mutation UpdatePost($input: UpdatePostInput!) {
+                        updatePostContent(input: $input) {
+                          code
+                          success
+                          post {
+                            messageContent
+                          }
+                          errors {
+                            field
+                            message
+                          }
+                        }
+                      }
+                      """)
               .variable(
                   "input",
                   Map.of("id", posts.getFirst().getId(), "messageContent", updatedPostContent))
@@ -556,20 +562,20 @@ public class PostIT extends BaseIntegrationTest {
           authenticatedTester
               .document(
                   """
-              mutation UpdatePost($input: UpdatePostInput!) {
-                updatePostContent(input: $input) {
-                  code
-                  success
-                  post {
-                    messageContent
-                  }
-                  errors {
-                    field
-                    message
-                  }
-                }
-              }
-              """)
+                      mutation UpdatePost($input: UpdatePostInput!) {
+                        updatePostContent(input: $input) {
+                          code
+                          success
+                          post {
+                            messageContent
+                          }
+                          errors {
+                            field
+                            message
+                          }
+                        }
+                      }
+                      """)
               .variable(
                   "input",
                   Map.of("id", posts.getLast().getId(), "messageContent", updatedPostContent))
@@ -595,20 +601,20 @@ public class PostIT extends BaseIntegrationTest {
           authenticatedTester
               .document(
                   """
-              mutation UpdatePost($input: UpdatePostInput!) {
-                updatePostContent(input: $input) {
-                  code
-                  success
-                  post {
-                    messageContent
-                  }
-                  errors {
-                    field
-                    message
-                  }
-                }
-              }
-              """)
+                      mutation UpdatePost($input: UpdatePostInput!) {
+                        updatePostContent(input: $input) {
+                          code
+                          success
+                          post {
+                            messageContent
+                          }
+                          errors {
+                            field
+                            message
+                          }
+                        }
+                      }
+                      """)
               .variable(
                   "input", Map.of("id", UUID.randomUUID(), "messageContent", updatedPostContent))
               .execute()
@@ -631,20 +637,20 @@ public class PostIT extends BaseIntegrationTest {
       authenticatedTester
           .document(
               """
-              mutation UpdatePost($input: UpdatePostInput!) {
-                updatePostContent(input: $input) {
-                  code
-                  success
-                  post {
-                    messageContent
+                  mutation UpdatePost($input: UpdatePostInput!) {
+                    updatePostContent(input: $input) {
+                      code
+                      success
+                      post {
+                        messageContent
+                      }
+                      errors {
+                        field
+                        message
+                      }
+                    }
                   }
-                  errors {
-                    field
-                    message
-                  }
-                }
-              }
-              """)
+                  """)
           .variable("input", Map.of("id", "not a valid UUID", "messageContent", updatedPostContent))
           .execute()
           .errors()
@@ -682,17 +688,17 @@ public class PostIT extends BaseIntegrationTest {
           authenticatedTester
               .document(
                   """
-              mutation DeletePost($id: ID!) {
-                deletePost(postId: $id) {
-                  code
-                  success
-                  errors {
-                    field
-                    message
-                  }
-                }
-              }
-              """)
+                      mutation DeletePost($id: ID!) {
+                        deletePost(postId: $id) {
+                          code
+                          success
+                          errors {
+                            field
+                            message
+                          }
+                        }
+                      }
+                      """)
               .variable("id", posts.getFirst().getId())
               .execute()
               .path("deletePost")
@@ -714,17 +720,17 @@ public class PostIT extends BaseIntegrationTest {
           authenticatedTester
               .document(
                   """
-              mutation DeletePost($id: ID!) {
-                deletePost(postId: $id) {
-                  code
-                  success
-                  errors {
-                    field
-                    message
-                  }
-                }
-              }
-              """)
+                      mutation DeletePost($id: ID!) {
+                        deletePost(postId: $id) {
+                          code
+                          success
+                          errors {
+                            field
+                            message
+                          }
+                        }
+                      }
+                      """)
               .variable("id", posts.getLast().getId())
               .execute()
               .path("deletePost")
@@ -744,17 +750,17 @@ public class PostIT extends BaseIntegrationTest {
           authenticatedTester
               .document(
                   """
-              mutation DeletePost($id: ID!) {
-                deletePost(postId: $id) {
-                  code
-                  success
-                  errors {
-                    field
-                    message
-                  }
-                }
-              }
-              """)
+                      mutation DeletePost($id: ID!) {
+                        deletePost(postId: $id) {
+                          code
+                          success
+                          errors {
+                            field
+                            message
+                          }
+                        }
+                      }
+                      """)
               .variable("id", UUID.randomUUID())
               .execute()
               .path("deletePost")
@@ -773,17 +779,17 @@ public class PostIT extends BaseIntegrationTest {
       authenticatedTester
           .document(
               """
-              mutation DeletePost($id: ID!) {
-                deletePost(postId: $id) {
-                  code
-                  success
-                  errors {
-                    field
-                    message
+                  mutation DeletePost($id: ID!) {
+                    deletePost(postId: $id) {
+                      code
+                      success
+                      errors {
+                        field
+                        message
+                      }
+                    }
                   }
-                }
-              }
-              """)
+                  """)
           .variable("id", "not a valid UUID")
           .execute()
           .errors()

@@ -3,6 +3,7 @@ package com.xclone.post.controller;
 import com.xclone.common.mutation.DeleteResponse;
 import com.xclone.exception.GraphQlErrorMapper;
 import com.xclone.exception.custom.NotPostAuthorException;
+import com.xclone.exception.custom.PostNotFoundException;
 import com.xclone.post.dto.PostProfile;
 import com.xclone.post.dto.connection.PostConnection;
 import com.xclone.post.dto.mutation.PostResponse;
@@ -13,7 +14,6 @@ import com.xclone.security.jwt.JwtAuthenticationFilter;
 import com.xclone.security.user.CustomUserDetails;
 import com.xclone.user.dto.UserProfile;
 import com.xclone.user.service.UserService;
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ConstraintViolationException;
 import java.util.HashMap;
 import java.util.List;
@@ -131,9 +131,9 @@ public class PostController {
     } catch (NotPostAuthorException ex) {
       return new PostResponse(
           "403", false, null, GraphQlErrorMapper.fromNotPostAuthor("updatePostContent", ex));
-    } catch (EntityNotFoundException ex) {
+    } catch (PostNotFoundException ex) {
       return new PostResponse(
-          "404", false, null, GraphQlErrorMapper.fromEntityNotFound("updatePostContent", ex));
+          "404", false, null, GraphQlErrorMapper.fromPostNotFound("updatePostContent", ex));
     } catch (ConstraintViolationException ex) {
       return new PostResponse("400", false, null, GraphQlErrorMapper.fromConstraintViolations(ex));
     }
@@ -160,11 +160,9 @@ public class PostController {
     } catch (NotPostAuthorException ex) {
       return new DeleteResponse(
           "403", false, GraphQlErrorMapper.fromNotPostAuthor("deletePost", ex));
-    } catch (EntityNotFoundException ex) {
+    } catch (PostNotFoundException ex) {
       return new DeleteResponse(
-          "404", false, GraphQlErrorMapper.fromEntityNotFound("deletePost", ex));
-    } catch (ConstraintViolationException ex) {
-      return new DeleteResponse("400", false, GraphQlErrorMapper.fromConstraintViolations(ex));
+          "404", false, GraphQlErrorMapper.fromPostNotFound("deletePost", ex));
     }
   }
 }
