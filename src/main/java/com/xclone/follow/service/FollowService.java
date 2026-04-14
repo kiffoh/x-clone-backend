@@ -123,14 +123,11 @@ public class FollowService {
   /**
    * Fetches user entity for provided userId.
    *
-   * <p>Only returns a user if account is {@link UserStatus#ACTIVE}
-   *
    * @param userId unique identifier of user to find
    * @return active user entity
    * @throws UsernameNotFoundException for when there is no data for the queried userId
-   * @throws AccountNotActiveException if the fetched user entity is not {@link UserStatus#ACTIVE}
    */
-  private User getUserOrThrow(UUID userId, boolean checkStatus) {
+  private User getUserOrThrow(UUID userId) {
     User user =
         userRepository
             .findById(userId)
@@ -139,7 +136,22 @@ public class FollowService {
                   log.warn("User with id {} does not exist", userId);
                   return new UsernameNotFoundException("User with specified id does not exist");
                 });
-    if (checkStatus && user.getStatus() != UserStatus.ACTIVE) {
+    return user;
+  }
+
+  /**
+   * Fetches user entity for provided userId.
+   *
+   * <p>Only returns a user if account is {@link UserStatus#ACTIVE}
+   *
+   * @param userId unique identifier of user to find
+   * @return active user entity
+   * @throws UsernameNotFoundException for when there is no data for the queried userId
+   * @throws AccountNotActiveException if the fetched user entity is not {@link UserStatus#ACTIVE}
+   */
+  private User getActiveUserOrThrow(UUID userId) {
+    User user = getUserOrThrow(userId);
+    if (user.getStatus() != UserStatus.ACTIVE) {
       log.warn("User with id {} is not an active account", userId);
       throw new AccountNotActiveException("User account with specified id is not active");
     }
@@ -156,9 +168,8 @@ public class FollowService {
   @Transactional
   public UserProfile followUser(UUID followerId, UUID followingId) {
     try {
-      boolean throwForInactiveAccount = true;
-      User follower = getUserOrThrow(followerId, throwForInactiveAccount);
-      User following = getUserOrThrow(followingId, throwForInactiveAccount);
+      User follower = getActiveUserOrThrow(followerId);
+      User following = getActiveUserOrThrow(followingId);
       Follow follow = new Follow();
       follow.setFollower(follower);
       follow.setFollowing(following);
@@ -187,11 +198,8 @@ public class FollowService {
    */
   @Transactional
   public UserProfile unfollowUser(UUID followerId, UUID followingId) {
-    boolean throwForInactiveAccount = false;
-    User follower = getUserOrThrow(followerId, throwForInactiveAccount);
-    User following = getUserOrThrow(followingId, throwForInactiveAccount);
-    followRepository.deleteByFollowerAndFollowing(follower, following);
-    return following.toUserProfile();
+    followRepository.deleteByFollowerIdAndFollowingId(followerId, followingId);
+    return getUserOrThrow(followingId).toUserProfile();
   }
 
   /**
