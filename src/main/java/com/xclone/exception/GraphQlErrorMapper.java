@@ -1,5 +1,6 @@
 package com.xclone.exception;
 
+import com.xclone.exception.custom.AccountNotActiveException;
 import com.xclone.exception.custom.DuplicateFollowException;
 import com.xclone.exception.custom.DuplicateHandleException;
 import com.xclone.exception.custom.NotPostAuthorException;
@@ -65,6 +66,17 @@ public class GraphQlErrorMapper {
    * @return a list of {@link FieldError} instances representing the username not found exception
    */
   public static List<FieldError> fromUsernameNotFound(String field, UsernameNotFoundException ex) {
+    return List.of(new FieldError(field, ex.getMessage()));
+  }
+
+  /**
+   * Maps a {@link AccountNotActiveException} to a list of {@link FieldError} DTOs.
+   *
+   * @param field field responsible for triggering the exception
+   * @param ex exception whose message is used as the field-level error message
+   * @return a list of {@link FieldError} instances
+   */
+  public static List<FieldError> fromAccountNotActive(String field, AccountNotActiveException ex) {
     return List.of(new FieldError(field, ex.getMessage()));
   }
 

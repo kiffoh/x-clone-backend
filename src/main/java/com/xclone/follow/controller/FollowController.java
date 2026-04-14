@@ -1,6 +1,7 @@
 package com.xclone.follow.controller;
 
 import com.xclone.exception.GraphQlErrorMapper;
+import com.xclone.exception.custom.AccountNotActiveException;
 import com.xclone.exception.custom.DuplicateFollowException;
 import com.xclone.exception.custom.SelfFollowException;
 import com.xclone.follow.model.entity.Follow;
@@ -50,6 +51,9 @@ public class FollowController {
       return new UserResponse("409", false, null, GraphQlErrorMapper.fromDuplicateFollow(ex));
     } catch (SelfFollowException ex) {
       return new UserResponse("400", false, null, GraphQlErrorMapper.fromSelfFollow(ex));
+    } catch (AccountNotActiveException ex) {
+      return new UserResponse(
+          "409", false, null, GraphQlErrorMapper.fromAccountNotActive("userIdToFollow", ex));
     }
   }
 

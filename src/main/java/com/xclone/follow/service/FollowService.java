@@ -2,6 +2,7 @@ package com.xclone.follow.service;
 
 import com.xclone.common.connection.Cursor;
 import com.xclone.common.connection.PageInfo;
+import com.xclone.exception.custom.AccountNotActiveException;
 import com.xclone.exception.custom.DuplicateFollowException;
 import com.xclone.exception.custom.SelfFollowException;
 import com.xclone.follow.model.FollowConstraintName;
@@ -12,6 +13,7 @@ import com.xclone.user.dto.UserProfile;
 import com.xclone.user.dto.connection.UserConnection;
 import com.xclone.user.dto.connection.UserEdge;
 import com.xclone.user.model.entity.User;
+import com.xclone.user.model.enums.UserStatus;
 import com.xclone.user.repository.UserRepository;
 import java.util.HashSet;
 import java.util.List;
@@ -118,6 +120,13 @@ public class FollowService {
     return followRepository.countByFollower_Id(id);
   }
 
+  /**
+   * Fetches user entity for provided userId.
+   *
+   * @param userId unique identifier of user to find
+   * @return active user entity
+   * @throws UsernameNotFoundException for when there is no data for the queried userId
+   */
   private User getUserOrThrow(UUID userId) {
     return userRepository
         .findById(userId)
@@ -126,6 +135,25 @@ public class FollowService {
               log.warn("User with id {} does not exist", userId);
               return new UsernameNotFoundException("User with specified id does not exist");
             });
+  }
+
+  /**
+   * Fetches user entity for provided userId.
+   *
+   * <p>Only returns a user if account is {@link UserStatus#ACTIVE}
+   *
+   * @param userId unique identifier of user to find
+   * @return active user entity
+   * @throws UsernameNotFoundException for when there is no data for the queried userId
+   * @throws AccountNotActiveException if the fetched user entity is not {@link UserStatus#ACTIVE}
+   */
+  private User getActiveUserOrThrow(UUID userId) {
+    User user = getUserOrThrow(userId);
+    if (user.getStatus() != UserStatus.ACTIVE) {
+      log.warn("User with id {} is not an active account", userId);
+      throw new AccountNotActiveException("User account with specified id is not active");
+    }
+    return user;
   }
 
   /**
@@ -138,8 +166,8 @@ public class FollowService {
   @Transactional
   public UserProfile followUser(UUID followerId, UUID followingId) {
     try {
-      User follower = getUserOrThrow(followerId);
-      User following = getUserOrThrow(followingId);
+      User follower = getActiveUserOrThrow(followerId);
+      User following = getActiveUserOrThrow(followingId);
       Follow follow = new Follow();
       follow.setFollower(follower);
       follow.setFollowing(following);
@@ -168,10 +196,8 @@ public class FollowService {
    */
   @Transactional
   public UserProfile unfollowUser(UUID followerId, UUID followingId) {
-    User follower = getUserOrThrow(followerId);
-    User following = getUserOrThrow(followingId);
-    followRepository.deleteByFollowerAndFollowing(follower, following);
-    return following.toUserProfile();
+    followRepository.deleteByFollowerIdAndFollowingId(followerId, followingId);
+    return getUserOrThrow(followingId).toUserProfile();
   }
 
   /**

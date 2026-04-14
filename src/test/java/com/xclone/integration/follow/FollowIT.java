@@ -11,6 +11,7 @@ import com.xclone.support.helpers.AuthHelpers;
 import com.xclone.user.dto.connection.UserConnection;
 import com.xclone.user.dto.mutation.UserResponse;
 import com.xclone.user.model.entity.User;
+import com.xclone.user.model.enums.UserStatus;
 import com.xclone.user.repository.UserRepository;
 import java.util.List;
 import java.util.UUID;
@@ -193,6 +194,42 @@ public class FollowIT extends BaseIntegrationTest {
       assertThat(existingFollow.errors().getFirst().field()).isEqualTo("userIdToFollow");
       assertThat(existingFollow.errors().getFirst().message()).isEqualTo("Follow already exists");
       assertNull(existingFollow.user());
+    }
+
+    @Test
+    void followDeletedUser_returnsFieldError() {
+      User userToFollow = users.get(1);
+      userToFollow.setStatus(UserStatus.DELETED);
+      User deletedUser = userRepository.save(userToFollow);
+
+      authenticatedTester
+          .document(
+              """
+                  mutation FollowUser($id: ID!) {
+                    followUser(userIdToFollow: $id) {
+                      code
+                      success
+                      errors {
+                        field
+                        message
+                       }
+                    }
+                  }
+                  """)
+          .variable("id", deletedUser.getId())
+          .execute()
+          .path("followUser")
+          .matchesJson(
+              """
+                  {
+                    "code": "409",
+                    "success": false,
+                    "errors": [{
+                      "field": "userIdToFollow",
+                      "message": "User account with specified id is not active"
+                    }]
+                  }
+                  """);
     }
 
     @Test
@@ -383,6 +420,33 @@ public class FollowIT extends BaseIntegrationTest {
               .get();
 
       assertThat(following.edges()).hasSize(0);
+    }
+
+    @Test
+    void unfollowDeletedUser_returnsSuccessResponse() {
+      userToUnfollow.setStatus(UserStatus.DELETED);
+      User deletedUser = userRepository.save(userToUnfollow);
+
+      authenticatedTester
+          .document(
+              """
+                  mutation UnfollowUser($id: ID!) {
+                    unfollowUser(userIdToUnfollow: $id) {
+                      code
+                      success
+                    }
+                  }
+                  """)
+          .variable("id", deletedUser.getId())
+          .execute()
+          .path("unfollowUser")
+          .matchesJson(
+              """
+                  {
+                    "code": "200",
+                    "success": true
+                  }
+                  """);
     }
 
     @Test

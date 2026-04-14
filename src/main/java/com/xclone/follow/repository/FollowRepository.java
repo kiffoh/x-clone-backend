@@ -1,7 +1,6 @@
 package com.xclone.follow.repository;
 
 import com.xclone.follow.model.entity.Follow;
-import com.xclone.user.model.entity.User;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -65,5 +64,5 @@ public interface FollowRepository extends JpaRepository<Follow, UUID> {
       @Param("cursorCreatedAt") Instant cursorCreatedAt,
       Pageable pageable);
 
-  void deleteByFollowerAndFollowing(User follower, User following);
+  void deleteByFollowerIdAndFollowingId(UUID followerId, UUID followingId);
 }

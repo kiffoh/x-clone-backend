@@ -3,7 +3,7 @@ package com.xclone.user.service;
 import com.xclone.common.connection.Cursor;
 import com.xclone.common.connection.PageInfo;
 import com.xclone.exception.custom.DuplicateHandleException;
-import com.xclone.follow.repository.FollowRepository;
+import com.xclone.follow.service.FollowService;
 import com.xclone.user.dto.UserProfile;
 import com.xclone.user.dto.connection.UserConnection;
 import com.xclone.user.dto.connection.UserEdge;
@@ -31,11 +31,11 @@ import org.springframework.validation.annotation.Validated;
 public class UserService {
   private final UserRepository userRepository;
 
-  private final FollowRepository followRepository;
+  private final FollowService followService;
 
-  public UserService(UserRepository userRepository, FollowRepository followRepository) {
+  public UserService(UserRepository userRepository, FollowService followService) {
     this.userRepository = userRepository;
-    this.followRepository = followRepository;
+    this.followService = followService;
   }
 
   /**
@@ -174,7 +174,7 @@ public class UserService {
    * <p>The result excludes:
    *
    * <ul>
-   *   <li>Users already followed by the authenticated user
+   *   <li>Users already followed by the authenticated user (users following)
    *   <li>The authenticated user themselves
    * </ul>
    *
@@ -185,7 +185,7 @@ public class UserService {
    */
   public UserConnection getSuggestedUsers(UUID followerId, Integer first, String after) {
     Pageable pageable = PageRequest.ofSize(first);
-    List<UUID> userIdsToExclude = followRepository.findFollowingIdsByFollowerId(followerId);
+    List<UUID> userIdsToExclude = followService.getFollowingIds(followerId);
     userIdsToExclude.add(followerId);
 
     Slice<User> users;
