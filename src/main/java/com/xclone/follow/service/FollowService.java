@@ -130,7 +130,7 @@ public class FollowService {
    * @throws UsernameNotFoundException for when there is no data for the queried userId
    * @throws AccountNotActiveException if the fetched user entity is not {@link UserStatus#ACTIVE}
    */
-  public User getUserOrThrow(UUID userId) {
+  private User getUserOrThrow(UUID userId, boolean checkStatus) {
     User user =
         userRepository
             .findById(userId)
@@ -139,7 +139,7 @@ public class FollowService {
                   log.warn("User with id {} does not exist", userId);
                   return new UsernameNotFoundException("User with specified id does not exist");
                 });
-    if (user.getStatus() != UserStatus.ACTIVE) {
+    if (checkStatus && user.getStatus() != UserStatus.ACTIVE) {
       log.warn("User with id {} is not an active account", userId);
       throw new AccountNotActiveException("User account with specified id is not active");
     }
@@ -156,8 +156,9 @@ public class FollowService {
   @Transactional
   public UserProfile followUser(UUID followerId, UUID followingId) {
     try {
-      User follower = getUserOrThrow(followerId);
-      User following = getUserOrThrow(followingId);
+      boolean throwForInactiveAccount = true;
+      User follower = getUserOrThrow(followerId, throwForInactiveAccount);
+      User following = getUserOrThrow(followingId, throwForInactiveAccount);
       Follow follow = new Follow();
       follow.setFollower(follower);
       follow.setFollowing(following);
@@ -186,8 +187,9 @@ public class FollowService {
    */
   @Transactional
   public UserProfile unfollowUser(UUID followerId, UUID followingId) {
-    User follower = getUserOrThrow(followerId);
-    User following = getUserOrThrow(followingId);
+    boolean throwForInactiveAccount = false;
+    User follower = getUserOrThrow(followerId, throwForInactiveAccount);
+    User following = getUserOrThrow(followingId, throwForInactiveAccount);
     followRepository.deleteByFollowerAndFollowing(follower, following);
     return following.toUserProfile();
   }

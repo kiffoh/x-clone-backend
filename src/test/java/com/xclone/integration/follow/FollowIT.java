@@ -423,7 +423,7 @@ public class FollowIT extends BaseIntegrationTest {
     }
 
     @Test
-    void unfollowDeletedUser_returnsFieldError() {
+    void unfollowDeletedUser_successfulDeletionOfFollow() {
       userToUnfollow.setStatus(UserStatus.DELETED);
       User deletedUser = userRepository.save(userToUnfollow);
 
@@ -434,10 +434,6 @@ public class FollowIT extends BaseIntegrationTest {
                     unfollowUser(userIdToUnfollow: $id) {
                       code
                       success
-                      errors {
-                        field
-                        message
-                      }
                     }
                   }
                   """)
@@ -447,12 +443,8 @@ public class FollowIT extends BaseIntegrationTest {
           .matchesJson(
               """
                   {
-                    "code": "409",
-                    "success": false,
-                    "errors": [{
-                      "field": "userIdToFollow",
-                      "message": "User account with specified id is not active"
-                    }]
+                    "code": "200",
+                    "success": true
                   }
                   """);
     }

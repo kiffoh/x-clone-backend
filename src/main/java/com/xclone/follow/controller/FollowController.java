@@ -78,9 +78,6 @@ public class FollowController {
     } catch (UsernameNotFoundException ex) {
       return new UserResponse(
           "404", false, null, GraphQlErrorMapper.fromUsernameNotFound("userIdToUnfollow", ex));
-    } catch (AccountNotActiveException ex) {
-      return new UserResponse(
-          "409", false, null, GraphQlErrorMapper.fromAccountNotActive("userIdToFollow", ex));
     }
   }
 }
