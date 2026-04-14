@@ -2,7 +2,6 @@ package com.xclone.user.service;
 
 import com.xclone.common.connection.Cursor;
 import com.xclone.common.connection.PageInfo;
-import com.xclone.exception.custom.AccountNotActiveException;
 import com.xclone.exception.custom.DuplicateHandleException;
 import com.xclone.follow.service.FollowService;
 import com.xclone.user.dto.UserProfile;
@@ -21,7 +20,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -86,60 +84,6 @@ public class UserService {
     return userRepository.findAllActiveUsersByIdIn(userIds).stream()
         .map(User::toUserProfile)
         .toList();
-  }
-
-  /**
-   * Fetches user entity for provided userId.
-   *
-   * @param userId unique identifier of user to find
-   * @return active user entity
-   * @throws UsernameNotFoundException for when there is no data for the queried userId
-   * @throws AccountNotActiveException if the fetched user entity is not {@link UserStatus#ACTIVE}
-   */
-  public User getUserOrThrow(UUID userId) {
-    User user =
-        userRepository
-            .findById(userId)
-            .orElseThrow(
-                () -> {
-                  log.warn("User with id {} does not exist", userId);
-                  return new UsernameNotFoundException("User with specified id does not exist");
-                });
-    if (user.getStatus() != UserStatus.ACTIVE) {
-      log.warn("User with id {} is not an active account", userId);
-      throw new AccountNotActiveException("User account with specified id is not active");
-    }
-    return user;
-  }
-
-  /**
-   * Fetches user entities for each userId provided.
-   *
-   * @param userIds unique identifier of users to find
-   * @return list of active user entities
-   * @throws UsernameNotFoundException for when there is no data for the queried userId
-   * @throws AccountNotActiveException if the fetched user entity is not {@link UserStatus#ACTIVE}
-   */
-  public List<User> getUsersOrThrow(List<UUID> userIds) {
-    List<User> users = userRepository.findAllById(userIds);
-    if (users.size() != userIds.size()) {
-      List<UUID> existingIds = users.stream().map(user -> user.getId()).toList();
-      userIds.forEach(
-          queriedId -> {
-            if (!existingIds.contains(queriedId)) {
-              log.warn("User with id {} does not exist", queriedId);
-            }
-          });
-      throw new UsernameNotFoundException("At least one of the queried users does not exist");
-    }
-    users.forEach(
-        user -> {
-          if (user.getStatus() != UserStatus.ACTIVE) {
-            log.warn("User with id {} is not an active account", user.getId());
-            throw new AccountNotActiveException("User account with specified id is not active");
-          }
-        });
-    return users;
   }
 
   /**

@@ -2,6 +2,7 @@ package com.xclone.follow.service;
 
 import com.xclone.common.connection.Cursor;
 import com.xclone.common.connection.PageInfo;
+import com.xclone.exception.custom.AccountNotActiveException;
 import com.xclone.exception.custom.DuplicateFollowException;
 import com.xclone.exception.custom.SelfFollowException;
 import com.xclone.follow.model.FollowConstraintName;
@@ -12,7 +13,8 @@ import com.xclone.user.dto.UserProfile;
 import com.xclone.user.dto.connection.UserConnection;
 import com.xclone.user.dto.connection.UserEdge;
 import com.xclone.user.model.entity.User;
-import com.xclone.user.service.UserService;
+import com.xclone.user.model.enums.UserStatus;
+import com.xclone.user.repository.UserRepository;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -23,6 +25,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,11 +35,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class FollowService {
 
   private final FollowRepository followRepository;
-  private final UserService userService;
+  private final UserRepository userRepository;
 
-  public FollowService(FollowRepository followRepository, UserService userService) {
+  public FollowService(FollowRepository followRepository, UserRepository userRepository) {
     this.followRepository = followRepository;
-    this.userService = userService;
+    this.userRepository = userRepository;
   }
 
   private UserConnection toUserConnection(Slice<Follow> follows, FollowSide side) {
@@ -118,6 +121,32 @@ public class FollowService {
   }
 
   /**
+   * Fetches user entity for provided userId.
+   *
+   * <p>Only returns a user if account is {@link UserStatus#ACTIVE}
+   *
+   * @param userId unique identifier of user to find
+   * @return active user entity
+   * @throws UsernameNotFoundException for when there is no data for the queried userId
+   * @throws AccountNotActiveException if the fetched user entity is not {@link UserStatus#ACTIVE}
+   */
+  public User getUserOrThrow(UUID userId) {
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(
+                () -> {
+                  log.warn("User with id {} does not exist", userId);
+                  return new UsernameNotFoundException("User with specified id does not exist");
+                });
+    if (user.getStatus() != UserStatus.ACTIVE) {
+      log.warn("User with id {} is not an active account", userId);
+      throw new AccountNotActiveException("User account with specified id is not active");
+    }
+    return user;
+  }
+
+  /**
    * Adds a new follow entity to the follow table.
    *
    * @param followerId unique identifier of the user which initiated the follow
@@ -127,8 +156,8 @@ public class FollowService {
   @Transactional
   public UserProfile followUser(UUID followerId, UUID followingId) {
     try {
-      User follower = userService.getUserOrThrow(followerId);
-      User following = userService.getUserOrThrow(followingId);
+      User follower = getUserOrThrow(followerId);
+      User following = getUserOrThrow(followingId);
       Follow follow = new Follow();
       follow.setFollower(follower);
       follow.setFollowing(following);
@@ -157,8 +186,8 @@ public class FollowService {
    */
   @Transactional
   public UserProfile unfollowUser(UUID followerId, UUID followingId) {
-    User follower = userService.getUserOrThrow(followerId);
-    User following = userService.getUserOrThrow(followingId);
+    User follower = getUserOrThrow(followerId);
+    User following = getUserOrThrow(followingId);
     followRepository.deleteByFollowerAndFollowing(follower, following);
     return following.toUserProfile();
   }
