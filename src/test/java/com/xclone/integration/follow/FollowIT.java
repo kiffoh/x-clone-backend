@@ -423,7 +423,7 @@ public class FollowIT extends BaseIntegrationTest {
     }
 
     @Test
-    void unfollowDeletedUser_successfulDeletionOfFollow() {
+    void unfollowDeletedUser_returnsSuccessResponse() {
       userToUnfollow.setStatus(UserStatus.DELETED);
       User deletedUser = userRepository.save(userToUnfollow);
 

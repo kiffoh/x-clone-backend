@@ -128,15 +128,13 @@ public class FollowService {
    * @throws UsernameNotFoundException for when there is no data for the queried userId
    */
   private User getUserOrThrow(UUID userId) {
-    User user =
-        userRepository
-            .findById(userId)
-            .orElseThrow(
-                () -> {
-                  log.warn("User with id {} does not exist", userId);
-                  return new UsernameNotFoundException("User with specified id does not exist");
-                });
-    return user;
+    return userRepository
+        .findById(userId)
+        .orElseThrow(
+            () -> {
+              log.warn("User with id {} does not exist", userId);
+              return new UsernameNotFoundException("User with specified id does not exist");
+            });
   }
 
   /**
