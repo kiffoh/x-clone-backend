@@ -186,4 +186,8 @@ public class PostService {
 
     return toPostConnection(posts);
   }
+
+  public void softDeleteAllByUserId(UUID authorId) {
+    postRepository.softDeleteAllByUserId(authorId);
+  }
 }

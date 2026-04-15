@@ -47,6 +47,9 @@ import org.springframework.graphql.test.tester.HttpGraphQlTester;
 public class UserIT extends BaseIntegrationTest {
 
   @Autowired UserRepository userRepository;
+  @Autowired FollowRepository followRepository;
+  @Autowired PostRepository postRepository;
+
   @Autowired AuthHelpers authHelpers;
   @Autowired HttpGraphQlTester graphQlTester;
 
@@ -56,10 +59,16 @@ public class UserIT extends BaseIntegrationTest {
 
   String accessToken;
 
+  void wipeDBs() {
+    postRepository.deleteAll();
+    followRepository.deleteAll();
+    userRepository.deleteAll();
+  }
+
   @BeforeEach
   void setup() {
     // Flushes DB
-    userRepository.deleteAll();
+    wipeDBs();
     // Adds 3 users to the DB under the handles
     users =
         handles.stream().map(UserFixtures::createUserWithHandle).map(userRepository::save).toList();
@@ -303,7 +312,6 @@ public class UserIT extends BaseIntegrationTest {
 
   @Nested
   class suggestedUsersTests {
-    @Autowired FollowRepository followRepository;
 
     User authenticatedUser;
     User user2;
@@ -684,6 +692,49 @@ public class UserIT extends BaseIntegrationTest {
       assertNull(response.errors());
       assertThat(userAfterDelete.getStatus()).isEqualTo(UserStatus.DELETED);
     }
+
+    @Test
+    void deleteMyAccount_cascadeSoftDeletesPosts() {
+      // Creates 3 posts with the authenticated user as the author
+      User authenticatedUser = users.getFirst();
+      List<String> messageContents = List.of("one for sorrow", "two for joy", "three for a girl");
+      List<User> authors = Collections.nCopies(3, authenticatedUser);
+      PostHelpers.seedPosts(messageContents, authors, postRepository);
+      // retrieve more posts than were seeded to prove that only 3 are in the DB
+      int numberOfPostsToFetch = 5;
+      int initialNumberOfPostsInDB =
+          PostHelpers.getNumberOfPosts(
+              authenticatedUser.getId(), numberOfPostsToFetch, postRepository);
+
+      authenticatedTester()
+          .document(
+              """
+                  mutation DeleteAccount {
+                    deleteMyAccount {
+                      success
+                      code
+                    }
+                  }
+                  """)
+          .execute()
+          .path("deleteMyAccount")
+          .matchesJson(
+              """
+              {
+                "success": true,
+                "code": "200"
+              }
+              """);
+      int finalNumberOfPostsInDB =
+          PostHelpers.getNumberOfPosts(
+              authenticatedUser.getId(), numberOfPostsToFetch, postRepository);
+
+      assertThat(initialNumberOfPostsInDB).isEqualTo(3);
+      assertThat(finalNumberOfPostsInDB).isEqualTo(0);
+
+      // clean up
+      postRepository.deleteAll();
+    }
   }
 
   @Nested
@@ -705,14 +756,14 @@ public class UserIT extends BaseIntegrationTest {
       authenticatedUser = users.getFirst();
     }
 
-    @AfterEach
-    void cleanup() {
-      // AfterEach required in addition to BeforeEach — post rows must be removed
-      // before followMappingTests runs to avoid FK constraint violations.
-      // @AfterAll was attempted but requires static fields; @Autowired repositories
-      // behave differently when static, resulting in null injection at teardown.
-      wipePostDB();
-    }
+    //    @AfterEach
+    //    void cleanup() {
+    //      // AfterEach required in addition to BeforeEach — post rows must be removed
+    //      // before followMappingTests runs to avoid FK constraint violations.
+    //      // @AfterAll was attempted but requires static fields; @Autowired repositories
+    //      // behave differently when static, resulting in null injection at teardown.
+    //      wipePostDB();
+    //    }
 
     /** Creates 3 posts with the authenticated user as the author. */
     void createPostsForAuthenticatedUser() {
@@ -921,14 +972,14 @@ public class UserIT extends BaseIntegrationTest {
       followRepository.deleteAll();
     }
 
-    @AfterEach
-    void cleanup() {
-      // AfterEach required in addition to BeforeEach — fp;;pw rows must be removed
-      // to avoid FK violations in whatever runs after followMappingTests.
-      // @AfterAll was attempted but requires static fields; @Autowired repositories
-      // behave differently when static, resulting in null injection at teardown.
-      wipeFollowDB();
-    }
+    //    @AfterEach
+    //    void cleanup() {
+    //      // AfterEach required in addition to BeforeEach — fp;;pw rows must be removed
+    //      // to avoid FK violations in whatever runs after followMappingTests.
+    //      // @AfterAll was attempted but requires static fields; @Autowired repositories
+    //      // behave differently when static, resulting in null injection at teardown.
+    //      wipeFollowDB();
+    //    }
 
     @Nested
     class followingTests {
