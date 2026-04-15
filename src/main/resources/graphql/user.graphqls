@@ -148,7 +148,7 @@ input UpdateUserInput {
 }
 
 """
-Status of a mutation operation to the User entity
+Result of a mutating operation on a user.
 """
 type UserResponse implements MutationResponse {
     code: String!

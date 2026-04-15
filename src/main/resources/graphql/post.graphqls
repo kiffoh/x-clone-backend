@@ -7,9 +7,10 @@ type Post {
     """
     id: ID!
     """
-    ID of User (FK) which created the post.
+    The user which created the post.
     """
     author: User!
+    # TODO - update schema when media introduced
     """
     Text content of a post.
 
@@ -17,7 +18,7 @@ type Post {
 
     Size has a maximum length of 280 characters.
     """
-    messageContent: String # Optional — null for pure reposts (and useful for media when introduced)
+    messageContent: String
 
     # Core fields
     """
@@ -85,7 +86,7 @@ extend type Mutation {
     """
     Update post content.
 
-    updatePostContent works for posts/comments/quotes.
+    Applies to posts, comments, and quotes.
 
     Authentication: Required (user can update their own posts)
     """
@@ -94,7 +95,7 @@ extend type Mutation {
     Delete the post.
     Soft delete - sets the post status to DELETED.
 
-    deletePost works for all post types.
+    Applies to all post types.
 
     Authentication: Required (the authenticated user can delete their own posts)
     """
@@ -143,7 +144,7 @@ input CreateQuoteInput {
 }
 
 """
-Status of a mutation operation to a Post entity
+Result of a mutating operation on a post.
 """
 type PostResponse implements MutationResponse {
     code: String!
