@@ -4,6 +4,7 @@ import com.xclone.common.connection.Cursor;
 import com.xclone.common.connection.PageInfo;
 import com.xclone.exception.custom.DuplicateHandleException;
 import com.xclone.follow.service.FollowService;
+import com.xclone.post.service.PostService;
 import com.xclone.user.dto.UserProfile;
 import com.xclone.user.dto.connection.UserConnection;
 import com.xclone.user.dto.connection.UserEdge;
@@ -33,9 +34,13 @@ public class UserService {
 
   private final FollowService followService;
 
-  public UserService(UserRepository userRepository, FollowService followService) {
+  private final PostService postService;
+
+  public UserService(
+      UserRepository userRepository, FollowService followService, PostService postService) {
     this.userRepository = userRepository;
     this.followService = followService;
+    this.postService = postService;
   }
 
   /**
@@ -152,6 +157,8 @@ public class UserService {
    * Soft deletes the authenticated user by marking their status as {@link UserStatus#DELETED}.
    * Relies on JPA dirty checking within the transaction — no explicit {@code save()} is needed.
    *
+   * <p>Cascades the soft delete to the posts which the user authors.
+   *
    * @param userId unique UUID for user entity
    * @throws IllegalStateException if the authenticated user cannot be found in the database,
    *     indicating a mismatch between the security context and the persisted state
@@ -166,6 +173,7 @@ public class UserService {
                     new IllegalStateException(
                         "Authenticated user not found in database: " + userId));
     user.setStatus(UserStatus.DELETED);
+    postService.softDeleteAllByUserId(userId);
   }
 
   /**

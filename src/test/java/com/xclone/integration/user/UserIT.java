@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.xclone.common.connection.Cursor;
+import com.xclone.common.enums.Status;
 import com.xclone.common.mutation.DeleteResponse;
 import com.xclone.exception.dto.FieldError;
 import com.xclone.follow.repository.FollowRepository;
@@ -32,7 +33,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -47,6 +47,9 @@ import org.springframework.graphql.test.tester.HttpGraphQlTester;
 public class UserIT extends BaseIntegrationTest {
 
   @Autowired UserRepository userRepository;
+  @Autowired FollowRepository followRepository;
+  @Autowired PostRepository postRepository;
+
   @Autowired AuthHelpers authHelpers;
   @Autowired HttpGraphQlTester graphQlTester;
 
@@ -56,10 +59,16 @@ public class UserIT extends BaseIntegrationTest {
 
   String accessToken;
 
+  void wipeDBs() {
+    postRepository.deleteAll();
+    followRepository.deleteAll();
+    userRepository.deleteAll();
+  }
+
   @BeforeEach
   void setup() {
     // Flushes DB
-    userRepository.deleteAll();
+    wipeDBs();
     // Adds 3 users to the DB under the handles
     users =
         handles.stream().map(UserFixtures::createUserWithHandle).map(userRepository::save).toList();
@@ -303,17 +312,11 @@ public class UserIT extends BaseIntegrationTest {
 
   @Nested
   class suggestedUsersTests {
-    @Autowired FollowRepository followRepository;
 
     User authenticatedUser;
     User user2;
     User user3;
     User user4;
-
-    @AfterEach
-    void cleanup() {
-      followRepository.deleteAll();
-    }
 
     @BeforeEach
     void setup() {
@@ -684,6 +687,42 @@ public class UserIT extends BaseIntegrationTest {
       assertNull(response.errors());
       assertThat(userAfterDelete.getStatus()).isEqualTo(UserStatus.DELETED);
     }
+
+    @Test
+    void deleteMyAccount_cascadeSoftDeletesPosts() {
+      // Creates 3 posts with the authenticated user as the author
+      User authenticatedUser = users.getFirst();
+      List<String> messageContents = List.of("one for sorrow", "two for joy", "three for a girl");
+      List<User> authors = Collections.nCopies(3, authenticatedUser);
+      PostHelpers.seedPosts(messageContents, authors, postRepository);
+      List<Post> postsBeforeDelete = postRepository.findAllByAuthorId(authenticatedUser.getId());
+
+      authenticatedTester()
+          .document(
+              """
+                  mutation DeleteAccount {
+                    deleteMyAccount {
+                      success
+                      code
+                    }
+                  }
+                  """)
+          .execute()
+          .path("deleteMyAccount")
+          .matchesJson(
+              """
+                  {
+                    "success": true,
+                    "code": "200"
+                  }
+                  """);
+      List<Post> postsAfterDelete = postRepository.findAllByAuthorId(authenticatedUser.getId());
+
+      assertThat(postsBeforeDelete).hasSize(3);
+      assertThat(postsBeforeDelete).allMatch(post -> post.getStatus() == Status.ACTIVE);
+      assertThat(postsAfterDelete).hasSize(3);
+      assertThat(postsAfterDelete).allMatch(post -> post.getStatus() == Status.DELETED);
+    }
   }
 
   @Nested
@@ -703,15 +742,6 @@ public class UserIT extends BaseIntegrationTest {
     void setup() {
       wipePostDB();
       authenticatedUser = users.getFirst();
-    }
-
-    @AfterEach
-    void cleanup() {
-      // AfterEach required in addition to BeforeEach — post rows must be removed
-      // before followMappingTests runs to avoid FK constraint violations.
-      // @AfterAll was attempted but requires static fields; @Autowired repositories
-      // behave differently when static, resulting in null injection at teardown.
-      wipePostDB();
     }
 
     /** Creates 3 posts with the authenticated user as the author. */
@@ -919,15 +949,6 @@ public class UserIT extends BaseIntegrationTest {
 
     void wipeFollowDB() {
       followRepository.deleteAll();
-    }
-
-    @AfterEach
-    void cleanup() {
-      // AfterEach required in addition to BeforeEach — fp;;pw rows must be removed
-      // to avoid FK violations in whatever runs after followMappingTests.
-      // @AfterAll was attempted but requires static fields; @Autowired repositories
-      // behave differently when static, resulting in null injection at teardown.
-      wipeFollowDB();
     }
 
     @Nested
@@ -1358,11 +1379,6 @@ public class UserIT extends BaseIntegrationTest {
   @Nested
   class batchMappingTests {
     @Autowired FollowRepository followRepository;
-
-    @AfterEach
-    void cleanup() {
-      followRepository.deleteAll();
-    }
 
     @Test
     void getUserWithFollowersAndIsFollowing() {

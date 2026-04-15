@@ -186,4 +186,14 @@ public class PostService {
 
     return toPostConnection(posts);
   }
+
+  /**
+   * Bulk soft deletes all posts authored by the given user by setting their status to {@link
+   * Status#DELETED}. Executes as a single JPQL update and joins the caller's transaction.
+   *
+   * @param authorId unique identifier of the author whose posts will be soft deleted
+   */
+  public void softDeleteAllByUserId(UUID authorId) {
+    postRepository.softDeleteAllByUserId(authorId);
+  }
 }
