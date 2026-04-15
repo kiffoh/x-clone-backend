@@ -187,6 +187,11 @@ public class PostService {
     return toPostConnection(posts);
   }
 
+  /**
+   * Sets the status of each post from the author to {@link Status#DELETED}.
+   *
+   * @param authorId unique identifier of the author
+   */
   public void softDeleteAllByUserId(UUID authorId) {
     postRepository.softDeleteAllByUserId(authorId);
   }

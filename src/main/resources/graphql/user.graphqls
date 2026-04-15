@@ -120,7 +120,7 @@ extend type Mutation {
     # Cannot be undone (for MVP - could add restore later)
     """
     Delete the authenticated user's account.
-    Soft delete - sets status to DELETED.
+    Soft delete - sets the account status to DELETED and soft deletes all authored posts.
 
     Authentication: Required
     """

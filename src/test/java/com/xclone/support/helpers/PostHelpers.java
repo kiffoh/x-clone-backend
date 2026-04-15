@@ -6,8 +6,6 @@ import com.xclone.support.fixtures.PostFixtures;
 import com.xclone.user.model.entity.User;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
-import org.springframework.data.domain.Pageable;
 
 public class PostHelpers {
   /**
@@ -31,12 +29,5 @@ public class PostHelpers {
       posts.add(savedPost);
     }
     return posts;
-  }
-
-  public static int getNumberOfPosts(
-      UUID authorId, int numberOfPosts, PostRepository postRepository) {
-    return postRepository
-        .findFirstPageOfUsersPosts(authorId, Pageable.ofSize(numberOfPosts))
-        .getNumberOfElements();
   }
 }

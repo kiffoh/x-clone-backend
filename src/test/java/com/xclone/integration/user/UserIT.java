@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.xclone.common.connection.Cursor;
+import com.xclone.common.enums.Status;
 import com.xclone.common.mutation.DeleteResponse;
 import com.xclone.exception.dto.FieldError;
 import com.xclone.follow.repository.FollowRepository;
@@ -32,7 +33,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -317,11 +317,6 @@ public class UserIT extends BaseIntegrationTest {
     User user2;
     User user3;
     User user4;
-
-    @AfterEach
-    void cleanup() {
-      followRepository.deleteAll();
-    }
 
     @BeforeEach
     void setup() {
@@ -700,11 +695,7 @@ public class UserIT extends BaseIntegrationTest {
       List<String> messageContents = List.of("one for sorrow", "two for joy", "three for a girl");
       List<User> authors = Collections.nCopies(3, authenticatedUser);
       PostHelpers.seedPosts(messageContents, authors, postRepository);
-      // retrieve more posts than were seeded to prove that only 3 are in the DB
-      int numberOfPostsToFetch = 5;
-      int initialNumberOfPostsInDB =
-          PostHelpers.getNumberOfPosts(
-              authenticatedUser.getId(), numberOfPostsToFetch, postRepository);
+      List<Post> postsBeforeDelete = postRepository.findAllByAuthorId(authenticatedUser.getId());
 
       authenticatedTester()
           .document(
@@ -720,20 +711,17 @@ public class UserIT extends BaseIntegrationTest {
           .path("deleteMyAccount")
           .matchesJson(
               """
-              {
-                "success": true,
-                "code": "200"
-              }
-              """);
-      int finalNumberOfPostsInDB =
-          PostHelpers.getNumberOfPosts(
-              authenticatedUser.getId(), numberOfPostsToFetch, postRepository);
+                  {
+                    "success": true,
+                    "code": "200"
+                  }
+                  """);
+      List<Post> postsAfterDelete = postRepository.findAllByAuthorId(authenticatedUser.getId());
 
-      assertThat(initialNumberOfPostsInDB).isEqualTo(3);
-      assertThat(finalNumberOfPostsInDB).isEqualTo(0);
-
-      // clean up
-      postRepository.deleteAll();
+      assertThat(postsBeforeDelete).hasSize(3);
+      assertThat(postsBeforeDelete).allMatch(post -> post.getStatus() == Status.ACTIVE);
+      assertThat(postsAfterDelete).hasSize(3);
+      assertThat(postsAfterDelete).allMatch(post -> post.getStatus() == Status.DELETED);
     }
   }
 
@@ -755,15 +743,6 @@ public class UserIT extends BaseIntegrationTest {
       wipePostDB();
       authenticatedUser = users.getFirst();
     }
-
-    //    @AfterEach
-    //    void cleanup() {
-    //      // AfterEach required in addition to BeforeEach — post rows must be removed
-    //      // before followMappingTests runs to avoid FK constraint violations.
-    //      // @AfterAll was attempted but requires static fields; @Autowired repositories
-    //      // behave differently when static, resulting in null injection at teardown.
-    //      wipePostDB();
-    //    }
 
     /** Creates 3 posts with the authenticated user as the author. */
     void createPostsForAuthenticatedUser() {
@@ -971,15 +950,6 @@ public class UserIT extends BaseIntegrationTest {
     void wipeFollowDB() {
       followRepository.deleteAll();
     }
-
-    //    @AfterEach
-    //    void cleanup() {
-    //      // AfterEach required in addition to BeforeEach — fp;;pw rows must be removed
-    //      // to avoid FK violations in whatever runs after followMappingTests.
-    //      // @AfterAll was attempted but requires static fields; @Autowired repositories
-    //      // behave differently when static, resulting in null injection at teardown.
-    //      wipeFollowDB();
-    //    }
 
     @Nested
     class followingTests {
@@ -1409,11 +1379,6 @@ public class UserIT extends BaseIntegrationTest {
   @Nested
   class batchMappingTests {
     @Autowired FollowRepository followRepository;
-
-    @AfterEach
-    void cleanup() {
-      followRepository.deleteAll();
-    }
 
     @Test
     void getUserWithFollowersAndIsFollowing() {

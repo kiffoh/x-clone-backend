@@ -82,4 +82,6 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
       "update Post p set p.status = com.xclone.common.enums.Status.DELETED"
           + " where p.authorId = :userId")
   void softDeleteAllByUserId(@Param("userId") UUID userId);
+
+  List<Post> findAllByAuthorId(UUID userId);
 }
