@@ -3,7 +3,7 @@ Represents a registered account on the platform. Users have a public profile, ca
 """
 type User {
     """
-    Unique UUID identifier
+    Unique UUID identifier that identifies this user.
     """
     id: ID!
     """
@@ -110,11 +110,11 @@ extend type Query {
 
 # create User in authorisation type
 extend type Mutation {
+    # TODO - Admin can update any user by using adminUpdateUser mutation.
     """
     Update user profile information.
 
     Authentication: Required (user can only update their own profile)
-    Admin can update any user by using adminUpdateUser mutation.
     """
     updateMyProfile(input: UpdateUserInput!): UserResponse!
     # Cannot be undone (for MVP - could add restore later)
@@ -148,7 +148,7 @@ input UpdateUserInput {
 }
 
 """
-Status of a mutation operation to the User entity
+Result of a mutating operation on a user.
 """
 type UserResponse implements MutationResponse {
     code: String!

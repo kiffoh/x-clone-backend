@@ -56,7 +56,7 @@ public class UserService {
         users.stream()
             .map(
                 user -> {
-                  Cursor cursor = new Cursor(user.getUpdatedAt(), user.getId());
+                  Cursor cursor = new Cursor(user.getCreatedAt(), user.getId());
                   return new UserEdge(user.toUserProfile(), cursor.encode());
                 })
             .toList();
