@@ -1,11 +1,36 @@
+"""
+Represents a post on the platform. Posts can contain text or can share other posts (reposts). Posts can also contain mentions and comments.
+"""
 type Post {
+    """
+    Unique UUID identifier.
+    """
     id: ID!
+    """
+    ID of User (FK) which created the post.
+    """
     author: User!
+    """
+    Text content of a post.
+
+    Optional as the text content is null for pure reposts.
+
+    Size has a maximum length of 280 characters.
+    """
     messageContent: String # Optional — null for pure reposts (and useful for media when introduced)
 
     # Core fields
+    """
+    Datetime of post creation.
+    """
     createdAt: DateTime!
+    """
+    Datetime of last post update.
+    """
     updatedAt: DateTime
+    # Do I need a status to show 'this content isn't available anymore'?
+    # Is it useful to differentiate between a delete and a non-existant post?
+    # I can derive this from the status code (409 vs 404)
     status: Status # Changed visible to STATUS enum
     # Deleted posts will display as something like 'this content isn't available anymore' -> Comment threads are still visible
 
@@ -35,23 +60,48 @@ type Post {
 }
 # In a later iteration I will add media content
 
+# Authentication is required for all the endpoints but when I specify it in the comments it means that user id is used in the repository query. Is that clear?
 extend type Query {
     # TODO - searchPosts
+    """
+    Fetch post with queried id.
+    """
     getPost(postId: ID!): Post
+    # TODO: Update schema comment when feed algorithm is improved
+    """
+    Fetch posts from followed accounts. Posts from the authenticated user are not in their own feed.
+
+    Authentication: Required.
+    """
     feed(first: Int = 10, after: String): PostConnection!
 }
 
 extend type Mutation {
-    # Create
+    """
+    Create a post.
+
+    Authentication: Required.
+    """
     createPost(input: CreatePostInput!): PostResponse!
     createComment(input: CreateCommentInput!): PostResponse!
     createRepost(input: CreateRepostInput!): PostResponse!
     createQuote(input: CreateQuoteInput!): PostResponse!
+    """
+    Update post content.
 
-    # Update (works for posts/comments/quotes)
+    This update function works for posts/comments/quotes.
+
+    Authentication: Required (user can update their own posts)
+    """
     updatePostContent(input: UpdatePostInput!): PostResponse!
+    """
+    Delete the post.
+    Soft delete - sets the post status to DELETED.
 
-    # Delete (works for all post types)
+    This delete function works for all post types.
+
+    Authentication: Required (the authenticated user can delete their own posts)
+    """
     deletePost(postId: ID!): DeleteResponse!
 
     # Likes
@@ -59,19 +109,21 @@ extend type Mutation {
     unlikePost(input: UpdatePostLikesInput): PostResponse!
 }
 
+"""
+Information required to create a post.
+"""
 input CreatePostInput {
     messageContent: String!
     mentionedUserIds: [ID!]
 }
 
+"""
+Information required to update a post.
+"""
 input UpdatePostInput {
     id: ID!
     messageContent: String!
     mentionedUserIds: [ID!]
-}
-
-input DeletePostInput {
-    id: ID!
 }
 
 input UpdatePostLikesInput {
@@ -94,6 +146,9 @@ input CreateQuoteInput {
     mentionedUserIds: [ID!]
 }
 
+"""
+Status of a mutation operation to a Post entity
+"""
 type PostResponse implements MutationResponse {
     code: String!
     success: Boolean!

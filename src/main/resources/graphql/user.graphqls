@@ -110,11 +110,11 @@ extend type Query {
 
 # create User in authorisation type
 extend type Mutation {
+    # TODO - Admin can update any user by using adminUpdateUser mutation.
     """
     Update user profile information.
 
     Authentication: Required (user can only update their own profile)
-    Admin can update any user by using adminUpdateUser mutation.
     """
     updateMyProfile(input: UpdateUserInput!): UserResponse!
     # Cannot be undone (for MVP - could add restore later)
