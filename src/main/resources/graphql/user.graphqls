@@ -37,9 +37,10 @@ type User {
     Datetime of last account update
     """
     updatedAt: DateTime
-
-    posts(first: Int, after: String): PostConnection!
-
+    """
+    Paginated list of posts authored by this user profile
+    """
+    posts(first: Int = 10, after: String): PostConnection!
     """
     Paginated list of users which follow this user profile
     """

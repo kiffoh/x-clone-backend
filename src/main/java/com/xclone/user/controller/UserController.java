@@ -4,6 +4,8 @@ import com.xclone.common.mutation.DeleteResponse;
 import com.xclone.exception.GraphQlErrorMapper;
 import com.xclone.exception.custom.DuplicateHandleException;
 import com.xclone.follow.service.FollowService;
+import com.xclone.post.dto.connection.PostConnection;
+import com.xclone.post.service.PostService;
 import com.xclone.security.jwt.JwtAuthenticationFilter;
 import com.xclone.security.user.CustomUserDetails;
 import com.xclone.user.dto.UserProfile;
@@ -33,10 +35,13 @@ import org.springframework.stereotype.Controller;
 public class UserController {
   private final UserService userService;
   private final FollowService followService;
+  private final PostService postService;
 
-  public UserController(UserService userService, FollowService followService) {
+  public UserController(
+      UserService userService, FollowService followService, PostService postService) {
     this.userService = userService;
     this.followService = followService;
+    this.postService = postService;
   }
 
   @QueryMapping
@@ -105,6 +110,11 @@ public class UserController {
   public DeleteResponse deleteMyAccount(@AuthenticationPrincipal CustomUserDetails userDetails) {
     userService.deleteProfile(userDetails.getId());
     return new DeleteResponse("200", true, null);
+  }
+
+  @SchemaMapping(typeName = "User", field = "posts")
+  private PostConnection posts(UserProfile user, @Argument Integer first, @Argument String after) {
+    return postService.getActivePosts(user.id(), first, after);
   }
 
   @SchemaMapping(typeName = "User", field = "followers")
