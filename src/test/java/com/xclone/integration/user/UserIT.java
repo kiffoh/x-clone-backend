@@ -807,6 +807,7 @@ public class UserIT extends BaseIntegrationTest {
               .satisfies(
                   contents -> {
                     assertThat(contents).hasSize(1);
+                    // Posts are ordered by createdAt DESC — the last seeded post is returned first
                     assertThat(contents.getFirst()).contains(messageContents.getLast());
                   })
               .path("me.posts.pageInfo.endCursor")
@@ -851,7 +852,6 @@ public class UserIT extends BaseIntegrationTest {
       String cursorPastEnd =
           new Cursor(Instant.now().minus(1, ChronoUnit.HOURS), UUID.randomUUID()).encode();
 
-      // Act
       authenticatedTester()
           .document(
               """
@@ -923,8 +923,8 @@ public class UserIT extends BaseIntegrationTest {
 
     @AfterEach
     void cleanup() {
-      // AfterEach required in addition to BeforeEach — post rows must be removed
-      // before followMappingTests runs to avoid FK constraint violations.
+      // AfterEach required in addition to BeforeEach — fp;;pw rows must be removed
+      // to avoid FK violations in whatever runs after followMappingTests.
       // @AfterAll was attempted but requires static fields; @Autowired repositories
       // behave differently when static, resulting in null injection at teardown.
       wipeFollowDB();
