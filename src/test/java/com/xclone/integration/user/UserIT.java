@@ -12,9 +12,13 @@ import com.xclone.common.mutation.DeleteResponse;
 import com.xclone.exception.dto.FieldError;
 import com.xclone.follow.repository.FollowRepository;
 import com.xclone.integration.base.BaseIntegrationTest;
+import com.xclone.post.dto.connection.PostEdge;
+import com.xclone.post.model.entity.Post;
+import com.xclone.post.repository.PostRepository;
 import com.xclone.support.fixtures.UserFixtures;
 import com.xclone.support.helpers.AuthHelpers;
 import com.xclone.support.helpers.FollowHelpers;
+import com.xclone.support.helpers.PostHelpers;
 import com.xclone.user.dto.connection.UserConnection;
 import com.xclone.user.dto.mutation.UserResponse;
 import com.xclone.user.model.entity.User;
@@ -23,6 +27,7 @@ import com.xclone.user.repository.UserRepository;
 import com.xclone.validation.ValidationConstants;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -327,16 +332,16 @@ public class UserIT extends BaseIntegrationTest {
           authenticatedTester()
               .document(
                   """
-              {
-                suggestedUsers {
-                  edges {
-                    node {
-                      id
-                    }
-                   }
-                 }
-              }
-              """)
+                      {
+                        suggestedUsers {
+                          edges {
+                            node {
+                              id
+                            }
+                           }
+                         }
+                      }
+                      """)
               .execute()
               .path("suggestedUsers.edges[*].node.id")
               .entityList(UUID.class)
@@ -361,16 +366,16 @@ public class UserIT extends BaseIntegrationTest {
           authenticatedTester()
               .document(
                   """
-              {
-                suggestedUsers {
-                  edges {
-                    node {
-                      id
-                    }
-                   }
-                 }
-              }
-              """)
+                      {
+                        suggestedUsers {
+                          edges {
+                            node {
+                              id
+                            }
+                           }
+                         }
+                      }
+                      """)
               .execute()
               .path("suggestedUsers.edges[*].node.id")
               .entityList(UUID.class)
@@ -396,16 +401,16 @@ public class UserIT extends BaseIntegrationTest {
           authenticatedTester()
               .document(
                   """
-              {
-                suggestedUsers {
-                  edges {
-                    node {
-                      id
-                    }
-                   }
-                 }
-              }
-              """)
+                      {
+                        suggestedUsers {
+                          edges {
+                            node {
+                              id
+                            }
+                           }
+                         }
+                      }
+                      """)
               .execute()
               .path("suggestedUsers.edges[*].node.id")
               .entityList(UUID.class)
@@ -682,16 +687,247 @@ public class UserIT extends BaseIntegrationTest {
   }
 
   @Nested
-  class schemaMappingTests {
+  class postMappingTests {
+    @Autowired PostRepository postRepository;
+
+    User authenticatedUser;
+
+    List<Post> posts;
+    List<String> messageContents = List.of("one for sorrow", "two for joy", "three for a girl");
+
+    void wipePostDB() {
+      postRepository.deleteAll();
+    }
+
+    @BeforeEach
+    void setup() {
+      wipePostDB();
+      authenticatedUser = users.getFirst();
+    }
+
+    @AfterEach
+    void cleanup() {
+      // AfterEach required in addition to BeforeEach — post rows must be removed
+      // before followMappingTests runs to avoid FK constraint violations.
+      // @AfterAll was attempted but requires static fields; @Autowired repositories
+      // behave differently when static, resulting in null injection at teardown.
+      wipePostDB();
+    }
+
+    /** Creates 3 posts with the authenticated user as the author. */
+    void createPostsForAuthenticatedUser() {
+      List<User> authors = Collections.nCopies(3, authenticatedUser);
+      posts = PostHelpers.seedPosts(messageContents, authors, postRepository);
+    }
+
+    @Test
+    void userHasNoPosts_returnsEmptyPostConnection() {
+      authenticatedTester()
+          .document(
+              """
+                  query getPosts {
+                    me {
+                      posts {
+                        edges {
+                          node {
+                            id
+                          }
+                        }
+                        pageInfo {
+                          hasNextPage
+                        }
+                      }
+                    }
+                  }
+                  """)
+          .execute()
+          .path("me.posts.edges")
+          .entityList(PostEdge.class)
+          .hasSize(0)
+          .path("me.posts.pageInfo.hasNextPage")
+          .entity(Boolean.class)
+          .isEqualTo(false);
+    }
+
+    @Test
+    void userHasPosts_noCursor_returnsPostConnection() {
+      createPostsForAuthenticatedUser();
+
+      authenticatedTester()
+          .document(
+              """
+                  query getPosts {
+                    me {
+                      posts {
+                        edges {
+                          node {
+                            messageContent
+                          }
+                        }
+                      }
+                    }
+                  }
+                  """)
+          .execute()
+          .path("me.posts.edges[*].node.messageContent")
+          .entityList(String.class)
+          .satisfies(
+              contents -> {
+                assertThat(contents).hasSize(3);
+                assertThat(contents).containsExactlyInAnyOrderElementsOf(messageContents);
+              });
+    }
+
+    @Test
+    void userHasPosts_paginationWithValidAfter_returnsPostConnection() {
+      createPostsForAuthenticatedUser();
+
+      String endCursor =
+          authenticatedTester()
+              .document(
+                  """
+                      query getPosts {
+                        me {
+                          posts(first: 1) {
+                            edges {
+                              node {
+                                messageContent
+                              }
+                            }
+                            pageInfo {
+                              endCursor
+                            }
+                          }
+                        }
+                      }
+                      """)
+              .execute()
+              .path("me.posts.edges[*].node.messageContent")
+              .entityList(String.class)
+              .satisfies(
+                  contents -> {
+                    assertThat(contents).hasSize(1);
+                    // Posts are ordered by createdAt DESC — the last seeded post is returned first
+                    assertThat(contents.getFirst()).contains(messageContents.getLast());
+                  })
+              .path("me.posts.pageInfo.endCursor")
+              .entity(String.class)
+              .get();
+
+      authenticatedTester()
+          .document(
+              """
+                  query getPosts($after: String) {
+                    me {
+                      posts(first: 2, after: $after) {
+                        edges {
+                          node {
+                            messageContent
+                          }
+                        }
+                        pageInfo {
+                          endCursor
+                        }
+                      }
+                    }
+                  }
+                  """)
+          .variable("after", endCursor)
+          .execute()
+          .path("me.posts.edges[*].node.messageContent")
+          .entityList(String.class)
+          .satisfies(
+              contents -> {
+                assertThat(contents).hasSize(2);
+                assertThat(contents)
+                    .containsExactlyInAnyOrderElementsOf(messageContents.subList(0, 2));
+              });
+    }
+
+    @Test
+    void paginationWithValidAfterButNoData_returnsEmptyConnection() {
+      createPostsForAuthenticatedUser();
+      // A cursor timestamped 1 hour in the past will exclude posts created moments ago, so the
+      // result should be empty
+      String cursorPastEnd =
+          new Cursor(Instant.now().minus(1, ChronoUnit.HOURS), UUID.randomUUID()).encode();
+
+      authenticatedTester()
+          .document(
+              """
+                  query getPosts($after: String) {
+                    me {
+                      posts(after: $after) {
+                        edges {
+                          node {
+                            id
+                          }
+                        }
+                        pageInfo {
+                          hasNextPage
+                        }
+                      }
+                    }
+                  }
+                  """)
+          .variable("after", cursorPastEnd)
+          .execute()
+          .path("me.posts.edges")
+          .entityList(PostEdge.class)
+          .hasSize(0)
+          .path("me.posts.pageInfo.hasNextPage")
+          .entity(Boolean.class)
+          .isEqualTo(false);
+    }
+
+    @Test
+    void paginationWithMalformedAfter_returnsProtocolError() {
+      createPostsForAuthenticatedUser();
+
+      String malformedAfter = "not-base64!";
+      // Act + Assert
+      authenticatedTester()
+          .document(
+              """
+                  query getPosts($after: String) {
+                    me {
+                      posts(first: 1, after: $after) {
+                        edges {
+                          node {
+                            id
+                          }
+                        }
+                      }
+                    }
+                  }
+                  """)
+          .variable("after", malformedAfter)
+          .execute()
+          .errors()
+          .filter(error -> "BAD_REQUEST".equals(error.getExtensions().get("classification")))
+          .expect(error -> error.getMessage().contains("Malformed cursor"));
+    }
+  }
+
+  @Nested
+  class followMappingTests {
     @Autowired FollowRepository followRepository;
 
     User authenticatedUser;
     User user2;
     User user3;
 
+    void wipeFollowDB() {
+      followRepository.deleteAll();
+    }
+
     @AfterEach
     void cleanup() {
-      followRepository.deleteAll();
+      // AfterEach required in addition to BeforeEach — fp;;pw rows must be removed
+      // to avoid FK violations in whatever runs after followMappingTests.
+      // @AfterAll was attempted but requires static fields; @Autowired repositories
+      // behave differently when static, resulting in null injection at teardown.
+      wipeFollowDB();
     }
 
     @Nested
@@ -708,6 +944,7 @@ public class UserIT extends BaseIntegrationTest {
        */
       @BeforeEach
       void setup() {
+        wipeFollowDB();
         authenticatedUser = users.getFirst();
         user2 = users.get(1);
         user3 = users.get(2);

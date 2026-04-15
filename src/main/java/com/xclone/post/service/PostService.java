@@ -163,4 +163,27 @@ public class PostService {
 
     post.setStatus(Status.DELETED);
   }
+
+  /**
+   * Fetches a paginated list of posts where the queried id is the author.
+   *
+   * @param authorId unique identifier of the user who authored the posts
+   * @param first desired number of results
+   * @param after optional cursor of where the previous pagination finished
+   * @return a paginated connection of posts, sorted by creation date (descending)
+   */
+  public PostConnection getActivePosts(UUID authorId, Integer first, String after) {
+    Slice<Post> posts;
+    Pageable pageable = Pageable.ofSize(first);
+    if (after == null) {
+      posts = postRepository.findFirstPageOfUsersPosts(authorId, pageable);
+    } else {
+      Cursor cursor = Cursor.toCursor(after);
+      posts =
+          postRepository.findNextPageOfUsersPosts(
+              authorId, cursor.id(), cursor.createdAt(), pageable);
+    }
+
+    return toPostConnection(posts);
+  }
 }

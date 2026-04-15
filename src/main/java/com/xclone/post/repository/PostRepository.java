@@ -39,7 +39,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
    * @param userId excluded from results even if present in followingIds
    * @param followingIds IDs of users whose posts are included in the feed
    * @param cursorId id to query after
-   * @param createdAt datetime to query after
+   * @param cursorCreatedAt datetime to query after
    * @param pageable page size for the query
    */
   @Query(
@@ -55,6 +55,24 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
       @Param("userId") UUID userId,
       @Param("followingIds") List<UUID> followingIds,
       @Param("cursorId") UUID cursorId,
-      @Param("cursorCreatedAt") Instant createdAt,
+      @Param("cursorCreatedAt") Instant cursorCreatedAt,
+      Pageable pageable);
+
+  @Query(
+      "select p from Post p where p.authorId = :userId"
+          + " and p.status = com.xclone.common.enums.Status.ACTIVE"
+          + " order by p.createdAt desc, p.id asc")
+  Slice<Post> findFirstPageOfUsersPosts(@Param("userId") UUID userId, Pageable pageable);
+
+  @Query(
+      "select p from Post p where p.authorId = :userId"
+          + " and p.status = com.xclone.common.enums.Status.ACTIVE"
+          + " and ((p.createdAt < :cursorCreatedAt)"
+          + " or (p.createdAt = :cursorCreatedAt and p.id > :cursorId))"
+          + " order by p.createdAt desc, p.id asc")
+  Slice<Post> findNextPageOfUsersPosts(
+      @Param("userId") UUID userId,
+      @Param("cursorId") UUID cursorId,
+      @Param("cursorCreatedAt") Instant cursorCreatedAt,
       Pageable pageable);
 }

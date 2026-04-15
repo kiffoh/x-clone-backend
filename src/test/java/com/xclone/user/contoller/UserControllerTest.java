@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 import com.xclone.config.GraphQlConfig;
 import com.xclone.exception.custom.DuplicateHandleException;
 import com.xclone.follow.service.FollowService;
+import com.xclone.post.service.PostService;
 import com.xclone.support.fixtures.UserFixtures;
 import com.xclone.user.controller.UserController;
 import com.xclone.user.dto.connection.UserConnection;
@@ -29,6 +30,8 @@ public class UserControllerTest {
   @MockitoBean private UserService userService;
 
   @MockitoBean private FollowService followService;
+
+  @MockitoBean private PostService postService;
 
   @Autowired GraphQlTester tester;
 
