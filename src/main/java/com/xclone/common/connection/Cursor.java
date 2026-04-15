@@ -32,6 +32,9 @@ public record Cursor(Instant createdAt, UUID id) {
     try {
       Base64.Decoder decoder = Base64.getDecoder();
       String[] parts = new String(decoder.decode(encodedCursor), StandardCharsets.UTF_8).split("_");
+      if (parts.length != 2) {
+        throw new InvalidCursorException("Malformed cursor");
+      }
       Instant createdAt = Instant.parse(parts[0]);
       UUID id = UUID.fromString(parts[1]);
       return new Cursor(createdAt, id);

@@ -167,10 +167,10 @@ public class PostService {
   /**
    * Fetches a paginated list of posts where the queried id is the author.
    *
-   * @param authorId unique identifier of the user which owns the post
+   * @param authorId unique identifier of the user who authored the posts
    * @param first desired number of results
    * @param after optional cursor of where the previous pagination finished
-   * @return a list of posts sorted by creation date
+   * @return a paginated connection of posts, sorted by creation date (descending)
    */
   public PostConnection getActivePosts(UUID authorId, Integer first, String after) {
     Slice<Post> posts;

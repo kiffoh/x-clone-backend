@@ -707,6 +707,10 @@ public class UserIT extends BaseIntegrationTest {
 
     @AfterEach
     void cleanup() {
+      // AfterEach required in addition to BeforeEach — post rows must be removed
+      // before followMappingTests runs to avoid FK constraint violations.
+      // @AfterAll was attempted but requires static fields; @Autowired repositories
+      // behave differently when static, resulting in null injection at teardown.
       wipePostDB();
     }
 
@@ -782,21 +786,21 @@ public class UserIT extends BaseIntegrationTest {
           authenticatedTester()
               .document(
                   """
-                  query getPosts {
-                    me {
-                      posts(first: 1) {
-                        edges {
-                          node {
-                            messageContent
+                      query getPosts {
+                        me {
+                          posts(first: 1) {
+                            edges {
+                              node {
+                                messageContent
+                              }
+                            }
+                            pageInfo {
+                              endCursor
+                            }
                           }
                         }
-                        pageInfo {
-                          endCursor
-                        }
                       }
-                    }
-                  }
-                  """)
+                      """)
               .execute()
               .path("me.posts.edges[*].node.messageContent")
               .entityList(String.class)
@@ -842,7 +846,8 @@ public class UserIT extends BaseIntegrationTest {
     @Test
     void paginationWithValidAfterButNoData_returnsEmptyConnection() {
       createPostsForAuthenticatedUser();
-      // A cursor which is based an hour ago will be past the posts just seeded
+      // A cursor timestamped 1 hour in the past will exclude posts created moments ago, so the
+      // result should be empty
       String cursorPastEnd =
           new Cursor(Instant.now().minus(1, ChronoUnit.HOURS), UUID.randomUUID()).encode();
 
@@ -918,6 +923,10 @@ public class UserIT extends BaseIntegrationTest {
 
     @AfterEach
     void cleanup() {
+      // AfterEach required in addition to BeforeEach — post rows must be removed
+      // before followMappingTests runs to avoid FK constraint violations.
+      // @AfterAll was attempted but requires static fields; @Autowired repositories
+      // behave differently when static, resulting in null injection at teardown.
       wipeFollowDB();
     }
 

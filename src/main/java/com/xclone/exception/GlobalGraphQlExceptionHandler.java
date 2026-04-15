@@ -107,7 +107,7 @@ public class GlobalGraphQlExceptionHandler {
    */
   @GraphQlExceptionHandler(InvalidCursorException.class)
   public GraphQLError handleInvalidCursor(InvalidCursorException ex) {
-    log.error("Invalid request: {} - {} ", ex.getClass().getSimpleName(), ex.getMessage(), ex);
+    log.warn("Invalid request: {} - {} ", ex.getClass().getSimpleName(), ex.getMessage(), ex);
 
     return GraphQLError.newError()
         .message(ex.getMessage()) // e.g., "The provided cursor is malformed"
