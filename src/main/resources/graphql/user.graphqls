@@ -3,7 +3,7 @@ Represents a registered account on the platform. Users have a public profile, ca
 """
 type User {
     """
-    Unique UUID identifier
+    Unique UUID identifier that identifies this user.
     """
     id: ID!
     """

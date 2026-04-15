@@ -3,7 +3,7 @@ Represents a post on the platform. Posts can contain text or can share other pos
 """
 type Post {
     """
-    Unique UUID identifier.
+    Unique UUID identifier that identifies this post.
     """
     id: ID!
     """
@@ -93,6 +93,7 @@ extend type Mutation {
     updatePostContent(input: UpdatePostInput!): PostResponse!
     """
     Delete the post.
+    
     Soft delete - sets the post status to DELETED.
 
     Applies to all post types.
