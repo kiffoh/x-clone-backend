@@ -33,7 +33,7 @@ type Post {
     # Likes functionality
     likeCount: Int!
     likedByMe: Boolean!
-    likes(first: Int, after: String): UserConnection! # Who liked this
+    likes(first: Int = 5, after: String): UserConnection! # Who liked this
 
     # Comments functionality
     parent: Post
@@ -93,7 +93,7 @@ extend type Mutation {
     updatePostContent(input: UpdatePostInput!): PostResponse!
     """
     Delete the post.
-    
+
     Soft delete - sets the post status to DELETED.
 
     Applies to all post types.

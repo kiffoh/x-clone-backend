@@ -4,6 +4,8 @@ import com.xclone.common.mutation.DeleteResponse;
 import com.xclone.exception.GraphQlErrorMapper;
 import com.xclone.exception.custom.NotPostAuthorException;
 import com.xclone.exception.custom.PostNotFoundException;
+import com.xclone.like.dto.LikeCount;
+import com.xclone.like.service.LikeService;
 import com.xclone.post.dto.PostProfile;
 import com.xclone.post.dto.connection.PostConnection;
 import com.xclone.post.dto.mutation.PostResponse;
@@ -13,11 +15,13 @@ import com.xclone.post.service.PostService;
 import com.xclone.security.jwt.JwtAuthenticationFilter;
 import com.xclone.security.user.CustomUserDetails;
 import com.xclone.user.dto.UserProfile;
+import com.xclone.user.dto.connection.UserConnection;
 import com.xclone.user.service.UserService;
 import jakarta.validation.ConstraintViolationException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -25,7 +29,9 @@ import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
+import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 
 /** GraphQL controller for post-related operations. */
@@ -33,10 +39,12 @@ import org.springframework.stereotype.Controller;
 public class PostController {
   private final PostService postService;
   private final UserService userService;
+  private final LikeService likeService;
 
-  public PostController(PostService postService, UserService userService) {
+  public PostController(PostService postService, UserService userService, LikeService likeService) {
     this.postService = postService;
     this.userService = userService;
+    this.likeService = likeService;
   }
 
   /**
@@ -61,6 +69,58 @@ public class PostController {
           }
         });
     return authors;
+  }
+
+  /**
+   * Fetches the number of likes for each queried post.
+   *
+   * @param posts list of {@link PostProfile} entities
+   * @return each post with the amount of likes it has
+   */
+  @BatchMapping(typeName = "Post", field = "likeCount")
+  public Map<PostProfile, Integer> likeCount(List<PostProfile> posts) {
+    List<UUID> postIds = posts.stream().map(PostProfile::id).toList();
+    List<LikeCount> likeCounts = likeService.getAllLikeCounts(postIds);
+    Map<UUID, Integer> likeCountPerPost =
+        likeCounts.stream().collect(Collectors.toMap(LikeCount::postId, LikeCount::numberOfLikes));
+
+    return posts.stream()
+        .collect(
+            Collectors.toMap(
+                Function.identity(), post -> likeCountPerPost.getOrDefault(post.id(), 0)));
+  }
+
+  /**
+   * Fetches if the authenticated user has liked each queried post.
+   *
+   * @param posts list of {@link PostProfile} entities
+   * @return each post with {@code likedByMe=true} if the user has liked the post
+   */
+  @BatchMapping(typeName = "Post", field = "likedByMe")
+  public Map<PostProfile, Boolean> likedByMe(List<PostProfile> posts) {
+    CustomUserDetails userDetails =
+        (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    List<UUID> postIds = posts.stream().map(PostProfile::id).toList();
+    Set<UUID> postIdsThatUserLikes =
+        likeService.getPostIdsThatUserLikes(postIds, userDetails.getId());
+
+    return posts.stream()
+        .collect(
+            Collectors.toMap(
+                Function.identity(), post -> postIdsThatUserLikes.contains(post.id())));
+  }
+
+  /**
+   * Fetches the users which have liked a post.
+   *
+   * @param post {@link PostProfile} representing the queried post
+   * @return a paginated list of users sorted by like creation date descending
+   */
+  @SchemaMapping(typeName = "Post", field = "likes")
+  public UserConnection likes(PostProfile post, Integer first, String after) {
+    CustomUserDetails userDetails =
+        (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    return likeService.getUsersThatLikedPost(userDetails.getId(), post, first, after);
   }
 
   /**
