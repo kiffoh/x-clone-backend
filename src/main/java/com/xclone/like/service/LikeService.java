@@ -53,7 +53,6 @@ public class LikeService {
     Pageable pageable = Pageable.ofSize(first);
 
     if (after == null) {
-      // should this be likeRepository.findFirstSliceOfUsersThatLikedPost(postIds);
       usersThatLikedPost = likeRepository.findFirstPageOfUsersThatLikedPost(post.id(), pageable);
     } else {
       Cursor cursor = Cursor.toCursor(after);

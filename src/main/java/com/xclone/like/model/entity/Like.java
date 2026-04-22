@@ -9,7 +9,9 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.Getter;
@@ -19,9 +21,15 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 /** Entity for the likes table. */
 @Entity
+@Table(
+    name = "likes",
+    uniqueConstraints =
+        @UniqueConstraint(
+            columnNames = {"user_id", "post_id"},
+            name = "like_exists"))
 @Getter
 @Setter
-@EntityListeners(AuditingEntityListener.class) // What does this do again?
+@EntityListeners(AuditingEntityListener.class)
 public class Like {
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
@@ -31,7 +39,7 @@ public class Like {
   private UUID userId;
 
   @JoinColumn(name = "user_id", insertable = false, updatable = false)
-  @ManyToMany(fetch = FetchType.LAZY)
+  @ManyToOne(fetch = FetchType.LAZY)
   private User user;
 
   @Column(name = "post_id", nullable = false)
