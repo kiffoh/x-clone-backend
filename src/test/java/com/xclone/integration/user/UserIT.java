@@ -1374,69 +1374,68 @@ public class UserIT extends BaseIntegrationTest {
         assertFalse(emptyData.pageInfo().hasNextPage());
       }
     }
-  }
 
-  @Nested
-  class batchMappingTests {
-    @Autowired FollowRepository followRepository;
+    @Nested
+    class isFollowingTests {
 
-    @Test
-    void getUserWithFollowersAndIsFollowing() {
-      // Initialise
-      User authenticatedUser = users.getFirst();
-      User user2 = users.get(1);
-      User user3 = users.get(2);
-      // both user 1 and user 2 follow authenticatedUser
-      FollowHelpers.seedFollow(followRepository, user2, authenticatedUser);
-      FollowHelpers.seedFollow(followRepository, user3, authenticatedUser);
-      // authenticated user only follows user 3
-      FollowHelpers.seedFollow(followRepository, authenticatedUser, user3);
+      @Test
+      void getUserWithFollowersAndIsFollowing() {
+        // Initialise
+        User authenticatedUser = users.getFirst();
+        User user2 = users.get(1);
+        User user3 = users.get(2);
+        // both user 1 and user 2 follow authenticatedUser
+        FollowHelpers.seedFollow(followRepository, user2, authenticatedUser);
+        FollowHelpers.seedFollow(followRepository, user3, authenticatedUser);
+        // authenticated user only follows user 3
+        FollowHelpers.seedFollow(followRepository, authenticatedUser, user3);
 
-      authenticatedTester()
-          .document(
-              String.format(
-                  """
-                      {
-                         me {
-                           id
-                           followers(first: %d) {
-                             edges {
-                                node {
-                                  id
-                                  isFollowing
+        authenticatedTester()
+            .document(
+                String.format(
+                    """
+                        {
+                           me {
+                             id
+                             followers(first: %d) {
+                               edges {
+                                  node {
+                                    id
+                                    isFollowing
+                                 }
                                }
                              }
+                             followerCount
                            }
-                           followerCount
-                         }
-                       }""",
-                  5))
-          .execute()
-          .path("me")
-          .matchesJson(
-              String.format(
-                  """
-                      {
-                        "id": "%s",
-                        "followers": {
-                          "edges": [
-                          {
-                            "node": {
-                              "id": "%s",
-                              "isFollowing": true
-                             }
+                         }""",
+                    5))
+            .execute()
+            .path("me")
+            .matchesJson(
+                String.format(
+                    """
+                        {
+                          "id": "%s",
+                          "followers": {
+                            "edges": [
+                            {
+                              "node": {
+                                "id": "%s",
+                                "isFollowing": true
+                               }
+                            },
+                            {
+                              "node": {
+                                "id": "%s",
+                                "isFollowing": false
+                               }
+                            }
+                            ]
                           },
-                          {
-                            "node": {
-                              "id": "%s",
-                              "isFollowing": false
-                             }
-                          }
-                          ]
-                        },
-                        "followerCount": 2
-                      }""",
-                  authenticatedUser.getId(), user3.getId(), user2.getId()));
+                          "followerCount": 2
+                        }""",
+                    authenticatedUser.getId(), user3.getId(), user2.getId()));
+      }
     }
   }
 }

@@ -117,7 +117,7 @@ public class PostController {
    * @return a paginated list of users sorted by like creation date descending
    */
   @SchemaMapping(typeName = "Post", field = "likes")
-  public UserConnection likes(PostProfile post, Integer first, String after) {
+  public UserConnection likes(PostProfile post, @Argument Integer first, @Argument String after) {
     CustomUserDetails userDetails =
         (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     return likeService.getUsersThatLikedPost(userDetails.getId(), post, first, after);

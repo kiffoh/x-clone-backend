@@ -33,7 +33,7 @@ type Post {
     # Likes functionality
     likeCount: Int!
     likedByMe: Boolean!
-    likes(first: Int = 5, after: String): UserConnection! # Who liked this
+    likes(first: Int = 5, after: String): UserConnection!
 
     # Comments functionality
     parent: Post

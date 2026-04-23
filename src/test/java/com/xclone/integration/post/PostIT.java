@@ -11,6 +11,8 @@ import com.xclone.common.mutation.DeleteResponse;
 import com.xclone.exception.dto.FieldError;
 import com.xclone.follow.repository.FollowRepository;
 import com.xclone.integration.base.BaseIntegrationTest;
+import com.xclone.like.model.entity.Like;
+import com.xclone.like.repository.LikeRepository;
 import com.xclone.post.dto.PostProfile;
 import com.xclone.post.dto.mutation.PostResponse;
 import com.xclone.post.model.entity.Post;
@@ -18,10 +20,12 @@ import com.xclone.post.repository.PostRepository;
 import com.xclone.support.fixtures.UserFixtures;
 import com.xclone.support.helpers.AuthHelpers;
 import com.xclone.support.helpers.FollowHelpers;
+import com.xclone.support.helpers.LikeHelpers;
 import com.xclone.support.helpers.PostHelpers;
 import com.xclone.user.model.entity.User;
 import com.xclone.user.repository.UserRepository;
 import com.xclone.validation.ValidationConstants;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -39,6 +43,7 @@ public class PostIT extends BaseIntegrationTest {
   @Autowired UserRepository userRepository;
   @Autowired PostRepository postRepository;
   @Autowired FollowRepository followRepository;
+  @Autowired LikeRepository likeRepository;
   @Autowired AuthHelpers authHelpers;
   @Autowired HttpGraphQlTester authenticatedTester;
 
@@ -68,17 +73,11 @@ public class PostIT extends BaseIntegrationTest {
 
   void cleanupDBs() {
     // Flushes DBs
+    likeRepository.deleteAll();
     postRepository.deleteAll();
     followRepository.deleteAll();
     userRepository.deleteAll();
   }
-
-  /**
-   * Author resolution is covered in {@link com.xclone.integration.post.PostIT.getPostTests}. TODO:
-   * Add further tests when post vertical slice is implemented in more detail
-   */
-  @Nested
-  class schemaMappingTests {}
 
   @Nested
   class getPostTests {
@@ -814,6 +813,324 @@ public class PostIT extends BaseIntegrationTest {
                               .containsEntry("classification", "NullValueInNonNullableField");
                         });
               });
+    }
+  }
+
+  @Nested
+  class likeTests {
+    @Nested
+    class likeCountTests {
+      @Test
+      void fetchingIndividualPost_noLikes_postHasLikeCount() {
+        authenticatedTester
+            .document(
+                """
+                    query GetPost($postId: ID!){
+                      getPost(postId: $postId) {
+                        id
+                        likeCount
+                      }
+                    }
+                    """)
+            .variable("postId", posts.getFirst().getId())
+            .execute()
+            .path("getPost")
+            .matchesJson(
+                String.format(
+                    """
+                    {
+                      "id": "%s",
+                      "likeCount": 0
+                    }
+                    """,
+                    posts.getFirst().getId()));
+      }
+
+      @Test
+      void fetchingIndividualPost_hasLikes_postHasLikeCount() {
+        // first post has 3 likes
+        List<Post> postsToLike = Collections.nCopies(3, posts.getFirst());
+        List<User> usersToLike = List.of(users.get(0), users.get(1), users.get(2));
+        LikeHelpers.seedLikes(postsToLike, usersToLike, likeRepository);
+
+        authenticatedTester
+            .document(
+                """
+                    query GetPost($postId: ID!){
+                      getPost(postId: $postId) {
+                        id
+                        likeCount
+                      }
+                    }
+                    """)
+            .variable("postId", posts.getFirst().getId())
+            .execute()
+            .path("getPost")
+            .matchesJson(
+                String.format(
+                    """
+                    {
+                      "id": "%s",
+                      "likeCount": 3
+                    }
+                    """,
+                    posts.getFirst().getId()));
+      }
+
+      @Test
+      void fetchingFeed_eachPostHasLikeCount() {
+        // user 0 follows user 1 + user 2 post initialisation
+        FollowHelpers.seedFollow(followRepository, authenticatedUser, users.get(2));
+        // user 1 authors post 1; user 2 authors post 2;
+        // post 1 has 1 like
+        List<Like> post1Likes =
+            LikeHelpers.seedLikes(List.of(posts.get(1)), List.of(users.get(0)), likeRepository);
+        // post 2 has 2 likes
+        List<Like> post2Likes =
+            LikeHelpers.seedLikes(
+                List.of(posts.get(2), posts.get(2)),
+                List.of(users.get(0), users.get(1)),
+                likeRepository);
+
+        authenticatedTester
+            .document(
+                """
+                    {
+                      feed {
+                        edges {
+                          node {
+                            id
+                            likeCount
+                          }
+                        }
+                      }
+                    }
+                    """)
+            .execute()
+            .path("feed")
+            .matchesJson(
+                String.format(
+                    """
+                        {
+                          "edges": [
+                          {
+                            "node": {
+                              "id": "%s",
+                              "likeCount": %d
+                            }
+                          },
+                          {
+                            "node": {
+                              "id": "%s",
+                              "likeCount": %d
+                            }
+                          }
+                          ]
+                        }
+                        """,
+                    posts.get(1).getId(),
+                    post1Likes.size(),
+                    posts.get(2).getId(),
+                    post2Likes.size()));
+      }
+    }
+
+    @Nested
+    class likedByMeTests {
+      @Test
+      void fetchingIndividualPost_noLikes_likedByMeFalse() {
+        authenticatedTester
+            .document(
+                """
+                    query GetPost($postId: ID!){
+                      getPost(postId: $postId) {
+                        id
+                        likedByMe
+                      }
+                    }
+                    """)
+            .variable("postId", posts.getFirst().getId())
+            .execute()
+            .path("getPost")
+            .matchesJson(
+                String.format(
+                    """
+                    {
+                      "id": "%s",
+                      "likedByMe": false
+                    }
+                    """,
+                    posts.getFirst().getId()));
+      }
+
+      @Test
+      void fetchingIndividualPost_hasLikeByMe_likedByMeTrue() {
+        // first post has 3 likes
+        List<Post> postsToLike = Collections.nCopies(3, posts.getFirst());
+        List<User> usersToLike = List.of(users.get(0), users.get(1), users.get(2));
+        LikeHelpers.seedLikes(postsToLike, usersToLike, likeRepository);
+
+        authenticatedTester
+            .document(
+                """
+                    query GetPost($postId: ID!){
+                      getPost(postId: $postId) {
+                        id
+                        likedByMe
+                      }
+                    }
+                    """)
+            .variable("postId", posts.getFirst().getId())
+            .execute()
+            .path("getPost")
+            .matchesJson(
+                String.format(
+                    """
+                    {
+                      "id": "%s",
+                      "likedByMe": true
+                    }
+                    """,
+                    posts.getFirst().getId()));
+      }
+
+      @Test
+      void fetchingFeed_eachPostHasLikedByMe() {
+        // user 0 follows user 1 + user 2 post initialisation
+        FollowHelpers.seedFollow(followRepository, authenticatedUser, users.get(2));
+        // user 1 authors post 1; user 2 authors post 2;
+        // post 1 has one like - not liked by me
+        boolean post1LikedByMe = false;
+        LikeHelpers.seedLikes(List.of(posts.get(1)), List.of(users.get(2)), likeRepository);
+        // post 2 has 2 likes - includes like by me
+        boolean post2LikedByMe = true;
+        LikeHelpers.seedLikes(
+            List.of(posts.get(2), posts.get(2)),
+            List.of(users.get(0), users.get(1)),
+            likeRepository);
+
+        authenticatedTester
+            .document(
+                """
+                    {
+                      feed {
+                        edges {
+                          node {
+                            id
+                            likedByMe
+                          }
+                        }
+                      }
+                    }
+                    """)
+            .execute()
+            .path("feed")
+            .matchesJson(
+                String.format(
+                    """
+                        {
+                          "edges": [
+                          {
+                            "node": {
+                              "id": "%s",
+                              "likedByMe": %b
+                            }
+                          },
+                          {
+                            "node": {
+                              "id": "%s",
+                              "likedByMe": %b
+                            }
+                          }
+                          ]
+                        }
+                        """,
+                    posts.get(1).getId(), post1LikedByMe, posts.get(2).getId(), post2LikedByMe));
+      }
+    }
+
+    @Nested
+    class likesTests {
+
+      @Test
+      void getLikes_notPostAuthor_returnsNotPostAuthor() {
+        // authenticated user is only the author of the 0-index in posts
+        authenticatedTester
+            .document(
+                """
+                    query GetPost($postId: ID!){
+                      getPost(postId: $postId) {
+                        id
+                        likes {
+                          edges {
+                            node {
+                              id
+                            }
+                          }
+                        }
+                      }
+                    }
+                    """)
+            .variable("postId", posts.getLast().getId())
+            .execute()
+            .errors()
+            .satisfy(
+                errors -> {
+                  assertThat(errors).hasSize(1);
+                  assertThat(errors.getFirst().getMessage()).isEqualTo("Not post author");
+                });
+      }
+
+      @Test
+      void getLikes_postAuthor_returnsLikes() {
+        // authenticated user is only the author of the 0-index in posts
+        // post at index 0 has 2 likes
+        List<Post> postsToLike = Collections.nCopies(2, posts.getFirst());
+        List<User> usersToLike = List.of(users.get(1), users.get(2));
+        LikeHelpers.seedLikes(postsToLike, usersToLike, likeRepository);
+
+        authenticatedTester
+            .document(
+                """
+                    query GetPost($postId: ID!){
+                      getPost(postId: $postId) {
+                        id
+                        likes {
+                          edges {
+                            node {
+                              id
+                            }
+                          }
+                        }
+                      }
+                    }
+                    """)
+            .variable("postId", posts.getFirst().getId())
+            .execute()
+            .path("getPost")
+            .matchesJson(
+                String.format(
+                    """
+                    {
+                      "id": "%s",
+                      "likes": {
+                        "edges": [
+                        {
+                            "node": {
+                              "id": "%s"
+                            }
+                        },
+                        {
+                            "node": {
+                              "id": "%s"
+                            }
+                        }
+                        ]
+                      }
+                    }
+                    """,
+                    posts.getFirst().getId(), users.get(2).getId(), users.get(1).getId()));
+      }
     }
   }
 }
