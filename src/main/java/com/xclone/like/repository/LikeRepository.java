@@ -2,7 +2,6 @@ package com.xclone.like.repository;
 
 import com.xclone.like.dto.LikeCount;
 import com.xclone.like.model.entity.Like;
-import com.xclone.user.model.entity.User;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -29,20 +28,20 @@ public interface LikeRepository extends JpaRepository<Like, UUID> {
       @Param("postIds") List<UUID> postIds, @Param("userId") UUID userId);
 
   @Query(
-      "select u from Like l join l.user u"
+      "select l from Like l join fetch l.user u"
           + " where u.status = com.xclone.user.model.enums.UserStatus.ACTIVE"
           + " and l.postId = :postId"
           + " order by l.createdAt desc, l.id asc")
-  Slice<User> findFirstPageOfUsersThatLikedPost(@Param("postId") UUID postId, Pageable pageable);
+  Slice<Like> findFirstPageOfUsersThatLikedPost(@Param("postId") UUID postId, Pageable pageable);
 
   @Query(
-      "select u from Like l join l.user u"
+      "select l from Like l join fetch l.user u"
           + " where u.status = com.xclone.user.model.enums.UserStatus.ACTIVE"
           + " and l.postId = :postId"
           + " and ((l.createdAt < :cursorCreatedAt)"
           + " or (l.createdAt = :cursorCreatedAt and l.id > :cursorId))"
           + " order by l.createdAt desc, l.id asc")
-  Slice<User> findNextPageOfUsersThatLikedPost(
+  Slice<Like> findNextPageOfUsersThatLikedPost(
       @Param("postId") UUID postId,
       @Param("cursorCreatedAt") Instant cursorCreatedAt,
       @Param("cursorId") UUID cursorId,

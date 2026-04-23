@@ -1,13 +1,14 @@
 package com.xclone.like.service;
 
 import com.xclone.common.connection.Cursor;
+import com.xclone.common.connection.PageInfo;
 import com.xclone.exception.custom.NotPostAuthorException;
 import com.xclone.like.dto.LikeCount;
+import com.xclone.like.model.entity.Like;
 import com.xclone.like.repository.LikeRepository;
 import com.xclone.post.dto.PostProfile;
 import com.xclone.user.dto.connection.UserConnection;
-import com.xclone.user.model.entity.User;
-import com.xclone.user.service.UserService;
+import com.xclone.user.dto.connection.UserEdge;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -24,6 +25,24 @@ public class LikeService {
 
   public LikeService(LikeRepository likeRepository) {
     this.likeRepository = likeRepository;
+  }
+
+  private UserConnection toUserConnection(Slice<Like> likes) {
+    List<UserEdge> edges =
+        likes.stream()
+            .map(
+                like -> {
+                  Cursor cursor = new Cursor(like.getCreatedAt(), like.getId());
+                  return new UserEdge(like.getUser().toUserProfile(), cursor.encode());
+                })
+            .toList();
+    PageInfo pageInfo =
+        new PageInfo(
+            likes.hasNext(),
+            likes.hasPrevious(),
+            edges.isEmpty() ? null : edges.getFirst().cursor(),
+            edges.isEmpty() ? null : edges.getLast().cursor());
+    return new UserConnection(edges, pageInfo);
   }
 
   public List<LikeCount> getAllLikeCounts(List<UUID> postIds) {
@@ -49,18 +68,18 @@ public class LikeService {
     if (!userId.equals(post.authorId())) {
       throw new NotPostAuthorException("Only a post author can view a posts likes");
     }
-    Slice<User> usersThatLikedPost;
+    Slice<Like> likes;
     Pageable pageable = Pageable.ofSize(first);
 
     if (after == null) {
-      usersThatLikedPost = likeRepository.findFirstPageOfUsersThatLikedPost(post.id(), pageable);
+      likes = likeRepository.findFirstPageOfUsersThatLikedPost(post.id(), pageable);
     } else {
       Cursor cursor = Cursor.toCursor(after);
 
-      usersThatLikedPost =
+      likes =
           likeRepository.findNextPageOfUsersThatLikedPost(
               post.id(), cursor.createdAt(), cursor.id(), pageable);
     }
-    return UserService.toUserConnection(usersThatLikedPost);
+    return toUserConnection(likes);
   }
 }
