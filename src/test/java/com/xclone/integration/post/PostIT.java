@@ -11,7 +11,6 @@ import com.xclone.common.mutation.DeleteResponse;
 import com.xclone.exception.dto.FieldError;
 import com.xclone.follow.repository.FollowRepository;
 import com.xclone.integration.base.BaseIntegrationTest;
-import com.xclone.like.model.entity.Like;
 import com.xclone.like.repository.LikeRepository;
 import com.xclone.post.dto.PostProfile;
 import com.xclone.post.dto.mutation.PostResponse;
@@ -895,15 +894,12 @@ public class PostIT extends BaseIntegrationTest {
         FollowHelpers.seedFollow(followRepository, authenticatedUser, users.get(2));
         // user 1 authors post 1; user 2 authors post 2;
         // post 1 has 1 like
-        List<Like> post1Likes =
-            LikeHelpers.seedLikes(
-                List.of(posts.get(1)), List.of(authenticatedUser), likeRepository);
+        LikeHelpers.seedLikes(List.of(posts.get(1)), List.of(authenticatedUser), likeRepository);
         // post 2 has 2 likes
-        List<Like> post2Likes =
-            LikeHelpers.seedLikes(
-                List.of(posts.get(2), posts.get(2)),
-                List.of(authenticatedUser, users.get(1)),
-                likeRepository);
+        LikeHelpers.seedLikes(
+            List.of(posts.get(2), posts.get(2)),
+            List.of(authenticatedUser, users.get(1)),
+            likeRepository);
 
         authenticatedTester
             .document(
@@ -938,10 +934,10 @@ public class PostIT extends BaseIntegrationTest {
                 })
             .path("feed.edges[0].node.likeCount")
             .entity(Integer.class)
-            .isEqualTo(post2Likes.size())
+            .isEqualTo(2)
             .path("feed.edges[1].node.likeCount")
             .entity(Integer.class)
-            .isEqualTo(post1Likes.size());
+            .isEqualTo(1);
       }
     }
 

@@ -15,7 +15,7 @@ public class LikeHelpers {
    * @param posts list of posts to like
    * @param users list of users which each liked the respective post
    * @param likeRepository interface for connecting Like entities to the database
-   * @return list of users from database sorted by like created at descendingly
+   * @return list of likes from database
    * @throws IllegalArgumentException if posts and users are different lengths
    */
   public static List<Like> seedLikes(
