@@ -11,6 +11,7 @@ import com.xclone.common.mutation.DeleteResponse;
 import com.xclone.exception.dto.FieldError;
 import com.xclone.follow.repository.FollowRepository;
 import com.xclone.integration.base.BaseIntegrationTest;
+import com.xclone.like.repository.LikeRepository;
 import com.xclone.post.dto.PostProfile;
 import com.xclone.post.dto.mutation.PostResponse;
 import com.xclone.post.model.entity.Post;
@@ -18,10 +19,14 @@ import com.xclone.post.repository.PostRepository;
 import com.xclone.support.fixtures.UserFixtures;
 import com.xclone.support.helpers.AuthHelpers;
 import com.xclone.support.helpers.FollowHelpers;
+import com.xclone.support.helpers.LikeHelpers;
 import com.xclone.support.helpers.PostHelpers;
+import com.xclone.user.dto.UserProfile;
 import com.xclone.user.model.entity.User;
+import com.xclone.user.model.enums.UserStatus;
 import com.xclone.user.repository.UserRepository;
 import com.xclone.validation.ValidationConstants;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -39,6 +44,7 @@ public class PostIT extends BaseIntegrationTest {
   @Autowired UserRepository userRepository;
   @Autowired PostRepository postRepository;
   @Autowired FollowRepository followRepository;
+  @Autowired LikeRepository likeRepository;
   @Autowired AuthHelpers authHelpers;
   @Autowired HttpGraphQlTester authenticatedTester;
 
@@ -62,23 +68,20 @@ public class PostIT extends BaseIntegrationTest {
         authenticatedTester.mutate().headers(headers -> headers.setBearerAuth(accessToken)).build();
     // User 0 follows user 1
     FollowHelpers.seedFollow(followRepository, users.getFirst(), users.get(1));
-    // Create posts
+    // Create posts:
+    // - authenticated user authors post at index-0
+    // - user at index-1 authors post at index-1
+    // - user at index-2 authors post at index-2
     posts = PostHelpers.seedPosts(messageContents, users, postRepository);
   }
 
   void cleanupDBs() {
     // Flushes DBs
+    likeRepository.deleteAll();
     postRepository.deleteAll();
     followRepository.deleteAll();
     userRepository.deleteAll();
   }
-
-  /**
-   * Author resolution is covered in {@link com.xclone.integration.post.PostIT.getPostTests}. TODO:
-   * Add further tests when post vertical slice is implemented in more detail
-   */
-  @Nested
-  class schemaMappingTests {}
 
   @Nested
   class getPostTests {
@@ -226,44 +229,28 @@ public class PostIT extends BaseIntegrationTest {
                       edges {
                         node {
                           messageContent
-                          author {
-                            id
-                          }
+                          createdAt
                         }
                       }
                     }
                   }
                   """)
           .execute()
-          .path("feed")
-          .matchesJson(
-              String.format(
-                  """
-                      {
-                        "edges": [
-                        {
-                          "node": {
-                            "messageContent": "%s",
-                            "author": {
-                              "id": "%s"
-                            }
-                          }
-                        },
-                        {
-                          "node": {
-                            "messageContent": "%s",
-                            "author": {
-                              "id": "%s"
-                            }
-                          }
-                        }
-                        ]
-                      }
-                      """,
-                  posts.get(1).getMessageContent(),
-                  users.get(1).getId(),
-                  posts.get(2).getMessageContent(),
-                  users.get(2).getId()));
+          .path("feed.edges[*].node")
+          .entityList(PostProfile.class)
+          .satisfies(
+              nodes -> {
+                assertThat(nodes).hasSize(2);
+
+                // Posts are sorted descendingly by created date
+                // post 2 is first as it was created last
+                PostProfile firstPost = nodes.getFirst();
+                PostProfile secondPost = nodes.getLast();
+                assertThat(firstPost.createdAt()).isAfter(secondPost.createdAt());
+
+                assertThat(firstPost.messageContent()).isEqualTo(posts.get(2).getMessageContent());
+                assertThat(secondPost.messageContent()).isEqualTo(posts.get(1).getMessageContent());
+              });
     }
 
     @Test
@@ -814,6 +801,481 @@ public class PostIT extends BaseIntegrationTest {
                               .containsEntry("classification", "NullValueInNonNullableField");
                         });
               });
+    }
+  }
+
+  @Nested
+  class likeTests {
+    @Nested
+    class likeCountTests {
+      @Test
+      void fetchingIndividualPost_noLikes_postHasLikeCount() {
+        authenticatedTester
+            .document(
+                """
+                    query GetPost($postId: ID!){
+                      getPost(postId: $postId) {
+                        likeCount
+                      }
+                    }
+                    """)
+            .variable("postId", posts.getFirst().getId())
+            .execute()
+            .path("getPost")
+            .matchesJson(
+                """
+                    {
+                      "likeCount": 0
+                    }
+                    """);
+      }
+
+      @Test
+      void fetchingIndividualPost_hasLikes_postHasLikeCount() {
+        // authenticated users post (first post) has 2 likes: user 1 and user 2
+        List<Post> postsToLike = Collections.nCopies(2, posts.getFirst());
+        List<User> usersToLike = List.of(users.get(1), users.get(2));
+        LikeHelpers.seedLikes(postsToLike, usersToLike, likeRepository);
+
+        authenticatedTester
+            .document(
+                """
+                    query GetPost($postId: ID!){
+                      getPost(postId: $postId) {
+                        likeCount
+                      }
+                    }
+                    """)
+            .variable("postId", posts.getFirst().getId())
+            .execute()
+            .path("getPost")
+            .matchesJson(
+                """
+                    {
+                      "likeCount": 2
+                    }
+                    """);
+      }
+
+      @Test
+      void fetchingIndividualPost_hasLikesFromDeletedUser_postHasLikeCount() {
+        // authenticated users post (first post) has 2 likes: user 1 and user 2
+        List<Post> postsToLike = Collections.nCopies(2, posts.getFirst());
+        List<User> usersToLike = List.of(users.get(1), users.get(2));
+        LikeHelpers.seedLikes(postsToLike, usersToLike, likeRepository);
+        // user 2 is set to deleted
+        User userToDelete = users.get(2);
+        userToDelete.setStatus(UserStatus.DELETED);
+        userRepository.saveAndFlush(userToDelete);
+
+        authenticatedTester
+            .document(
+                """
+                    query GetPost($postId: ID!){
+                      getPost(postId: $postId) {
+                        likeCount
+                      }
+                    }
+                    """)
+            .variable("postId", posts.getFirst().getId())
+            .execute()
+            .path("getPost")
+            .matchesJson(
+                """
+                    {
+                      "likeCount": 1
+                    }
+                    """);
+      }
+
+      @Test
+      void fetchingFeed_eachPostHasLikeCount() {
+        // user 0 follows user 1 + user 2 post initialisation
+        FollowHelpers.seedFollow(followRepository, authenticatedUser, users.get(2));
+        // user 1 authors post 1; user 2 authors post 2;
+        // post 1 has 1 like
+        LikeHelpers.seedLikes(List.of(posts.get(1)), List.of(authenticatedUser), likeRepository);
+        // post 2 has 2 likes
+        LikeHelpers.seedLikes(
+            List.of(posts.get(2), posts.get(2)),
+            List.of(authenticatedUser, users.get(1)),
+            likeRepository);
+
+        authenticatedTester
+            .document(
+                """
+                    {
+                      feed {
+                        edges {
+                          node {
+                            id
+                            likeCount
+                            createdAt
+                          }
+                        }
+                      }
+                    }
+                    """)
+            .execute()
+            .path("feed.edges[*].node")
+            .entityList(PostProfile.class)
+            .satisfies(
+                nodes -> {
+                  assertThat(nodes).hasSize(2);
+
+                  // Posts are sorted descendingly by created date
+                  // post 2 is first as it was created last
+                  PostProfile firstPost = nodes.getFirst();
+                  PostProfile secondPost = nodes.getLast();
+                  assertThat(firstPost.createdAt()).isAfter(secondPost.createdAt());
+
+                  assertThat(firstPost.id()).isEqualTo(posts.get(2).getId());
+                  assertThat(secondPost.id()).isEqualTo(posts.get(1).getId());
+                })
+            .path("feed.edges[0].node.likeCount")
+            .entity(Integer.class)
+            .isEqualTo(2)
+            .path("feed.edges[1].node.likeCount")
+            .entity(Integer.class)
+            .isEqualTo(1);
+      }
+    }
+
+    @Nested
+    class likedByMeTests {
+      @Test
+      void fetchingIndividualPost_noLikes_likedByMeFalse() {
+        authenticatedTester
+            .document(
+                """
+                    query GetPost($postId: ID!){
+                      getPost(postId: $postId) {
+                        likedByMe
+                      }
+                    }
+                    """)
+            .variable("postId", posts.getFirst().getId())
+            .execute()
+            .path("getPost")
+            .matchesJson(
+                """
+                    {
+                      "likedByMe": false
+                    }
+                    """);
+      }
+
+      @Test
+      void fetchingIndividualPost_hasLikeByMe_likedByMeTrue() {
+        // first post has 3 likes
+        List<Post> postsToLike = Collections.nCopies(3, posts.getFirst());
+        List<User> usersToLike = List.of(users.get(0), users.get(1), users.get(2));
+        LikeHelpers.seedLikes(postsToLike, usersToLike, likeRepository);
+
+        authenticatedTester
+            .document(
+                """
+                    query GetPost($postId: ID!){
+                      getPost(postId: $postId) {
+                        likedByMe
+                      }
+                    }
+                    """)
+            .variable("postId", posts.getFirst().getId())
+            .execute()
+            .path("getPost")
+            .matchesJson(
+                """
+                    {
+                      "likedByMe": true
+                    }
+                    """);
+      }
+
+      @Test
+      void fetchingFeed_onePostLikedByMe() {
+        // user 0 follows user 1 + user 2 post initialisation
+        FollowHelpers.seedFollow(followRepository, authenticatedUser, users.get(2));
+        // user 1 authors post 1; user 2 authors post 2;
+        // post 1 has 1 like; not liked by authenticated user
+        LikeHelpers.seedLikes(List.of(posts.get(1)), List.of(users.get(2)), likeRepository);
+        // post 2 has 2 likes; liked by authenticated user
+        LikeHelpers.seedLikes(
+            List.of(posts.get(2), posts.get(2)),
+            List.of(authenticatedUser, users.get(1)),
+            likeRepository);
+
+        authenticatedTester
+            .document(
+                """
+                    {
+                      feed {
+                        edges {
+                          node {
+                            id
+                            likedByMe
+                            createdAt
+                          }
+                        }
+                      }
+                    }
+                    """)
+            .execute()
+            .path("feed.edges[*].node")
+            .entityList(PostProfile.class)
+            .satisfies(
+                nodes -> {
+                  assertThat(nodes).hasSize(2);
+
+                  // Posts are sorted descendingly by created date
+                  // post 2 is first as it was created last
+                  PostProfile firstPost = nodes.getFirst();
+                  PostProfile secondPost = nodes.getLast();
+                  assertThat(firstPost.createdAt()).isAfter(secondPost.createdAt());
+
+                  assertThat(firstPost.id()).isEqualTo(posts.get(2).getId());
+                  assertThat(secondPost.id()).isEqualTo(posts.get(1).getId());
+                })
+            .path("feed.edges[0].node.likedByMe")
+            .entity(Boolean.class)
+            .isEqualTo(true)
+            .path("feed.edges[1].node.likedByMe")
+            .entity(Boolean.class)
+            .isEqualTo(false);
+      }
+
+      @Test
+      void fetchingFeed_everyPostLikedByMe() {
+        // user 0 follows user 1 + user 2 post initialisation
+        FollowHelpers.seedFollow(followRepository, authenticatedUser, users.get(2));
+        // user 1 authors post 1; user 2 authors post 2;
+        // post 1 has 1 like; not liked by authenticated user
+        LikeHelpers.seedLikes(List.of(posts.get(1)), List.of(authenticatedUser), likeRepository);
+        // post 2 has 2 likes; liked by authenticated user
+        LikeHelpers.seedLikes(
+            List.of(posts.get(2), posts.get(2)),
+            List.of(authenticatedUser, users.get(1)),
+            likeRepository);
+
+        authenticatedTester
+            .document(
+                """
+                    {
+                      feed {
+                        edges {
+                          node {
+                            id
+                            likedByMe
+                            createdAt
+                          }
+                        }
+                      }
+                    }
+                    """)
+            .execute()
+            .path("feed.edges[*].node")
+            .entityList(PostProfile.class)
+            .satisfies(
+                nodes -> {
+                  assertThat(nodes).hasSize(2);
+
+                  // Posts are sorted descendingly by created date
+                  // post 2 is first as it was created last
+                  PostProfile firstPost = nodes.getFirst();
+                  PostProfile secondPost = nodes.getLast();
+                  assertThat(firstPost.createdAt()).isAfter(secondPost.createdAt());
+
+                  assertThat(firstPost.id()).isEqualTo(posts.get(2).getId());
+                  assertThat(secondPost.id()).isEqualTo(posts.get(1).getId());
+                })
+            .path("feed.edges[0].node.likedByMe")
+            .entity(Boolean.class)
+            .isEqualTo(true)
+            .path("feed.edges[1].node.likedByMe")
+            .entity(Boolean.class)
+            .isEqualTo(true);
+      }
+    }
+
+    @Nested
+    class likesTests {
+
+      @Test
+      void getLikes_notPostAuthor_returnsNotPostAuthor() {
+        // authenticated user is only the author of the 0-index in posts
+        authenticatedTester
+            .document(
+                """
+                    query GetPost($postId: ID!){
+                      getPost(postId: $postId) {
+                        likes {
+                          edges {
+                            node {
+                              id
+                            }
+                          }
+                        }
+                      }
+                    }
+                    """)
+            .variable("postId", posts.getLast().getId())
+            .execute()
+            .errors()
+            .satisfy(
+                errors -> {
+                  assertThat(errors).hasSize(1);
+                  assertThat(errors.getFirst().getMessage()).isEqualTo("Not post author");
+                });
+      }
+
+      @Test
+      void getLikesNoCursor_postAuthor_returnsLikes() {
+        // authenticated user is only the author of the 0-index in posts
+        // 0-index in posts has 2 likes
+        List<Post> postsToLike = Collections.nCopies(2, posts.getFirst());
+        List<User> usersToLike = List.of(users.get(1), users.get(2));
+        LikeHelpers.seedLikes(postsToLike, usersToLike, likeRepository);
+
+        authenticatedTester
+            .document(
+                """
+                    query GetPost($postId: ID!){
+                      getPost(postId: $postId) {
+                        likes {
+                          edges {
+                            node {
+                              id
+                            }
+                          }
+                        }
+                      }
+                    }
+                    """)
+            .variable("postId", posts.getFirst().getId())
+            .execute()
+            .path("getPost.likes.edges[*].node")
+            .entityList(UserProfile.class)
+            .satisfies(
+                usersThatLikedPost -> {
+                  assertThat(usersThatLikedPost).hasSize(2);
+
+                  UserProfile firstLike = usersThatLikedPost.getFirst();
+                  UserProfile secondLike = usersThatLikedPost.get(1);
+
+                  // user 2 liked the post last; therefore, it should be the first user returned
+                  // likes are sorted in created descendingly
+                  assertThat(firstLike.id()).isEqualTo(users.get(2).getId());
+                  assertThat(secondLike.id()).isEqualTo(users.get(1).getId());
+                });
+      }
+
+      @Test
+      void getLikesWithValidCursor_postAuthor_returnsUserConnection() {
+        // authenticated user is only the author of the 0-index in posts
+        // 0-index in posts has 2 likes
+        List<Post> postsToLike = Collections.nCopies(2, posts.getFirst());
+        List<User> usersToLike = List.of(users.get(1), users.get(2));
+        LikeHelpers.seedLikes(postsToLike, usersToLike, likeRepository);
+
+        // Split the two posts across two pages with first = 1
+        String endCursor =
+            authenticatedTester
+                .document(
+                    """
+                        query GetPost($postId: ID!){
+                          getPost(postId: $postId) {
+                            likes(first: 1) {
+                              edges {
+                                node {
+                                  id
+                                }
+                              }
+                              pageInfo {
+                                hasNextPage
+                                endCursor
+                              }
+                            }
+                          }
+                        }
+                        """)
+                .variable("postId", posts.getFirst().getId())
+                .execute()
+                .path("getPost.likes.edges[*].node")
+                .entityList(UserProfile.class)
+                .hasSize(1)
+                .path("getPost.likes.edges[0].node.id")
+                .entity(UUID.class)
+                // likes are sorted by created date descendingly; 2nd like is first
+                .isEqualTo(usersToLike.getLast().getId())
+                .path("getPost.likes.pageInfo.hasNextPage")
+                .entity(Boolean.class)
+                .isEqualTo(true)
+                .path("getPost.likes.pageInfo.endCursor")
+                .entity(String.class)
+                .get();
+
+        authenticatedTester
+            .document(
+                """
+                    query GetPost($postId: ID!, $cursor: String){
+                      getPost(postId: $postId) {
+                        likes(first: 1, after: $cursor) {
+                          edges {
+                            node {
+                              id
+                            }
+                          }
+                          pageInfo {
+                            hasNextPage
+                          }
+                        }
+                      }
+                    }
+                    """)
+            .variable("postId", posts.getFirst().getId())
+            .variable("cursor", endCursor)
+            .execute()
+            .path("getPost.likes.edges[*].node")
+            .entityList(UserProfile.class)
+            .hasSize(1)
+            .path("getPost.likes.edges[0].node.id")
+            .entity(UUID.class)
+            // likes are sorted by created date descendingly; 1st like is second
+            .isEqualTo(usersToLike.getFirst().getId())
+            .path("getPost.likes.pageInfo.hasNextPage")
+            .entity(Boolean.class)
+            .isEqualTo(false);
+      }
+
+      @Test
+      void getLikes_noLikes_postAuthor_returnsEmptyUserConnection() {
+        // authenticated user authors a post with no likes
+        Post postWithNoLikes =
+            PostHelpers.seedPosts(
+                    List.of("postWithNoLikes"), List.of(authenticatedUser), postRepository)
+                .getFirst();
+
+        authenticatedTester
+            .document(
+                """
+                    query GetPost($postId: ID!){
+                      getPost(postId: $postId) {
+                        likes {
+                          edges {
+                            node {
+                              id
+                            }
+                          }
+                        }
+                      }
+                    }
+                    """)
+            .variable("postId", postWithNoLikes.getId())
+            .execute()
+            .path("getPost.likes.edges[*].node")
+            .entityList(UserProfile.class)
+            .hasSize(0);
+      }
     }
   }
 }

@@ -1,6 +1,7 @@
 package com.xclone.exception;
 
 import com.xclone.exception.custom.InvalidCursorException;
+import com.xclone.exception.custom.NotPostAuthorException;
 import com.xclone.exception.dto.FieldError;
 import graphql.GraphQLError;
 import jakarta.validation.ConstraintViolation;
@@ -100,18 +101,35 @@ public class GlobalGraphQlExceptionHandler {
 
   /**
    * Handles an invalid cursor by returning an {@link InvalidCursorException} protocol error,
-   * logging the exception class, message, and full stack trace.
+   * logging the exception class and message.
    *
    * @param ex the unhandled exception
    * @return a GraphQL protocol error with a client-safe message
    */
   @GraphQlExceptionHandler(InvalidCursorException.class)
   public GraphQLError handleInvalidCursor(InvalidCursorException ex) {
-    log.warn("Invalid request: {} - {} ", ex.getClass().getSimpleName(), ex.getMessage(), ex);
+    log.warn("Invalid request: {} - {} ", ex.getClass().getSimpleName(), ex.getMessage());
 
     return GraphQLError.newError()
         .message(ex.getMessage()) // e.g., "The provided cursor is malformed"
         .errorType(ErrorType.BAD_REQUEST)
+        .build();
+  }
+
+  /**
+   * Handles a forbidden request by returning an {@link NotPostAuthorException} protocol error,
+   * logging the exception class and message.
+   *
+   * @param ex the unhandled exception
+   * @return a GraphQL protocol error with a client-safe message
+   */
+  @GraphQlExceptionHandler(NotPostAuthorException.class)
+  public GraphQLError handleNotPostAuthor(NotPostAuthorException ex) {
+    log.warn("Forbidden request: {} - {} ", ex.getClass().getSimpleName(), ex.getMessage());
+
+    return GraphQLError.newError()
+        .message("Not post author")
+        .errorType(ErrorType.FORBIDDEN)
         .build();
   }
 }
