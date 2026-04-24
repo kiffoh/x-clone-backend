@@ -21,7 +21,7 @@ public interface LikeRepository extends JpaRepository<Like, UUID> {
           + " where u.status = com.xclone.user.model.enums.UserStatus.ACTIVE"
           + " and l.postId in :postIds"
           + " group by l.postId")
-  List<LikeCount> findTotalLikesByPostIds(@Param("postIds") List<UUID> postIds);
+  List<LikeCount> findActiveLikesByPostIds(@Param("postIds") List<UUID> postIds);
 
   @Query("select l.postId from Like l where l.userId = :userId and l.postId in :postIds")
   List<UUID> findPostIdsThatUserLikes(

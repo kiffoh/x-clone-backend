@@ -80,7 +80,7 @@ public class PostController {
   @BatchMapping(typeName = "Post", field = "likeCount")
   public Map<PostProfile, Integer> likeCount(List<PostProfile> posts) {
     List<UUID> postIds = posts.stream().map(PostProfile::id).toList();
-    List<LikeCount> likeCounts = likeService.getAllLikeCounts(postIds);
+    List<LikeCount> likeCounts = likeService.getLikeCounts(postIds);
     Map<UUID, Integer> likeCountPerPost =
         likeCounts.stream().collect(Collectors.toMap(LikeCount::postId, LikeCount::numberOfLikes));
 

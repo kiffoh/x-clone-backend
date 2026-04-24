@@ -45,8 +45,8 @@ public class LikeService {
     return new UserConnection(edges, pageInfo);
   }
 
-  public List<LikeCount> getAllLikeCounts(List<UUID> postIds) {
-    return likeRepository.findTotalLikesByPostIds(postIds);
+  public List<LikeCount> getLikeCounts(List<UUID> postIds) {
+    return likeRepository.findActiveLikesByPostIds(postIds);
   }
 
   public Set<UUID> getPostIdsThatUserLikes(List<UUID> postIds, UUID userId) {
