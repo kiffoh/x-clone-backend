@@ -997,7 +997,59 @@ public class PostIT extends BaseIntegrationTest {
       }
 
       @Test
-      void fetchingFeed_eachPostHasLikedByMe() {
+      void fetchingFeed_onePostLikedByMe() {
+        // user 0 follows user 1 + user 2 post initialisation
+        FollowHelpers.seedFollow(followRepository, authenticatedUser, users.get(2));
+        // user 1 authors post 1; user 2 authors post 2;
+        // post 1 has 1 like; not liked by authenticated user
+        LikeHelpers.seedLikes(List.of(posts.get(1)), List.of(users.get(2)), likeRepository);
+        // post 2 has 2 likes; liked by authenticated user
+        LikeHelpers.seedLikes(
+            List.of(posts.get(2), posts.get(2)),
+            List.of(authenticatedUser, users.get(1)),
+            likeRepository);
+
+        authenticatedTester
+            .document(
+                """
+                    {
+                      feed {
+                        edges {
+                          node {
+                            id
+                            likedByMe
+                            createdAt
+                          }
+                        }
+                      }
+                    }
+                    """)
+            .execute()
+            .path("feed.edges[*].node")
+            .entityList(PostProfile.class)
+            .satisfies(
+                nodes -> {
+                  assertThat(nodes).hasSize(2);
+
+                  // Posts are sorted descendingly by created date
+                  // post 2 is first as it was created last
+                  PostProfile firstPost = nodes.getFirst();
+                  PostProfile secondPost = nodes.getLast();
+                  assertThat(firstPost.createdAt()).isAfter(secondPost.createdAt());
+
+                  assertThat(firstPost.id()).isEqualTo(posts.get(2).getId());
+                  assertThat(secondPost.id()).isEqualTo(posts.get(1).getId());
+                })
+            .path("feed.edges[0].node.likedByMe")
+            .entity(Boolean.class)
+            .isEqualTo(true)
+            .path("feed.edges[1].node.likedByMe")
+            .entity(Boolean.class)
+            .isEqualTo(false);
+      }
+
+      @Test
+      void fetchingFeed_everyPostLikedByMe() {
         // user 0 follows user 1 + user 2 post initialisation
         FollowHelpers.seedFollow(followRepository, authenticatedUser, users.get(2));
         // user 1 authors post 1; user 2 authors post 2;
@@ -1045,7 +1097,7 @@ public class PostIT extends BaseIntegrationTest {
             .isEqualTo(true)
             .path("feed.edges[1].node.likedByMe")
             .entity(Boolean.class)
-            .isEqualTo(false);
+            .isEqualTo(true);
       }
     }
 

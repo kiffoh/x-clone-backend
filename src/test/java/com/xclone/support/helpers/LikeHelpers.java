@@ -12,11 +12,11 @@ public class LikeHelpers {
   /**
    * Seeds one like per index position across posts and users.
    *
-   * @param posts list of strings containing each posts to like
+   * @param posts list of posts to like
    * @param users list of users which each liked the respective post
    * @param likeRepository interface for connecting Like entities to the database
    * @return list of users from database sorted by like created at descendingly
-   * @throws IllegalArgumentException if messageContents and authors are different lengths
+   * @throws IllegalArgumentException if posts and users are different lengths
    */
   public static List<Like> seedLikes(
       List<Post> posts, List<User> users, LikeRepository likeRepository) {
