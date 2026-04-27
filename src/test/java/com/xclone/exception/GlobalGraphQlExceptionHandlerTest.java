@@ -69,6 +69,9 @@ public class GlobalGraphQlExceptionHandlerTest {
                 Map.of("field", "handle")));
   }
 
+  /**
+   * Test is public to allow external reference as to why bind exception tests are omitted from ITs.
+   */
   @Test
   public void handlesBindException() {
     FieldError fieldError =

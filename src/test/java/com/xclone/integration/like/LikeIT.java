@@ -6,6 +6,7 @@ import com.xclone.integration.base.BaseIntegrationTest;
 import com.xclone.like.repository.LikeRepository;
 import com.xclone.post.model.entity.Post;
 import com.xclone.post.repository.PostRepository;
+import com.xclone.support.fixtures.LikeFixtures;
 import com.xclone.support.fixtures.UserFixtures;
 import com.xclone.support.helpers.AuthHelpers;
 import com.xclone.support.helpers.LikeHelpers;
@@ -202,7 +203,7 @@ public class LikeIT extends BaseIntegrationTest {
       // - user at index-1 authors post at index-1
 
       // authenticated user likes post 1 (authored by user 1)
-      LikeHelpers.likePost(authenticatedTester, posts.get(1).getId(), 1);
+      likeRepository.save(LikeFixtures.createLike(posts.get(1), authenticatedUser));
     }
 
     @Test

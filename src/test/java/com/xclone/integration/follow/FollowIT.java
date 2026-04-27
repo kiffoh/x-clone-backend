@@ -60,7 +60,7 @@ public class FollowIT extends BaseIntegrationTest {
   /**
    * {@link GlobalGraphQlExceptionHandlerTest#handlesBindException()} proves that a {@link
    * BindException} correctly maps to a {@link ErrorType#BAD_REQUEST}. Consequently, tests for an
-   * invalid UUID for post id have been omitted.
+   * invalid UUID for user id have been omitted.
    */
   @Nested
   class followUserTests {
@@ -315,7 +315,7 @@ public class FollowIT extends BaseIntegrationTest {
   /**
    * {@link GlobalGraphQlExceptionHandlerTest#handlesBindException()} proves that a {@link
    * BindException} correctly maps to a {@link ErrorType#BAD_REQUEST}. Consequently, tests for an
-   * invalid UUID for post id have been omitted.
+   * invalid UUID for user id have been omitted.
    */
   @Nested
   class unfollowUserTests {
