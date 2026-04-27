@@ -2,12 +2,14 @@ package com.xclone.like.controller;
 
 import com.xclone.exception.GraphQlErrorMapper;
 import com.xclone.exception.custom.PostNotFoundException;
+import com.xclone.exception.dto.FieldError;
 import com.xclone.like.service.LikeService;
 import com.xclone.post.dto.PostProfile;
 import com.xclone.post.dto.mutation.PostResponse;
 import com.xclone.post.service.PostService;
 import com.xclone.security.jwt.JwtAuthenticationFilter;
 import com.xclone.security.user.CustomUserDetails;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
@@ -42,7 +44,7 @@ public class LikeController {
       return new PostResponse("201", true, updatedPost, null);
     } catch (PostNotFoundException ex) {
       return new PostResponse(
-          "400", false, null, GraphQlErrorMapper.fromPostNotFound("postId", ex));
+          "404", false, null, GraphQlErrorMapper.fromPostNotFound("postId", ex));
     }
   }
 
@@ -64,12 +66,8 @@ public class LikeController {
     if (updatedPost != null) {
       return new PostResponse("200", true, updatedPost, null);
     } else {
-      return new PostResponse(
-          "404",
-          false,
-          null,
-          GraphQlErrorMapper.fromPostNotFound(
-              "postId", new PostNotFoundException("Post does not exist for queried postId")));
+      FieldError postNotFound = new FieldError("postId", "Post does not exist");
+      return new PostResponse("404", false, null, List.of(postNotFound));
     }
   }
 }

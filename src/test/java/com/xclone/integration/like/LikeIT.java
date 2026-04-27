@@ -1,0 +1,346 @@
+package com.xclone.integration.like;
+
+import com.xclone.exception.dto.FieldError;
+import com.xclone.integration.base.BaseIntegrationTest;
+import com.xclone.like.repository.LikeRepository;
+import com.xclone.post.model.entity.Post;
+import com.xclone.post.repository.PostRepository;
+import com.xclone.support.fixtures.UserFixtures;
+import com.xclone.support.helpers.AuthHelpers;
+import com.xclone.support.helpers.LikeHelpers;
+import com.xclone.support.helpers.PostHelpers;
+import com.xclone.user.model.entity.User;
+import com.xclone.user.repository.UserRepository;
+import java.util.List;
+import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.graphql.tester.AutoConfigureHttpGraphQlTester;
+import org.springframework.context.annotation.Import;
+import org.springframework.graphql.test.tester.HttpGraphQlTester;
+
+@AutoConfigureHttpGraphQlTester
+@Import(AuthHelpers.class)
+public class LikeIT extends BaseIntegrationTest {
+  @Autowired UserRepository userRepository;
+  @Autowired PostRepository postRepository;
+  @Autowired LikeRepository likeRepository;
+  @Autowired AuthHelpers authHelpers;
+  @Autowired HttpGraphQlTester authenticatedTester;
+
+  List<String> handles = List.of("example1", "example2", "example3");
+  List<User> users;
+  User authenticatedUser;
+
+  List<String> messageContents = List.of("one for sorrow", "two for joy", "three for a girl");
+  List<Post> posts;
+
+  @BeforeEach
+  void setup() {
+    cleanupDBs();
+    // Adds 3 users to the DB under the handles
+    users =
+        handles.stream().map(UserFixtures::createUserWithHandle).map(userRepository::save).toList();
+    authenticatedUser = users.getFirst();
+    // Sets the accessToken to match that of the first user
+    String accessToken = authHelpers.getUserAccessToken(users.getFirst().getId().toString());
+    authenticatedTester =
+        authenticatedTester.mutate().headers(headers -> headers.setBearerAuth(accessToken)).build();
+    // Create posts:
+    // - authenticated user authors post at index-0
+    // - user at index-1 authors post at index-1
+    // - user at index-2 authors post at index-2
+    posts = PostHelpers.seedPosts(messageContents, users, postRepository);
+  }
+
+  void cleanupDBs() {
+    // Flushes DBs
+    likeRepository.deleteAll();
+    postRepository.deleteAll();
+    userRepository.deleteAll();
+  }
+
+  @Nested
+  class likePost {
+    @Test
+    void validRequest_likeOtherUsersPost_returnsUpdatedPostResponse() {
+      // - authenticated user authors post at index-0
+      // - user at index-1 authors post at index-1
+      authenticatedTester
+          .document(
+              """
+                  query getLikes($postId: ID!) {
+                    getPost(postId: $postId) {
+                      likeCount
+                    }
+                  }
+                  """)
+          .variable("postId", posts.get(1).getId())
+          .execute()
+          .path("getPost.likeCount")
+          .entity(Integer.class)
+          .isEqualTo(0);
+
+      authenticatedTester
+          .document(
+              """
+                  mutation AddLike($postId: ID!) {
+                    likePost(postId: $postId) {
+                      code
+                      post {
+                        likeCount
+                      }
+                    }
+                  }
+                  """)
+          .variable("postId", posts.get(1).getId())
+          .execute()
+          .path("likePost.code")
+          .entity(String.class)
+          .isEqualTo("201")
+          .path("likePost.post.likeCount")
+          .entity(Integer.class)
+          .isEqualTo(1);
+    }
+
+    @Test
+    void validRequest_likeOwnPost_returnsUpdatedPostResponse() {
+      authenticatedTester
+          .document(
+              """
+                  query getLikes($postId: ID!) {
+                    getPost(postId: $postId) {
+                      likeCount
+                    }
+                  }
+                  """)
+          .variable("postId", posts.getFirst().getId())
+          .execute()
+          .path("getPost.likeCount")
+          .entity(Integer.class)
+          .isEqualTo(0);
+
+      authenticatedTester
+          .document(
+              """
+                  mutation AddLike($postId: ID!) {
+                    likePost(postId: $postId) {
+                      code
+                      post {
+                        likeCount
+                      }
+                    }
+                  }
+                  """)
+          .variable("postId", posts.getFirst().getId())
+          .execute()
+          .path("likePost.code")
+          .entity(String.class)
+          .isEqualTo("201")
+          .path("likePost.post.likeCount")
+          .entity(Integer.class)
+          .isEqualTo(1);
+    }
+
+    @Test
+    void invalidPostId_returnsPostNotFound() {
+      authenticatedTester
+          .document(
+              """
+                  mutation AddLike($postId: ID!) {
+                    likePost(postId: $postId) {
+                      code
+                      post {
+                        likeCount
+                      }
+                      errors {
+                        field
+                        message
+                      }
+                    }
+                  }
+                  """)
+          .variable("postId", UUID.randomUUID())
+          .execute()
+          .path("likePost.code")
+          .entity(String.class)
+          .isEqualTo("404")
+          .path("likePost.post")
+          .valueIsNull()
+          .path("likePost.errors")
+          .entityList(FieldError.class)
+          .hasSize(1)
+          .containsExactly(new FieldError("postId", "Post does not exist"));
+    }
+
+    /**
+     * {@link LikeHelpers#likePost(HttpGraphQlTester, UUID, Integer)} is utilised as part of the
+     * test setup. Removing repeated lines of code improve the readability.
+     */
+    @Test
+    void likeAlreadyExists_returnsPostResponse() {
+      // - authenticated user authors post at index-0
+      // - user at index-1 authors post at index-1
+      authenticatedTester
+          .document(
+              """
+                  query getLikes($postId: ID!) {
+                    getPost(postId: $postId) {
+                      likeCount
+                    }
+                  }
+                  """)
+          .variable("postId", posts.get(1).getId())
+          .execute()
+          .path("getPost.likeCount")
+          .entity(Integer.class)
+          .isEqualTo(0);
+
+      LikeHelpers.likePost(authenticatedTester, posts.get(1).getId(), 1);
+
+      // Trigger like again
+      authenticatedTester
+          .document(
+              """
+                  mutation AddLike($postId: ID!) {
+                    likePost(postId: $postId) {
+                      code
+                      post {
+                        likeCount
+                      }
+                    }
+                  }
+                  """)
+          .variable("postId", posts.get(1).getId())
+          .execute()
+          .path("likePost.code")
+          .entity(String.class)
+          .isEqualTo("201")
+          .path("likePost.post.likeCount")
+          .entity(Integer.class)
+          .isEqualTo(1);
+    }
+  }
+
+  @Nested
+  class unlikePost {
+    @BeforeEach
+    void addLike() {
+      // - authenticated user authors post at index-0
+      // - user at index-1 authors post at index-1
+      authenticatedTester
+          .document(
+              """
+                  query getLikes($postId: ID!) {
+                    getPost(postId: $postId) {
+                      likeCount
+                    }
+                  }
+                  """)
+          .variable("postId", posts.get(1).getId())
+          .execute()
+          .path("getPost.likeCount")
+          .entity(Integer.class)
+          .isEqualTo(0);
+
+      // authenticated user likes post 1 (authored by user 1)
+      LikeHelpers.likePost(authenticatedTester, posts.get(1).getId(), 1);
+    }
+
+    @Test
+    void validRequest_returnsUpdatedPostResponse() {
+      authenticatedTester
+          .document(
+              """
+                  mutation RemoveLike($postId: ID!) {
+                    unlikePost(postId: $postId) {
+                      code
+                      post {
+                        likeCount
+                      }
+                    }
+                  }
+                  """)
+          .variable("postId", posts.get(1).getId())
+          .execute()
+          .path("unlikePost.code")
+          .entity(String.class)
+          .isEqualTo("200")
+          .path("unlikePost.post.likeCount")
+          .entity(Integer.class)
+          .isEqualTo(0);
+    }
+
+    @Test
+    void invalidPostId_returnsPostNotFound() {
+      authenticatedTester
+          .document(
+              """
+                  mutation RemoveLike($postId: ID!) {
+                    unlikePost(postId: $postId) {
+                      code
+                      post {
+                        likeCount
+                      }
+                      errors {
+                        field
+                        message
+                      }
+                    }
+                  }
+                  """)
+          .variable("postId", UUID.randomUUID())
+          .execute()
+          .path("unlikePost.code")
+          .entity(String.class)
+          .isEqualTo("404")
+          .path("unlikePost.post")
+          .valueIsNull()
+          .path("unlikePost.errors")
+          .entityList(FieldError.class)
+          .hasSize(1)
+          .containsExactly(new FieldError("postId", "Post does not exist"));
+    }
+
+    @Test
+    void deleteDoesNotExist_returnsPostResponse() {
+      authenticatedTester
+          .document(
+              """
+                  query getLikes($postId: ID!) {
+                    getPost(postId: $postId) {
+                      likeCount
+                    }
+                  }
+                  """)
+          .variable("postId", posts.get(2).getId())
+          .execute()
+          .path("getPost.likeCount")
+          .entity(Integer.class)
+          .isEqualTo(0);
+
+      authenticatedTester
+          .document(
+              """
+                  mutation RemoveLike($postId: ID!) {
+                    unlikePost(postId: $postId) {
+                      code
+                      post {
+                        likeCount
+                      }
+                    }
+                  }
+                  """)
+          .variable("postId", posts.get(2).getId())
+          .execute()
+          .path("unlikePost.code")
+          .entity(String.class)
+          .isEqualTo("200")
+          .path("unlikePost.post.likeCount")
+          .entity(Integer.class)
+          .isEqualTo(0);
+    }
+  }
+}
