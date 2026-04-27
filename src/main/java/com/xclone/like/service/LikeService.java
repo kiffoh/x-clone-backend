@@ -111,14 +111,22 @@ public class LikeService {
         if (constraintName.equals(LikeConstraintName.LIKE_EXISTS)) {
           // Swallow duplicate like as idempotent behaviour is acceptable
           log.debug("Like already exists");
+          return;
         }
         if (constraintName.equals(LikeConstraintName.LIKE_POST_FK)) {
           throw new PostNotFoundException("Post does not exist");
         }
       }
+      throw ex;
     }
   }
 
+  /**
+   * Removes a like from the database with the queried parameters.
+   *
+   * @param postId unique identifier of post to unlike
+   * @param userId unique identifier of user that unliked the post
+   */
   @Transactional
   public void deleteLike(UUID postId, UUID userId) {
     likeRepository.deleteLikeByPostIdAndUserId(postId, userId);

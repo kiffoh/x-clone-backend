@@ -99,9 +99,17 @@ extend type Mutation {
     Authentication: Required (the authenticated user can delete their own posts)
     """
     deletePost(postId: ID!): DeleteResponse!
+    """
+    Add a like to the post.
 
-    # Likes
+    Authentication: Required
+    """
     likePost(postId: ID!): PostResponse!
+    """
+    Removes a like from the post.
+
+    Authentication: Required
+    """
     unlikePost(postId: ID!): PostResponse!
 }
 

@@ -17,8 +17,8 @@ import org.springframework.stereotype.Controller;
 /** GraphQL controller for like entity operations. */
 @Controller
 public class LikeController {
-  LikeService likeService;
-  PostService postService;
+  private final LikeService likeService;
+  private final PostService postService;
 
   public LikeController(LikeService likeService, PostService postService) {
     this.likeService = likeService;
@@ -49,7 +49,7 @@ public class LikeController {
   /**
    * Removes a like from a post on behalf of the authenticated user.
    *
-   * <p>Unlike process fails silently if a post is not found.
+   * <p>Returns a null post if the post cannot be found.
    *
    * @param userDetails authenticated user; populated as part of the security chain with {@link
    *     JwtAuthenticationFilter}
@@ -61,6 +61,15 @@ public class LikeController {
       @AuthenticationPrincipal CustomUserDetails userDetails, @Argument UUID postId) {
     likeService.deleteLike(postId, userDetails.getId());
     PostProfile updatedPost = postService.getPost(postId);
-    return new PostResponse("200", true, updatedPost, null);
+    if (updatedPost != null) {
+      return new PostResponse("200", true, updatedPost, null);
+    } else {
+      return new PostResponse(
+          "404",
+          false,
+          null,
+          GraphQlErrorMapper.fromPostNotFound(
+              "postId", new PostNotFoundException("Post does not exist for queried postId")));
+    }
   }
 }
