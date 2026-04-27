@@ -19,8 +19,6 @@ type Post {
     Size has a maximum length of 280 characters.
     """
     messageContent: String
-
-    # Core fields
     """
     Datetime of post creation.
     """
@@ -103,8 +101,8 @@ extend type Mutation {
     deletePost(postId: ID!): DeleteResponse!
 
     # Likes
-    likePost(input: UpdatePostLikesInput): PostResponse!
-    unlikePost(input: UpdatePostLikesInput): PostResponse!
+    likePost(postId: ID!): PostResponse!
+    unlikePost(postId: ID!): PostResponse!
 }
 
 """
