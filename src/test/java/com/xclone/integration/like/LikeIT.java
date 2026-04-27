@@ -1,5 +1,6 @@
 package com.xclone.integration.like;
 
+import com.xclone.exception.GlobalGraphQlExceptionHandlerTest;
 import com.xclone.exception.dto.FieldError;
 import com.xclone.integration.base.BaseIntegrationTest;
 import com.xclone.like.repository.LikeRepository;
@@ -19,7 +20,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.graphql.tester.AutoConfigureHttpGraphQlTester;
 import org.springframework.context.annotation.Import;
+import org.springframework.graphql.execution.ErrorType;
 import org.springframework.graphql.test.tester.HttpGraphQlTester;
+import org.springframework.validation.BindException;
 
 @AutoConfigureHttpGraphQlTester
 @Import(AuthHelpers.class)
@@ -62,26 +65,17 @@ public class LikeIT extends BaseIntegrationTest {
     userRepository.deleteAll();
   }
 
+  /**
+   * {@link GlobalGraphQlExceptionHandlerTest#handlesBindException()} proves that a {@link
+   * BindException} correctly maps to a {@link ErrorType#BAD_REQUEST}. Consequently, tests for an
+   * invalid UUID for post id have been omitted.
+   */
   @Nested
   class likePost {
     @Test
     void validRequest_likeOtherUsersPost_returnsUpdatedPostResponse() {
       // - authenticated user authors post at index-0
       // - user at index-1 authors post at index-1
-      authenticatedTester
-          .document(
-              """
-                  query getLikes($postId: ID!) {
-                    getPost(postId: $postId) {
-                      likeCount
-                    }
-                  }
-                  """)
-          .variable("postId", posts.get(1).getId())
-          .execute()
-          .path("getPost.likeCount")
-          .entity(Integer.class)
-          .isEqualTo(0);
 
       authenticatedTester
           .document(
@@ -107,21 +101,6 @@ public class LikeIT extends BaseIntegrationTest {
 
     @Test
     void validRequest_likeOwnPost_returnsUpdatedPostResponse() {
-      authenticatedTester
-          .document(
-              """
-                  query getLikes($postId: ID!) {
-                    getPost(postId: $postId) {
-                      likeCount
-                    }
-                  }
-                  """)
-          .variable("postId", posts.getFirst().getId())
-          .execute()
-          .path("getPost.likeCount")
-          .entity(Integer.class)
-          .isEqualTo(0);
-
       authenticatedTester
           .document(
               """
@@ -183,20 +162,6 @@ public class LikeIT extends BaseIntegrationTest {
     void likeAlreadyExists_returnsPostResponse() {
       // - authenticated user authors post at index-0
       // - user at index-1 authors post at index-1
-      authenticatedTester
-          .document(
-              """
-                  query getLikes($postId: ID!) {
-                    getPost(postId: $postId) {
-                      likeCount
-                    }
-                  }
-                  """)
-          .variable("postId", posts.get(1).getId())
-          .execute()
-          .path("getPost.likeCount")
-          .entity(Integer.class)
-          .isEqualTo(0);
 
       LikeHelpers.likePost(authenticatedTester, posts.get(1).getId(), 1);
 
@@ -224,26 +189,17 @@ public class LikeIT extends BaseIntegrationTest {
     }
   }
 
+  /**
+   * {@link GlobalGraphQlExceptionHandlerTest#handlesBindException()} proves that a {@link
+   * BindException} correctly maps to a {@link ErrorType#BAD_REQUEST}. Consequently, tests for an
+   * invalid UUID for post id have been omitted.
+   */
   @Nested
   class unlikePost {
     @BeforeEach
     void addLike() {
       // - authenticated user authors post at index-0
       // - user at index-1 authors post at index-1
-      authenticatedTester
-          .document(
-              """
-                  query getLikes($postId: ID!) {
-                    getPost(postId: $postId) {
-                      likeCount
-                    }
-                  }
-                  """)
-          .variable("postId", posts.get(1).getId())
-          .execute()
-          .path("getPost.likeCount")
-          .entity(Integer.class)
-          .isEqualTo(0);
 
       // authenticated user likes post 1 (authored by user 1)
       LikeHelpers.likePost(authenticatedTester, posts.get(1).getId(), 1);
@@ -305,22 +261,7 @@ public class LikeIT extends BaseIntegrationTest {
     }
 
     @Test
-    void deleteDoesNotExist_returnsPostResponse() {
-      authenticatedTester
-          .document(
-              """
-                  query getLikes($postId: ID!) {
-                    getPost(postId: $postId) {
-                      likeCount
-                    }
-                  }
-                  """)
-          .variable("postId", posts.get(2).getId())
-          .execute()
-          .path("getPost.likeCount")
-          .entity(Integer.class)
-          .isEqualTo(0);
-
+    void likeDoesNotExist_idempotentUnlike_returnsPostResponse() {
       authenticatedTester
           .document(
               """

@@ -70,7 +70,7 @@ public class GlobalGraphQlExceptionHandlerTest {
   }
 
   @Test
-  void handlesBindException() {
+  public void handlesBindException() {
     FieldError fieldError =
         new FieldError(
             "object", "field", "not a valid UUID", false, null, null, "not a valid UUID");

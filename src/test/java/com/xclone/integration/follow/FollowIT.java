@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import com.xclone.exception.GlobalGraphQlExceptionHandlerTest;
 import com.xclone.follow.repository.FollowRepository;
 import com.xclone.integration.base.BaseIntegrationTest;
 import com.xclone.support.fixtures.UserFixtures;
@@ -22,7 +23,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.graphql.tester.AutoConfigureHttpGraphQlTester;
 import org.springframework.context.annotation.Import;
+import org.springframework.graphql.execution.ErrorType;
 import org.springframework.graphql.test.tester.HttpGraphQlTester;
+import org.springframework.validation.BindException;
 
 @AutoConfigureHttpGraphQlTester
 @Import(AuthHelpers.class)
@@ -54,6 +57,11 @@ public class FollowIT extends BaseIntegrationTest {
     followRepository.deleteAll();
   }
 
+  /**
+   * {@link GlobalGraphQlExceptionHandlerTest#handlesBindException()} proves that a {@link
+   * BindException} correctly maps to a {@link ErrorType#BAD_REQUEST}. Consequently, tests for an
+   * invalid UUID for post id have been omitted.
+   */
   @Nested
   class followUserTests {
     @Test
@@ -269,32 +277,6 @@ public class FollowIT extends BaseIntegrationTest {
     }
 
     @Test
-    void invalidUUID_returnsProtocolError() {
-      authenticatedTester
-          .document(
-              """
-                  mutation FollowUser($id: ID!) {
-                    followUser(userIdToFollow: $id) {
-                      code
-                      success
-                      user {
-                        id
-                      }
-                      errors {
-                        field
-                        message
-                      }
-                    }
-                  }
-                  """)
-          .variable("id", "not a valid UUID")
-          .execute()
-          .errors()
-          .filter(error -> "BAD_REQUEST".equals(error.getExtensions().get("classification")))
-          .expect(error -> error.getMessage().contains("not a valid UUID"));
-    }
-
-    @Test
     void invalidUserId_returnsFieldError() {
       UserResponse followResponse =
           authenticatedTester
@@ -330,6 +312,11 @@ public class FollowIT extends BaseIntegrationTest {
     }
   }
 
+  /**
+   * {@link GlobalGraphQlExceptionHandlerTest#handlesBindException()} proves that a {@link
+   * BindException} correctly maps to a {@link ErrorType#BAD_REQUEST}. Consequently, tests for an
+   * invalid UUID for post id have been omitted.
+   */
   @Nested
   class unfollowUserTests {
     User authenticatedUser;
@@ -507,32 +494,6 @@ public class FollowIT extends BaseIntegrationTest {
                       }
                       """,
                   userToUnfollow.getId()));
-    }
-
-    @Test
-    void invalidUUID_returnsProtocolError() {
-      authenticatedTester
-          .document(
-              """
-                  mutation UnfollowUser($id: ID!) {
-                    unfollowUser(userIdToUnfollow: $id) {
-                      code
-                      success
-                      user {
-                        id
-                      }
-                      errors {
-                        field
-                        message
-                      }
-                    }
-                  }
-                  """)
-          .variable("id", "not a valid UUID")
-          .execute()
-          .errors()
-          .filter(error -> "BAD_REQUEST".equals(error.getExtensions().get("classification")))
-          .expect(error -> error.getMessage().contains("not a valid UUID"));
     }
 
     @Test
