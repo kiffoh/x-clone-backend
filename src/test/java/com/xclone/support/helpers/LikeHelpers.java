@@ -41,6 +41,8 @@ public class LikeHelpers {
    * <p>The user id associated with the like comes from the access token as part of the {@code
    * authenticatedTester}.
    *
+   * @param authenticatedTester graphql tester with a valid access token attached in the
+   *     authorization headers
    * @param postId unique identifier of the post to like
    * @param numberOfLikes amount of likes to assert the queried post has
    */
