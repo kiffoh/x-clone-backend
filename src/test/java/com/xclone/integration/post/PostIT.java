@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.xclone.common.enums.Status;
 import com.xclone.common.mutation.DeleteResponse;
+import com.xclone.exception.GlobalGraphQlExceptionHandlerTest;
 import com.xclone.exception.dto.FieldError;
 import com.xclone.follow.repository.FollowRepository;
 import com.xclone.integration.base.BaseIntegrationTest;
@@ -36,7 +37,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.graphql.tester.AutoConfigureHttpGraphQlTester;
 import org.springframework.context.annotation.Import;
+import org.springframework.graphql.execution.ErrorType;
 import org.springframework.graphql.test.tester.HttpGraphQlTester;
+import org.springframework.validation.BindException;
 
 @AutoConfigureHttpGraphQlTester
 @Import(AuthHelpers.class)
@@ -83,6 +86,11 @@ public class PostIT extends BaseIntegrationTest {
     userRepository.deleteAll();
   }
 
+  /**
+   * {@link GlobalGraphQlExceptionHandlerTest#handlesBindException()} proves that a {@link
+   * BindException} correctly maps to a {@link ErrorType#BAD_REQUEST}. Consequently, tests for an
+   * invalid UUID for post id have been omitted.
+   */
   @Nested
   class getPostTests {
     @Test
@@ -131,27 +139,6 @@ public class PostIT extends BaseIntegrationTest {
           .path("getPost.author.id")
           .entity(UUID.class)
           .isEqualTo(users.get(1).getId());
-    }
-
-    @Test
-    void getPost_invalidUuid_returnsBindException() {
-      authenticatedTester
-          .document(
-              """
-                  query GetPost($id: ID!) {
-                    getPost(postId: $id) {
-                      messageContent
-                      author {
-                        id
-                      }
-                    }
-                  }
-                  """)
-          .variable("id", "not a valid UUID")
-          .execute()
-          .errors()
-          .filter(error -> "BAD_REQUEST".equals(error.getExtensions().get("classification")))
-          .expect(error -> error.getMessage().contains("not a valid UUID"));
     }
 
     @Test
@@ -501,6 +488,11 @@ public class PostIT extends BaseIntegrationTest {
     }
   }
 
+  /**
+   * {@link GlobalGraphQlExceptionHandlerTest#handlesBindException()} proves that a {@link
+   * BindException} correctly maps to a {@link ErrorType#BAD_REQUEST}. Consequently, tests for an
+   * invalid UUID for post id have been omitted.
+   */
   @Nested
   class updatePostContentTests {
     @Test
@@ -616,55 +608,13 @@ public class PostIT extends BaseIntegrationTest {
           .extracting(FieldError::field, FieldError::message)
           .containsExactlyInAnyOrder(tuple("updatePostContent", "Post does not exist"));
     }
-
-    @Test
-    void invalidInput_invalidUuid_returnsErrors() {
-      String updatedPostContent = "new content";
-
-      authenticatedTester
-          .document(
-              """
-                  mutation UpdatePost($input: UpdatePostInput!) {
-                    updatePostContent(input: $input) {
-                      code
-                      success
-                      post {
-                        messageContent
-                      }
-                      errors {
-                        field
-                        message
-                      }
-                    }
-                  }
-                  """)
-          .variable("input", Map.of("id", "not a valid UUID", "messageContent", updatedPostContent))
-          .execute()
-          .errors()
-          .satisfy(
-              errors -> {
-                assertThat(errors).hasSize(2);
-
-                assertThat(errors)
-                    .anySatisfy(
-                        error -> {
-                          assertThat(error.getMessage()).contains("not a valid UUID");
-                          assertThat(error.getExtensions())
-                              .containsEntry("classification", "BAD_REQUEST");
-                        });
-                assertThat(errors)
-                    .anySatisfy(
-                        error -> {
-                          assertThat(error.getMessage())
-                              .contains("updatePostContent")
-                              .contains("returned a null value");
-                          assertThat(error.getExtensions())
-                              .containsEntry("classification", "NullValueInNonNullableField");
-                        });
-              });
-    }
   }
 
+  /**
+   * {@link GlobalGraphQlExceptionHandlerTest#handlesBindException()} proves that a {@link
+   * BindException} correctly maps to a {@link ErrorType#BAD_REQUEST}. Consequently, tests for an
+   * invalid UUID for post id have been omitted.
+   */
   @Nested
   class deletePostTests {
 
@@ -759,48 +709,6 @@ public class PostIT extends BaseIntegrationTest {
       assertThat(response.errors())
           .extracting(FieldError::field, FieldError::message)
           .containsExactlyInAnyOrder(tuple("deletePost", "Post does not exist"));
-    }
-
-    @Test
-    void invalidInput_invalidUuid_returnsErrors() {
-      authenticatedTester
-          .document(
-              """
-                  mutation DeletePost($id: ID!) {
-                    deletePost(postId: $id) {
-                      code
-                      success
-                      errors {
-                        field
-                        message
-                      }
-                    }
-                  }
-                  """)
-          .variable("id", "not a valid UUID")
-          .execute()
-          .errors()
-          .satisfy(
-              errors -> {
-                assertThat(errors).hasSize(2);
-
-                assertThat(errors)
-                    .anySatisfy(
-                        error -> {
-                          assertThat(error.getMessage()).contains("not a valid UUID");
-                          assertThat(error.getExtensions())
-                              .containsEntry("classification", "BAD_REQUEST");
-                        });
-                assertThat(errors)
-                    .anySatisfy(
-                        error -> {
-                          assertThat(error.getMessage())
-                              .contains("deletePost")
-                              .contains("returned a null value");
-                          assertThat(error.getExtensions())
-                              .containsEntry("classification", "NullValueInNonNullableField");
-                        });
-              });
     }
   }
 

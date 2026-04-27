@@ -18,13 +18,17 @@ type PageInfo {
     startCursor: String
     endCursor: String
 }
-
+"""
+A paginated list of connected posts
+"""
 type PostConnection {
     edges: [PostEdge!]!
     pageInfo: PageInfo!
     totalCount: Int
 }
-
+"""
+A paginated edge wrapping a Post node with its cursor position
+"""
 type PostEdge {
     node: Post!
     cursor: String!
@@ -37,7 +41,6 @@ type UserConnection {
     edges: [UserEdge!]!
     pageInfo: PageInfo!
 }
-
 """
 A paginated edge wrapping a User node with its cursor position
 """

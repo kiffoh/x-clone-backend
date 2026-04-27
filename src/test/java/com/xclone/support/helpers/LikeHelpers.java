@@ -7,6 +7,8 @@ import com.xclone.support.fixtures.LikeFixtures;
 import com.xclone.user.model.entity.User;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
+import org.springframework.graphql.test.tester.HttpGraphQlTester;
 
 public class LikeHelpers {
   /**
@@ -30,5 +32,41 @@ public class LikeHelpers {
       likes.add(savedLike);
     }
     return likes;
+  }
+
+  /**
+   * Triggers the {@code likePost} mutation for the queried post id and asserts a successful
+   * response with the queried {@code numberOfLikes}.
+   *
+   * <p>The user id associated with the like comes from the access token as part of the {@code
+   * authenticatedTester}.
+   *
+   * @param authenticatedTester graphql tester with a valid access token attached in the
+   *     authorization headers
+   * @param postId unique identifier of the post to like
+   * @param numberOfLikes amount of likes to assert the queried post has
+   */
+  public static void likePost(
+      HttpGraphQlTester authenticatedTester, UUID postId, Integer numberOfLikes) {
+    authenticatedTester
+        .document(
+            """
+                mutation AddLike($postId: ID!) {
+                  likePost(postId: $postId) {
+                    code
+                    post {
+                      likeCount
+                    }
+                  }
+                }
+                """)
+        .variable("postId", postId)
+        .execute()
+        .path("likePost.code")
+        .entity(String.class)
+        .isEqualTo("201")
+        .path("likePost.post.likeCount")
+        .entity(Integer.class)
+        .isEqualTo(numberOfLikes);
   }
 }

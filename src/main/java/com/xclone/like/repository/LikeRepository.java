@@ -46,4 +46,6 @@ public interface LikeRepository extends JpaRepository<Like, UUID> {
       @Param("cursorCreatedAt") Instant cursorCreatedAt,
       @Param("cursorId") UUID cursorId,
       Pageable pageable);
+
+  void deleteLikeByPostIdAndUserId(UUID postId, UUID userId);
 }

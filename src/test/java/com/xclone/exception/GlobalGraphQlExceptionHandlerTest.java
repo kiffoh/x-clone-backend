@@ -69,8 +69,11 @@ public class GlobalGraphQlExceptionHandlerTest {
                 Map.of("field", "handle")));
   }
 
+  /**
+   * Test is public to allow external reference as to why bind exception tests are omitted from ITs.
+   */
   @Test
-  void handlesBindException() {
+  public void handlesBindException() {
     FieldError fieldError =
         new FieldError(
             "object", "field", "not a valid UUID", false, null, null, "not a valid UUID");

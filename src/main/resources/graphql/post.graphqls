@@ -12,15 +12,13 @@ type Post {
     author: User!
     # TODO - update schema when media introduced
     """
-    Text content of a post.
+    Text content of this post.
 
     Optional as the text content is null for pure reposts.
 
     Size has a maximum length of 280 characters.
     """
     messageContent: String
-
-    # Core fields
     """
     Datetime of post creation.
     """
@@ -29,10 +27,18 @@ type Post {
     Datetime of last post update.
     """
     updatedAt: DateTime!
-
     # Likes functionality
+    """
+    Amount of likes that this post has.
+    """
     likeCount: Int!
+    """
+    {@code true} if the authenticated user likes this post.
+    """
     likedByMe: Boolean!
+    """
+    Paginated list of users which like this post.
+    """
     likes(first: Int = 5, after: String): UserConnection!
 
     # Comments functionality
@@ -101,10 +107,18 @@ extend type Mutation {
     Authentication: Required (the authenticated user can delete their own posts)
     """
     deletePost(postId: ID!): DeleteResponse!
+    """
+    Add a like to the post.
 
-    # Likes
-    likePost(input: UpdatePostLikesInput): PostResponse!
-    unlikePost(input: UpdatePostLikesInput): PostResponse!
+    Authentication: Required
+    """
+    likePost(postId: ID!): PostResponse!
+    """
+    Removes a like from the post.
+
+    Authentication: Required
+    """
+    unlikePost(postId: ID!): PostResponse!
 }
 
 """
