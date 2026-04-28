@@ -41,6 +41,12 @@ public class ReplyService {
     return new PostConnection(edges, pageInfo);
   }
 
+  /**
+   * Fetches the {@link PostProfile} for each valid and active queried post ids.
+   *
+   * @param parentIds unique identifiers of each parent post
+   * @return a list of posts
+   */
   public List<PostProfile> getPostParents(List<UUID> parentIds) {
     return postRepository.findAllActiveParents(parentIds).stream()
         .map(Post::toPostProfile)
