@@ -1186,4 +1186,53 @@ public class PostIT extends BaseIntegrationTest {
       }
     }
   }
+
+  @Nested
+  class replyTests {
+    @Nested
+    class parentTests {
+      // Do I want to do a nested reply test?
+      @Test
+      void validPostChain_returnsParentForSingularReply() {}
+
+      @Test
+      void validPostChain_returnsParentForMultipleReplies() {}
+
+      @Test
+      void postHasNoParent_returnsNull() {}
+
+      @Test
+      void parentIsDeleted_returnsNull() {}
+    }
+
+    @Nested
+    class replyCountTests {
+      @Test
+      void fetchingIndividualReply_noReplies() {}
+
+      @Test
+      void fetchingIndividualReply_hasReplies() {}
+
+      @Test
+      void fetchingIndividualReply_hasRepliesFromDeletedReplies() {}
+
+      @Test
+      void fetchingFeed_eachPostHasReplyCount() {}
+    }
+
+    @Nested
+    class repliesTests {
+      @Test
+      void noReplies_returnsEmptyPostConnection() {}
+
+      @Test
+      void hasReplies_NoCursor_returnsPostConnection() {}
+
+      @Test
+      void hasReplies_WithValidCursor_returnsPostConnection() {}
+
+      @Test
+      void hasDeletedReplies_returnsPostConnection() {}
+    }
+  }
 }
