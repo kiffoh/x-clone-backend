@@ -43,8 +43,8 @@ type Post {
 
     # Comments functionality
     parent: Post
-    comments(first: Int, after: String): PostConnection!
-    commentCount: Int!
+    replyCount: Int!
+    replies(first: Int = 10, after: String): PostConnection!
 
     # Repost functionality
     # Idea here was to separate between when somebody reposts with a comment (quote) vs a simple repost

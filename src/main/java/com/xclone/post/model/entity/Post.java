@@ -61,6 +61,13 @@ public class Post {
   @Column(nullable = false)
   private Status status = Status.ACTIVE;
 
+  @Column(name = "parent_id")
+  private UUID parentId;
+
+  @JoinColumn(name = "parent_id", insertable = false, updatable = false)
+  @ManyToOne(fetch = FetchType.LAZY)
+  private Post parent;
+
   /**
    * Projects this entity to a {@link PostProfile} for use in GraphQL responses. Timestamps are
    * converted from {@link Instant} to {@link OffsetDateTime} at UTC.
@@ -72,6 +79,7 @@ public class Post {
         id,
         authorId,
         messageContent,
+        parentId,
         createdAt.atOffset(ZoneOffset.UTC),
         updatedAt.atOffset(ZoneOffset.UTC));
   }

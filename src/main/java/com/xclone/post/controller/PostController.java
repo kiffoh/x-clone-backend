@@ -12,6 +12,8 @@ import com.xclone.post.dto.mutation.PostResponse;
 import com.xclone.post.dto.request.CreatePostInput;
 import com.xclone.post.dto.request.UpdatePostInput;
 import com.xclone.post.service.PostService;
+import com.xclone.reply.dto.ReplyCount;
+import com.xclone.reply.service.ReplyService;
 import com.xclone.security.jwt.JwtAuthenticationFilter;
 import com.xclone.security.user.CustomUserDetails;
 import com.xclone.user.dto.UserProfile;
@@ -40,11 +42,17 @@ public class PostController {
   private final PostService postService;
   private final UserService userService;
   private final LikeService likeService;
+  private final ReplyService replyService;
 
-  public PostController(PostService postService, UserService userService, LikeService likeService) {
+  public PostController(
+      PostService postService,
+      UserService userService,
+      LikeService likeService,
+      ReplyService replyService) {
     this.postService = postService;
     this.userService = userService;
     this.likeService = likeService;
+    this.replyService = replyService;
   }
 
   /**
@@ -121,6 +129,62 @@ public class PostController {
     CustomUserDetails userDetails =
         (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     return likeService.getUsersThatLikedPost(userDetails.getId(), post, first, after);
+  }
+
+  /**
+   * Fetches the parent post for each queried post.
+   *
+   * <p>The parent is null if the post is first in the post chain.
+   *
+   * @param posts list of {@link PostProfile} entities
+   * @return each post mapped to its parent post or null
+   */
+  @BatchMapping(typeName = "Post", field = "parent")
+  public Map<PostProfile, PostProfile> parent(List<PostProfile> posts) {
+    List<UUID> parentPostIds = posts.stream().map(PostProfile::parentId).toList();
+    List<PostProfile> parents = replyService.getPostParents(parentPostIds);
+    Map<UUID, PostProfile> parentIdToPostProfile =
+        parents.stream().collect(Collectors.toMap(PostProfile::parentId, Function.identity()));
+
+    return posts.stream()
+        .collect(
+            Collectors.toMap(
+                Function.identity(),
+                child -> parentIdToPostProfile.getOrDefault(child.parentId(), null)));
+  }
+
+  /**
+   * Retrieves the direct reply count for each post.
+   *
+   * @param posts list of posts
+   * @return a map of each post and its respective reply count
+   */
+  @BatchMapping(typeName = "Post", field = "replyCount")
+  public Map<PostProfile, Integer> replyCount(List<PostProfile> posts) {
+    List<UUID> postIds = posts.stream().map(PostProfile::id).toList();
+    List<ReplyCount> replyCounts = replyService.getReplyCounts(postIds);
+    Map<UUID, Integer> replyCountPerPost =
+        replyCounts.stream()
+            .collect(Collectors.toMap(ReplyCount::postId, ReplyCount::numberOfReplies));
+
+    return posts.stream()
+        .collect(
+            Collectors.toMap(
+                Function.identity(), post -> replyCountPerPost.getOrDefault(post.id(), 0)));
+  }
+
+  /**
+   * Fetches the direct replies for the queried post.
+   *
+   * @param post parent post
+   * @param first optional number of posts; defaults to 10 in graphql schema
+   * @param after optional cursor for cursor-pagination
+   * @return a paginated list of posts sorted descendingly by creation date TODO: update sort order
+   *     to be most interacted with first
+   */
+  @SchemaMapping(typeName = "Post", field = "replies")
+  public PostConnection replies(PostProfile post, @Argument Integer first, @Argument String after) {
+    return replyService.getReplies(post.id(), first, after);
   }
 
   /**
