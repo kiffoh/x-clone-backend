@@ -9,6 +9,7 @@ import com.xclone.post.model.entity.Post;
 import com.xclone.post.repository.PostRepository;
 import com.xclone.reply.dto.ReplyCount;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -42,15 +43,14 @@ public class ReplyService {
   }
 
   /**
-   * Fetches the {@link PostProfile} for each valid and active queried post ids.
+   * Fetches the {@link PostProfile} for a valid and active parent.
    *
-   * @param parentIds unique identifiers of each parent post
-   * @return a list of posts
+   * @param parentId unique identifier of the parent post
+   * @return a post
    */
-  public List<PostProfile> getPostParents(List<UUID> parentIds) {
-    return postRepository.findAllActiveParents(parentIds).stream()
-        .map(Post::toPostProfile)
-        .toList();
+  public PostProfile getParent(UUID parentId) {
+    Optional<Post> post = postRepository.findActivePostById(parentId);
+    return post.map(Post::toPostProfile).orElse(null);
   }
 
   /**

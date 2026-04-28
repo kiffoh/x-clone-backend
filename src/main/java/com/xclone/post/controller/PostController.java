@@ -132,25 +132,16 @@ public class PostController {
   }
 
   /**
-   * Fetches the parent post for each queried post.
+   * Fetches the parent post for the queried post.
    *
-   * <p>The parent is null if the post is first in the post chain.
+   * <p>The parent is null if the post is the original post in the post chain.
    *
-   * @param posts list of {@link PostProfile} entities
-   * @return each post mapped to its parent post or null
+   * @param post {@link PostProfile} entity
+   * @return the parent post or null
    */
-  @BatchMapping(typeName = "Post", field = "parent")
-  public Map<PostProfile, PostProfile> parent(List<PostProfile> posts) {
-    List<UUID> parentPostIds = posts.stream().map(PostProfile::parentId).toList();
-    List<PostProfile> parents = replyService.getPostParents(parentPostIds);
-    Map<UUID, PostProfile> parentIdToPostProfile =
-        parents.stream().collect(Collectors.toMap(PostProfile::parentId, Function.identity()));
-
-    return posts.stream()
-        .collect(
-            Collectors.toMap(
-                Function.identity(),
-                child -> parentIdToPostProfile.getOrDefault(child.parentId(), null)));
+  @SchemaMapping(typeName = "Post", field = "parent")
+  public PostProfile parent(PostProfile post) {
+    return replyService.getParent(post.parentId());
   }
 
   /**

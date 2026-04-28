@@ -6,6 +6,7 @@ import com.xclone.support.fixtures.PostFixtures;
 import com.xclone.user.model.entity.User;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class PostHelpers {
   /**
@@ -25,6 +26,28 @@ public class PostHelpers {
     List<Post> posts = new ArrayList<>();
     for (int i = 0; i < messageContents.size(); i++) {
       Post post = PostFixtures.createPostWithContent(messageContents.get(i), authors.get(i));
+      Post savedPost = postRepository.save(post);
+      posts.add(savedPost);
+    }
+    return posts;
+  }
+
+  public static List<Post> seedReplies(
+      List<String> messageContents,
+      List<User> authors,
+      List<Integer> parentIndexes,
+      PostRepository postRepository) {
+    if ((messageContents.size() != authors.size())
+        && (messageContents.size() != parentIndexes.size())) {
+      throw new IllegalArgumentException(
+          "messageContents, authors and postIndexes must be the same length");
+    }
+    List<Post> posts = new ArrayList<>();
+    for (int i = 0; i < messageContents.size(); i++) {
+      UUID parentId =
+          (parentIndexes.get(i) == null) ? null : posts.get(parentIndexes.get(i)).getId();
+      Post post =
+          PostFixtures.createReplyWithContent(messageContents.get(i), authors.get(i), parentId);
       Post savedPost = postRepository.save(post);
       posts.add(savedPost);
     }

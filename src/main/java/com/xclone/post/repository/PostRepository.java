@@ -4,6 +4,7 @@ import com.xclone.post.model.entity.Post;
 import com.xclone.reply.dto.ReplyCount;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -87,15 +88,15 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
   List<Post> findAllByAuthorId(UUID userId);
 
   @Query(
-      "select new com.xclone.comment.dto.ReplyCount(p.parentId, count(p)) from Post p"
+      "select new com.xclone.reply.dto.ReplyCount(p.parentId, count(p)) from Post p"
           + " where p.status = com.xclone.common.enums.Status.ACTIVE"
           + " and p.parentId in :parentIds group by p.parentId")
   List<ReplyCount> findAllReplyCountsByParentIds(@Param("parentIds") List<UUID> postIds);
 
   @Query(
-      "select p from Post p where p.id in :parentIds"
+      "select p from Post p where p.id = :postId"
           + " and p.status = com.xclone.common.enums.Status.ACTIVE")
-  List<Post> findAllActiveParents(@Param("parentIds") List<UUID> parentIds);
+  Optional<Post> findActivePostById(@Param("postId") UUID postId);
 
   @Query(
       "select p from Post p where p.parentId = :parentId"
