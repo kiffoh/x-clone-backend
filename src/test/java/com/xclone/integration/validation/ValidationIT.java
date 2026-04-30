@@ -257,4 +257,48 @@ public class ValidationIT extends BaseAuthIntegrationTest {
               tuple("updateUserInput", "UpdateUserInput must have at least one field"));
     }
   }
+
+  @Nested
+  public class malformedCursorTests {
+    User authenticatedUser;
+    String accessToken;
+
+    @BeforeEach
+    void setup() {
+      userRepository.deleteAll();
+      authenticatedUser = userRepository.save(UserFixtures.createUserWithHandle("example1"));
+      accessToken = authHelpers.getUserAccessToken(authenticatedUser.getId().toString());
+    }
+
+    // Helpers
+    private HttpGraphQlTester authenticatedTester() {
+      return graphQlTester.mutate().headers(headers -> headers.setBearerAuth(accessToken)).build();
+    }
+
+    @Test
+    void paginationWithMalformedAfter_returnsProtocolError() {
+      String malformedAfter = "not-base64!";
+      // Act
+      authenticatedTester()
+          .document(
+              """
+                  query getFollowers($after: String) {
+                    me {
+                      followers(first: 1, after: $after) {
+                        edges {
+                          node {
+                            id
+                          }
+                        }
+                      }
+                    }
+                  }
+                  """)
+          .variable("after", malformedAfter)
+          .execute()
+          .errors()
+          .filter(error -> "BAD_REQUEST".equals(error.getExtensions().get("classification")))
+          .expect(error -> error.getMessage().contains("Malformed cursor"));
+    }
+  }
 }

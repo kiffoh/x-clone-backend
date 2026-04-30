@@ -725,6 +725,10 @@ public class UserIT extends BaseIntegrationTest {
     }
   }
 
+  /**
+   * Tests for pagination with a malformed cursor are covered in {@link
+   * com.xclone.integration.validation.ValidationIT.malformedCursorTests}.
+   */
   @Nested
   class postMappingTests {
     @Autowired PostRepository postRepository;
@@ -909,36 +913,12 @@ public class UserIT extends BaseIntegrationTest {
           .entity(Boolean.class)
           .isEqualTo(false);
     }
-
-    @Test
-    void paginationWithMalformedAfter_returnsProtocolError() {
-      createPostsForAuthenticatedUser();
-
-      String malformedAfter = "not-base64!";
-      // Act + Assert
-      authenticatedTester()
-          .document(
-              """
-                  query getPosts($after: String) {
-                    me {
-                      posts(first: 1, after: $after) {
-                        edges {
-                          node {
-                            id
-                          }
-                        }
-                      }
-                    }
-                  }
-                  """)
-          .variable("after", malformedAfter)
-          .execute()
-          .errors()
-          .filter(error -> "BAD_REQUEST".equals(error.getExtensions().get("classification")))
-          .expect(error -> error.getMessage().contains("Malformed cursor"));
-    }
   }
 
+  /**
+   * Tests for pagination with a malformed cursor are covered in {@link
+   * com.xclone.integration.validation.ValidationIT.malformedCursorTests}.
+   */
   @Nested
   class followMappingTests {
     @Autowired FollowRepository followRepository;
@@ -1093,32 +1073,6 @@ public class UserIT extends BaseIntegrationTest {
         assertThat(secondPage.edges().getFirst().cursor())
             .isEqualTo(secondPage.pageInfo().endCursor());
         assertFalse(secondPage.pageInfo().hasNextPage());
-      }
-
-      @Test
-      void paginationWithMalformedAfter_returnsProtocolError() {
-        String malformedAfter = "not-base64!";
-        // Act
-        authenticatedTester()
-            .document(
-                """
-                    query getFollowing($after: String) {
-                      me {
-                        following(first: 1, after: $after) {
-                          edges {
-                            node {
-                              id
-                            }
-                          }
-                        }
-                      }
-                    }
-                    """)
-            .variable("after", malformedAfter)
-            .execute()
-            .errors()
-            .filter(error -> "BAD_REQUEST".equals(error.getExtensions().get("classification")))
-            .expect(error -> error.getMessage().contains("Malformed cursor"));
       }
 
       @Test
@@ -1305,32 +1259,6 @@ public class UserIT extends BaseIntegrationTest {
         assertThat(secondPage.edges().getFirst().cursor())
             .isEqualTo(secondPage.pageInfo().endCursor());
         assertFalse(secondPage.pageInfo().hasNextPage());
-      }
-
-      @Test
-      void paginationWithMalformedAfter_returnsProtocolError() {
-        String malformedAfter = "not-base64!";
-        // Act
-        authenticatedTester()
-            .document(
-                """
-                    query getFollowers($after: String) {
-                      me {
-                        followers(first: 1, after: $after) {
-                          edges {
-                            node {
-                              id
-                            }
-                          }
-                        }
-                      }
-                    }
-                    """)
-            .variable("after", malformedAfter)
-            .execute()
-            .errors()
-            .filter(error -> "BAD_REQUEST".equals(error.getExtensions().get("classification")))
-            .expect(error -> error.getMessage().contains("Malformed cursor"));
       }
 
       @Test

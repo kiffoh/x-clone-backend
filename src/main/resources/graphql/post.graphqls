@@ -41,10 +41,21 @@ type Post {
     """
     likes(first: Int = 5, after: String): UserConnection!
 
-    # Comments functionality
+    # Reply functionality
+    """
+    Parent post that this post replied to.
+
+    Null for posts with no parent (e.g. original posts in a reply chain).
+    """
     parent: Post
-    comments(first: Int, after: String): PostConnection!
-    commentCount: Int!
+    """
+    Amount of replies that this post has.
+    """
+    replyCount: Int!
+    """
+    Paginated list of posts which replied to this post.
+    """
+    replies(first: Int = 10, after: String): PostConnection!
 
     # Repost functionality
     # Idea here was to separate between when somebody reposts with a comment (quote) vs a simple repost

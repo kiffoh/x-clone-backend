@@ -1,8 +1,10 @@
 package com.xclone.post.repository;
 
 import com.xclone.post.model.entity.Post;
+import com.xclone.reply.dto.ReplyCount;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -18,6 +20,9 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
   /**
    * Gets first page of feed.
    *
+   * <p>A null parent id corresponds to the first post in that post thread. TODO: Update comment
+   * when quotes are introduced.
+   *
    * @param userId excluded from results even if present in followingIds
    * @param followingIds IDs of users whose posts are included in the feed
    * @param pageable page size for the query
@@ -26,6 +31,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
       "select p from Post p join p.author a"
           + " where a.status = com.xclone.user.model.enums.UserStatus.ACTIVE"
           + " and p.status = com.xclone.common.enums.Status.ACTIVE"
+          + " and p.parentId is null"
           + " and p.authorId <> :userId"
           + " and p.authorId in :followingIds"
           + " order by p.createdAt desc, p.id asc")
@@ -37,6 +43,9 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
   /**
    * Gets next page of feed after the cursor.
    *
+   * <p>A null parent id corresponds to the first post in that post thread. TODO: Update comment
+   * when quotes are introduced.
+   *
    * @param userId excluded from results even if present in followingIds
    * @param followingIds IDs of users whose posts are included in the feed
    * @param cursorId id to query after
@@ -47,6 +56,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
       "select p from Post p join p.author a"
           + " where a.status = com.xclone.user.model.enums.UserStatus.ACTIVE"
           + " and p.status = com.xclone.common.enums.Status.ACTIVE"
+          + " and p.parentId is null"
           + " and p.authorId <> :userId"
           + " and p.authorId in :followingIds"
           + " and ((p.createdAt < :cursorCreatedAt)"
@@ -84,4 +94,33 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
   void softDeleteAllByUserId(@Param("userId") UUID userId);
 
   List<Post> findAllByAuthorId(UUID userId);
+
+  @Query(
+      "select new com.xclone.reply.dto.ReplyCount(p.parentId, count(p)) from Post p"
+          + " where p.status = com.xclone.common.enums.Status.ACTIVE"
+          + " and p.parentId in :parentIds group by p.parentId")
+  List<ReplyCount> findAllReplyCountsByParentIds(@Param("parentIds") List<UUID> postIds);
+
+  @Query(
+      "select p from Post p where p.id = :postId"
+          + " and p.status = com.xclone.common.enums.Status.ACTIVE")
+  Optional<Post> findActivePostById(@Param("postId") UUID postId);
+
+  @Query(
+      "select p from Post p where p.parentId = :parentId"
+          + " and p.status = com.xclone.common.enums.Status.ACTIVE"
+          + " order by p.createdAt desc, p.id asc")
+  Slice<Post> findFirstPageOfReplies(@Param("parentId") UUID postId, Pageable pageable);
+
+  @Query(
+      "select p from Post p where p.parentId = :parentId"
+          + " and p.status = com.xclone.common.enums.Status.ACTIVE"
+          + " and ((p.createdAt < :cursorCreatedAt)"
+          + " or (p.createdAt = :cursorCreatedAt and p.id > :cursorId))"
+          + " order by p.createdAt desc, p.id asc")
+  Slice<Post> findNextPageOfReplies(
+      @Param("parentId") UUID postId,
+      @Param("cursorCreatedAt") Instant cursorCreatedAt,
+      @Param("cursorId") UUID cursorId,
+      Pageable pageable);
 }

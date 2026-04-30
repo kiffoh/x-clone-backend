@@ -14,9 +14,11 @@ import com.xclone.follow.repository.FollowRepository;
 import com.xclone.integration.base.BaseIntegrationTest;
 import com.xclone.like.repository.LikeRepository;
 import com.xclone.post.dto.PostProfile;
+import com.xclone.post.dto.connection.PostEdge;
 import com.xclone.post.dto.mutation.PostResponse;
 import com.xclone.post.model.entity.Post;
 import com.xclone.post.repository.PostRepository;
+import com.xclone.support.fixtures.PostFixtures;
 import com.xclone.support.fixtures.UserFixtures;
 import com.xclone.support.helpers.AuthHelpers;
 import com.xclone.support.helpers.FollowHelpers;
@@ -27,10 +29,13 @@ import com.xclone.user.model.entity.User;
 import com.xclone.user.model.enums.UserStatus;
 import com.xclone.user.repository.UserRepository;
 import com.xclone.validation.ValidationConstants;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -1183,6 +1188,580 @@ public class PostIT extends BaseIntegrationTest {
             .path("getPost.likes.edges[*].node")
             .entityList(UserProfile.class)
             .hasSize(0);
+      }
+    }
+  }
+
+  @Nested
+  class replyTests {
+    @BeforeEach
+    void deletePosts() {
+      postRepository.deleteAll();
+    }
+
+    /**
+     * Posts are reassigned in each test suite. To not trigger a FK error when deleting, the posts
+     * are deleted from newest -> oldest.
+     */
+    @AfterEach
+    void deletePostsInDescendingOrder() {
+      for (int i = posts.size() - 1; i >= 0; i--) {
+        postRepository.delete(posts.get(i));
+      }
+    }
+
+    @Nested
+    class parentTests {
+      // Do I want to do a nested reply test?
+      // Save this for the getReplyChain
+      @BeforeEach
+      void setup() {
+        // parentIndexes corresponds to the index of the post;
+        List<Integer> parentIndexes = Arrays.asList(null, 0, null);
+        posts = PostHelpers.seedReplies(messageContents, users, parentIndexes, postRepository);
+        // Reply chain:
+        // null <- post 0 <- post 1
+      }
+
+      @Test
+      void validReply_returnsParentForSingularReply() {
+        // Reply chain:
+        // null <- post 0 <- post 1
+
+        authenticatedTester
+            .document(
+                """
+                    query GetParent($childId: ID!) {
+                      getPost(postId: $childId) {
+                        parent {
+                          id
+                        }
+                      }
+                    }
+                    """)
+            .variable("childId", posts.get(1).getId())
+            .execute()
+            .path("getPost.parent.id")
+            .entity(UUID.class)
+            .isEqualTo(posts.get(0).getId());
+      }
+
+      @Test
+      void postHasNoParent_returnsNull() {
+        // Reply chain:
+        // null <- post 0
+
+        authenticatedTester
+            .document(
+                """
+                    query GetParent($parentId: ID!) {
+                      getPost(postId: $parentId) {
+                        parent {
+                          id
+                        }
+                      }
+                    }
+                    """)
+            .variable("parentId", posts.get(0).getId())
+            .execute()
+            .path("getPost.parent")
+            .valueIsNull();
+      }
+
+      @Test
+      void parentIsDeleted_returnsNull() {
+        // Reply chain:
+        // null <- post 0 <- post 1
+        authenticatedTester
+            .document(
+                """
+                    query GetParent($childId: ID!) {
+                      getPost(postId: $childId) {
+                        parent {
+                          id
+                        }
+                      }
+                    }
+                    """)
+            .variable("childId", posts.get(1).getId())
+            .execute()
+            .path("getPost.parent.id")
+            .entity(UUID.class)
+            .isEqualTo(posts.get(0).getId());
+        // Reply chain:
+        // null <- post 0 X post 1
+        Post parent = posts.get(0);
+        parent.setStatus(Status.DELETED);
+        postRepository.saveAndFlush(parent);
+
+        authenticatedTester
+            .document(
+                """
+                    query GetParent($childId: ID!) {
+                      getPost(postId: $childId) {
+                        parent {
+                          id
+                        }
+                      }
+                    }
+                    """)
+            .variable("childId", posts.get(1).getId())
+            .execute()
+            .path("getPost.parent")
+            .valueIsNull();
+      }
+    }
+
+    @Nested
+    class replyCountTests {
+      @BeforeEach
+      void setup() {
+        // parentIndexes corresponds to the index of the post;
+        List<Integer> parentIndexes = Arrays.asList(null, 0, 0);
+        posts = PostHelpers.seedReplies(messageContents, users, parentIndexes, postRepository);
+        // Reply chain:
+        //                post 1
+        //               /
+        // null - Post 0
+        //               \
+        //                post 2
+      }
+
+      @Test
+      void fetchingIndividualReply_noReplies() {
+        // Reply chain:
+        //                post 1
+        //               /
+        // null - Post 0
+        //               \
+        //                post 2
+
+        authenticatedTester
+            .document(
+                """
+                    query GetParent($parentId: ID!) {
+                      getPost(postId: $parentId) {
+                        replyCount
+                      }
+                    }
+                    """)
+            .variable("parentId", posts.get(1).getId())
+            .execute()
+            .path("getPost.replyCount")
+            .entity(Integer.class)
+            .isEqualTo(0);
+      }
+
+      @Test
+      void fetchingIndividualReply_hasReplies() {
+        // Reply chain:
+        //                post 1
+        //               /
+        // null - Post 0
+        //               \
+        //                post 2
+
+        authenticatedTester
+            .document(
+                """
+                    query GetParent($parentId: ID!) {
+                      getPost(postId: $parentId) {
+                        replyCount
+                      }
+                    }
+                    """)
+            .variable("parentId", posts.get(0).getId())
+            .execute()
+            .path("getPost.replyCount")
+            .entity(Integer.class)
+            .isEqualTo(2);
+      }
+
+      @Test
+      void fetchingIndividualReply_hasRepliesFromDeletedReplies() {
+        // Reply chain:
+        //                post 1
+        //               /
+        // null - Post 0
+        //               \
+        //                post 2
+        authenticatedTester
+            .document(
+                """
+                    query GetParent($parentId: ID!) {
+                      getPost(postId: $parentId) {
+                        replyCount
+                      }
+                    }
+                    """)
+            .variable("parentId", posts.get(0).getId())
+            .execute()
+            .path("getPost.replyCount")
+            .entity(Integer.class)
+            .isEqualTo(2);
+        // Reply chain:
+        //                post 1
+        //               X
+        // null - Post 0
+        //               \
+        //                post 2
+        Post child1 = posts.get(1);
+        child1.setStatus(Status.DELETED);
+        postRepository.saveAndFlush(child1);
+
+        authenticatedTester
+            .document(
+                """
+                    query GetParent($parentId: ID!) {
+                      getPost(postId: $parentId) {
+                        replyCount
+                      }
+                    }
+                    """)
+            .variable("parentId", posts.get(0).getId())
+            .execute()
+            .path("getPost.replyCount")
+            .entity(Integer.class)
+            .isEqualTo(1);
+      }
+
+      List<String> createPostContents(int numberOfPosts) {
+        return new ArrayList<>(PostFixtures.magpieRhyme.subList(0, numberOfPosts));
+      }
+
+      List<Post> createFeed() {
+        deletePostsInDescendingOrder();
+        // Reply chain:
+        //                post 3
+        //               /
+        // null - post 0
+        //               \
+        //                post 4
+        //
+        // null - post 1 - post 5
+        //
+        // null - post 2
+        int numberOfPosts = 6;
+        List<String> feedMessageContents = createPostContents(numberOfPosts);
+        return PostHelpers.seedReplies(
+            feedMessageContents,
+            // Original posts
+            List.of(
+                users.get(1),
+                users.get(2),
+                users.get(1),
+                // replies
+                users.get(0),
+                users.get(2),
+                users.get(1)),
+            Arrays.asList(
+                null,
+                null,
+                null,
+                // replies parent posts
+                0,
+                0,
+                1),
+            postRepository);
+      }
+
+      @Test
+      void fetchingFeed_eachPostHasReplyCount() {
+        // After setup: user 0 follows user 1 + user 2
+        FollowHelpers.seedFollow(followRepository, users.getFirst(), users.get(2));
+        posts = createFeed();
+        // Reply chain:
+        //                post 3
+        //               /
+        // null - post 0
+        //               \
+        //                post 4
+        //
+        // null - post 1 - post 5
+        //
+        // null - post 2
+
+        authenticatedTester
+            .document(
+                """
+                    {
+                      feed {
+                          edges {
+                            node {
+                              id
+                              replyCount
+                              parent {
+                                id
+                              }
+                            }
+                          }
+                      }
+                    }
+                    """)
+            .execute()
+            .path("feed.edges[*].node.id")
+            .entityList(UUID.class)
+            .satisfies(
+                ids -> {
+                  // Reply chain:
+                  //                post 3
+                  //               /
+                  // null - post 0
+                  //               \
+                  //                post 4
+                  //
+                  // null - post 1 - post 5
+                  //
+                  // null - post 2
+                  assertThat(ids).hasSize(3);
+
+                  // feed shows most recent posts first
+                  assertThat(ids.get(0)).isEqualTo(posts.get(2).getId());
+                  assertThat(ids.get(1)).isEqualTo(posts.get(1).getId());
+                  assertThat(ids.get(2)).isEqualTo(posts.get(0).getId());
+                })
+            .path("feed.edges[*].node.replyCount")
+            .entityList(Integer.class)
+            .satisfies(
+                replyCounts -> {
+                  // Reply chain:
+                  //                post 3
+                  //               /
+                  // null - post 0
+                  //               \
+                  //                post 4
+                  //
+                  // null - post 1 - post 5
+                  //
+                  // null - post 2
+                  assertThat(replyCounts).hasSize(3);
+
+                  // feed shows most recent posts first
+                  assertThat(replyCounts.get(0)).isEqualTo(0);
+                  assertThat(replyCounts.get(1)).isEqualTo(1);
+                  assertThat(replyCounts.get(2)).isEqualTo(2);
+                });
+      }
+    }
+
+    @Nested
+    class repliesTests {
+      @BeforeEach
+      void setup() {
+        // parentIndexes corresponds to the index of the post;
+        List<Integer> parentIndexes = Arrays.asList(null, 0, 0);
+        posts = PostHelpers.seedReplies(messageContents, users, parentIndexes, postRepository);
+        // Reply chain:
+        //                post 1
+        //               /
+        // null - Post 0
+        //               \
+        //                post 2
+      }
+
+      @Test
+      void noReplies_returnsEmptyPostConnection() {
+        // Reply chain:
+        //                post 1
+        //               /
+        // null - Post 0
+        //               \
+        //                post 2
+
+        authenticatedTester
+            .document(
+                """
+                    query GetParent($parentId: ID!) {
+                      getPost(postId: $parentId) {
+                        replies {
+                          edges {
+                            node {
+                              id
+                            }
+                          }
+                        }
+                      }
+                    }
+                    """)
+            .variable("parentId", posts.get(1).getId())
+            .execute()
+            .path("getPost.replies.edges[*]")
+            .entityList(PostEdge.class)
+            .hasSize(0);
+      }
+
+      @Test
+      void hasReplies_NoCursor_returnsPostConnection() {
+        // Reply chain:
+        //                post 1
+        //               /
+        // null - Post 0
+        //               \
+        //                post 2
+
+        authenticatedTester
+            .document(
+                """
+                    query GetParent($parentId: ID!) {
+                      getPost(postId: $parentId) {
+                        replies {
+                          edges {
+                            node {
+                              id
+                            }
+                          }
+                        }
+                      }
+                    }
+                    """)
+            .variable("parentId", posts.get(0).getId())
+            .execute()
+            .path("getPost.replies.edges[*].node")
+            .entityList(PostProfile.class)
+            .satisfies(
+                postProfiles -> {
+                  assertThat(postProfiles).hasSize(2);
+
+                  // Replies are sorted by creation date descendingly
+                  assertThat(postProfiles.getFirst().id()).isEqualTo(posts.get(2).getId());
+                  assertThat(postProfiles.getLast().id()).isEqualTo(posts.get(1).getId());
+                });
+      }
+
+      @Test
+      void hasReplies_WithValidCursor_returnsPostConnection() {
+        // Reply chain:
+        //                post 1
+        //               /
+        // null - Post 0
+        //               \
+        //                post 2
+
+        String endCursor =
+            authenticatedTester
+                .document(
+                    """
+                        query GetParent($parentId: ID!) {
+                          getPost(postId: $parentId) {
+                            replies(first: 1) {
+                              edges {
+                                node {
+                                  id
+                                }
+                              }
+                              pageInfo {
+                                hasNextPage
+                                endCursor
+                              }
+                            }
+                          }
+                        }
+                        """)
+                .variable("parentId", posts.get(0).getId())
+                .execute()
+                .path("getPost.replies.edges[0].node.id")
+                .entity(UUID.class)
+                // Replies are sorted by creation date descendingly
+                .isEqualTo(posts.get(2).getId())
+                .path("getPost.replies.pageInfo.hasNextPage")
+                .entity(Boolean.class)
+                .isEqualTo(true)
+                .path("getPost.replies.pageInfo.endCursor")
+                .entity(String.class)
+                .get();
+
+        authenticatedTester
+            .document(
+                """
+                    query GetParent($parentId: ID!, $cursor: String) {
+                      getPost(postId: $parentId) {
+                        replies(first: 1, after: $cursor) {
+                          edges {
+                            node {
+                              id
+                            }
+                          }
+                          pageInfo {
+                            hasNextPage
+                          }
+                        }
+                      }
+                    }
+                    """)
+            .variable("parentId", posts.get(0).getId())
+            .variable("cursor", endCursor)
+            .execute()
+            .path("getPost.replies.edges[0].node.id")
+            .entity(UUID.class)
+            // Replies are sorted by creation date descendingly
+            .isEqualTo(posts.get(1).getId())
+            .path("getPost.replies.pageInfo.hasNextPage")
+            .entity(Boolean.class)
+            .isEqualTo(false);
+      }
+
+      @Test
+      void hasDeletedReplies_returnsPostConnection() {
+        // Reply chain:
+        //                post 1
+        //               /
+        // null - Post 0
+        //               \
+        //                post 2
+        authenticatedTester
+            .document(
+                """
+                    query GetParent($parentId: ID!) {
+                      getPost(postId: $parentId) {
+                        replies {
+                          edges {
+                            node {
+                              id
+                            }
+                          }
+                        }
+                      }
+                    }
+                    """)
+            .variable("parentId", posts.get(0).getId())
+            .execute()
+            .path("getPost.replies.edges[*].node")
+            .entityList(PostProfile.class)
+            .hasSize(2);
+        // Reply chain:
+        //                post 1
+        //               X
+        // null - Post 0
+        //               \
+        //                post 2
+        Post child1 = posts.get(1);
+        child1.setStatus(Status.DELETED);
+        postRepository.saveAndFlush(child1);
+
+        authenticatedTester
+            .document(
+                """
+                    query GetParent($parentId: ID!) {
+                      getPost(postId: $parentId) {
+                        replies {
+                          edges {
+                            node {
+                              id
+                            }
+                          }
+                        }
+                      }
+                    }
+                    """)
+            .variable("parentId", posts.get(0).getId())
+            .execute()
+            .path("getPost.replies.edges[*].node")
+            .entityList(PostProfile.class)
+            .satisfies(
+                postProfiles -> {
+                  assertThat(postProfiles).hasSize(1);
+                  assertThat(postProfiles.getFirst().id()).isEqualTo(posts.get(2).getId());
+                });
       }
     }
   }

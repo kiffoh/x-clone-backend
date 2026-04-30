@@ -35,7 +35,13 @@ public class PostService {
     this.followService = followService;
   }
 
-  private PostConnection toPostConnection(Slice<Post> posts) {
+  /**
+   * Adds paginated metadata to each post and separate metadata about the context of the post.
+   *
+   * @param posts a list of posts
+   * @return a paginated list of posts
+   */
+  public static PostConnection toPostConnection(Slice<Post> posts) {
     List<PostEdge> edges =
         posts.stream()
             .map(

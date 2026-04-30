@@ -2,6 +2,7 @@ package com.xclone.post.model.entity;
 
 import com.xclone.common.enums.Status;
 import com.xclone.post.dto.PostProfile;
+import com.xclone.post.model.PostConstraintName;
 import com.xclone.user.model.entity.User;
 import com.xclone.validation.ValidationConstants;
 import jakarta.persistence.Column;
@@ -10,6 +11,7 @@ import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -61,6 +63,17 @@ public class Post {
   @Column(nullable = false)
   private Status status = Status.ACTIVE;
 
+  @Column(name = "parent_id")
+  private UUID parentId;
+
+  @JoinColumn(
+      name = "parent_id",
+      insertable = false,
+      updatable = false,
+      foreignKey = @ForeignKey(name = PostConstraintName.POST_PARENT_FK))
+  @ManyToOne(fetch = FetchType.LAZY)
+  private Post parent;
+
   /**
    * Projects this entity to a {@link PostProfile} for use in GraphQL responses. Timestamps are
    * converted from {@link Instant} to {@link OffsetDateTime} at UTC.
@@ -72,6 +85,7 @@ public class Post {
         id,
         authorId,
         messageContent,
+        parentId,
         createdAt.atOffset(ZoneOffset.UTC),
         updatedAt.atOffset(ZoneOffset.UTC));
   }
