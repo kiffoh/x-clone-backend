@@ -38,7 +38,7 @@ public class PostHelpers {
       List<Integer> parentIndexes,
       PostRepository postRepository) {
     if ((messageContents.size() != authors.size())
-        && (messageContents.size() != parentIndexes.size())) {
+        || (messageContents.size() != parentIndexes.size())) {
       throw new IllegalArgumentException(
           "messageContents, authors and postIndexes must be the same length");
     }

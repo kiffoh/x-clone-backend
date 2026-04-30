@@ -18,6 +18,7 @@ import com.xclone.post.dto.connection.PostEdge;
 import com.xclone.post.dto.mutation.PostResponse;
 import com.xclone.post.model.entity.Post;
 import com.xclone.post.repository.PostRepository;
+import com.xclone.support.fixtures.PostFixtures;
 import com.xclone.support.fixtures.UserFixtures;
 import com.xclone.support.helpers.AuthHelpers;
 import com.xclone.support.helpers.FollowHelpers;
@@ -28,6 +29,7 @@ import com.xclone.user.model.entity.User;
 import com.xclone.user.model.enums.UserStatus;
 import com.xclone.user.repository.UserRepository;
 import com.xclone.validation.ValidationConstants;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -1194,7 +1196,7 @@ public class PostIT extends BaseIntegrationTest {
   class replyTests {
     @AfterEach
     void deletePostsInDescendingOrder() {
-      for (int i = posts.size() - 1; i > 0; i--) {
+      for (int i = posts.size() - 1; i >= 0; i--) {
         postRepository.delete(posts.get(i));
       }
     }
@@ -1220,14 +1222,14 @@ public class PostIT extends BaseIntegrationTest {
         authenticatedTester
             .document(
                 """
-                query GetParent($childId: ID!) {
-                  getPost(postId: $childId) {
-                    parent {
-                      id
+                    query GetParent($childId: ID!) {
+                      getPost(postId: $childId) {
+                        parent {
+                          id
+                        }
+                      }
                     }
-                  }
-                }
-                """)
+                    """)
             .variable("childId", posts.get(1).getId())
             .execute()
             .path("getPost.parent.id")
@@ -1243,14 +1245,14 @@ public class PostIT extends BaseIntegrationTest {
         authenticatedTester
             .document(
                 """
-                query GetParent($parentId: ID!) {
-                  getPost(postId: $parentId) {
-                    parent {
-                      id
+                    query GetParent($parentId: ID!) {
+                      getPost(postId: $parentId) {
+                        parent {
+                          id
+                        }
+                      }
                     }
-                  }
-                }
-                """)
+                    """)
             .variable("parentId", posts.get(0).getId())
             .execute()
             .path("getPost.parent")
@@ -1264,14 +1266,14 @@ public class PostIT extends BaseIntegrationTest {
         authenticatedTester
             .document(
                 """
-                query GetParent($childId: ID!) {
-                  getPost(postId: $childId) {
-                    parent {
-                      id
+                    query GetParent($childId: ID!) {
+                      getPost(postId: $childId) {
+                        parent {
+                          id
+                        }
+                      }
                     }
-                  }
-                }
-                """)
+                    """)
             .variable("childId", posts.get(1).getId())
             .execute()
             .path("getPost.parent.id")
@@ -1286,14 +1288,14 @@ public class PostIT extends BaseIntegrationTest {
         authenticatedTester
             .document(
                 """
-                query GetParent($childId: ID!) {
-                  getPost(postId: $childId) {
-                    parent {
-                      id
+                    query GetParent($childId: ID!) {
+                      getPost(postId: $childId) {
+                        parent {
+                          id
+                        }
+                      }
                     }
-                  }
-                }
-                """)
+                    """)
             .variable("childId", posts.get(1).getId())
             .execute()
             .path("getPost.parent")
@@ -1328,12 +1330,12 @@ public class PostIT extends BaseIntegrationTest {
         authenticatedTester
             .document(
                 """
-                query GetParent($parentId: ID!) {
-                  getPost(postId: $parentId) {
-                    replyCount
-                  }
-                }
-                """)
+                    query GetParent($parentId: ID!) {
+                      getPost(postId: $parentId) {
+                        replyCount
+                      }
+                    }
+                    """)
             .variable("parentId", posts.get(1).getId())
             .execute()
             .path("getPost.replyCount")
@@ -1353,12 +1355,12 @@ public class PostIT extends BaseIntegrationTest {
         authenticatedTester
             .document(
                 """
-                query GetParent($parentId: ID!) {
-                  getPost(postId: $parentId) {
-                    replyCount
-                  }
-                }
-                """)
+                    query GetParent($parentId: ID!) {
+                      getPost(postId: $parentId) {
+                        replyCount
+                      }
+                    }
+                    """)
             .variable("parentId", posts.get(0).getId())
             .execute()
             .path("getPost.replyCount")
@@ -1377,12 +1379,12 @@ public class PostIT extends BaseIntegrationTest {
         authenticatedTester
             .document(
                 """
-                query GetParent($parentId: ID!) {
-                  getPost(postId: $parentId) {
-                    replyCount
-                  }
-                }
-                """)
+                    query GetParent($parentId: ID!) {
+                      getPost(postId: $parentId) {
+                        replyCount
+                      }
+                    }
+                    """)
             .variable("parentId", posts.get(0).getId())
             .execute()
             .path("getPost.replyCount")
@@ -1401,12 +1403,12 @@ public class PostIT extends BaseIntegrationTest {
         authenticatedTester
             .document(
                 """
-                query GetParent($parentId: ID!) {
-                  getPost(postId: $parentId) {
-                    replyCount
-                  }
-                }
-                """)
+                    query GetParent($parentId: ID!) {
+                      getPost(postId: $parentId) {
+                        replyCount
+                      }
+                    }
+                    """)
             .variable("parentId", posts.get(0).getId())
             .execute()
             .path("getPost.replyCount")
@@ -1414,8 +1416,126 @@ public class PostIT extends BaseIntegrationTest {
             .isEqualTo(1);
       }
 
+      List<String> createPostContents(int numberOfPosts) {
+        return new ArrayList<>(PostFixtures.magpieRhyme.subList(0, numberOfPosts));
+      }
+
+      List<Post> createFeed() {
+        deletePostsInDescendingOrder();
+        postRepository.deleteAll();
+        System.out.println("posts size: " + postRepository.findAll().size());
+        // Reply chain:
+        //                post 3
+        //               /
+        // null - post 0
+        //               \
+        //                post 4
+        //
+        // null - post 1 - post 5
+        //
+        // null - post 2
+        int numberOfPosts = 6;
+        List<String> feedMessageContents = createPostContents(numberOfPosts);
+        return PostHelpers.seedReplies(
+            feedMessageContents,
+            // Original posts
+            List.of(
+                users.get(1),
+                users.get(2),
+                users.get(1),
+                // replies
+                users.get(0),
+                users.get(2),
+                users.get(1)),
+            Arrays.asList(
+                null,
+                null,
+                null,
+                // replies parent posts
+                0,
+                0,
+                1),
+            postRepository);
+      }
+
       @Test
-      void fetchingFeed_eachPostHasReplyCount() {}
+      void fetchingFeed_eachPostHasReplyCount() {
+        // After setup: user 0 follows user 1 + user 2
+
+        FollowHelpers.seedFollow(followRepository, users.getFirst(), users.get(2));
+        List<Post> feed = createFeed();
+        // Reply chain:
+        //                post 3
+        //               /
+        // null - post 0
+        //               \
+        //                post 4
+        //
+        // null - post 1 - post 5
+        //
+        // null - post 2
+
+        authenticatedTester
+            .document(
+                """
+                    {
+                      feed {
+                          edges {
+                            node {
+                              id
+                              replyCount
+                              parent {
+                                id
+                              }
+                            }
+                          }
+                      }
+                    }
+                    """)
+            .execute()
+            .path("feed.edges[*].node.id")
+            .entityList(UUID.class)
+            .satisfies(
+                ids -> {
+                  // Reply chain:
+                  //                post 3
+                  //               /
+                  // null - post 0
+                  //               \
+                  //                post 4
+                  //
+                  // null - post 1 - post 5
+                  //
+                  // null - post 2
+                  assertThat(ids).hasSize(3);
+
+                  // feed shows most recent posts first
+                  assertThat(ids.get(0)).isEqualTo(feed.get(2).getId());
+                  assertThat(ids.get(1)).isEqualTo(feed.get(1).getId());
+                  assertThat(ids.get(2)).isEqualTo(feed.get(0).getId());
+                })
+            .path("feed.edges[*].node.replyCount")
+            .entityList(Integer.class)
+            .satisfies(
+                replyCounts -> {
+                  // Reply chain:
+                  //                post 3
+                  //               /
+                  // null - post 0
+                  //               \
+                  //                post 4
+                  //
+                  // null - post 1 - post 5
+                  //
+                  // null - post 2
+                  assertThat(replyCounts).hasSize(3);
+
+                  // feed shows most recent posts first
+                  assertThat(replyCounts.get(0)).isEqualTo(0);
+                  assertThat(replyCounts.get(1)).isEqualTo(1);
+                  assertThat(replyCounts.get(2)).isEqualTo(2);
+                });
+      }
     }
 
     @Nested
@@ -1445,18 +1565,18 @@ public class PostIT extends BaseIntegrationTest {
         authenticatedTester
             .document(
                 """
-                query GetParent($parentId: ID!) {
-                  getPost(postId: $parentId) {
-                    replies {
-                      edges {
-                        node {
-                          id
+                    query GetParent($parentId: ID!) {
+                      getPost(postId: $parentId) {
+                        replies {
+                          edges {
+                            node {
+                              id
+                            }
+                          }
                         }
                       }
                     }
-                  }
-                }
-                """)
+                    """)
             .variable("parentId", posts.get(1).getId())
             .execute()
             .path("getPost.replies.edges[*]")
@@ -1476,18 +1596,18 @@ public class PostIT extends BaseIntegrationTest {
         authenticatedTester
             .document(
                 """
-                query GetParent($parentId: ID!) {
-                  getPost(postId: $parentId) {
-                    replies {
-                      edges {
-                        node {
-                          id
+                    query GetParent($parentId: ID!) {
+                      getPost(postId: $parentId) {
+                        replies {
+                          edges {
+                            node {
+                              id
+                            }
+                          }
                         }
                       }
                     }
-                  }
-                }
-                """)
+                    """)
             .variable("parentId", posts.get(0).getId())
             .execute()
             .path("getPost.replies.edges[*].node")
@@ -1515,22 +1635,22 @@ public class PostIT extends BaseIntegrationTest {
             authenticatedTester
                 .document(
                     """
-                query GetParent($parentId: ID!) {
-                  getPost(postId: $parentId) {
-                    replies(first: 1) {
-                      edges {
-                        node {
-                          id
+                        query GetParent($parentId: ID!) {
+                          getPost(postId: $parentId) {
+                            replies(first: 1) {
+                              edges {
+                                node {
+                                  id
+                                }
+                              }
+                              pageInfo {
+                                hasNextPage
+                                endCursor
+                              }
+                            }
+                          }
                         }
-                      }
-                      pageInfo {
-                        hasNextPage
-                        endCursor
-                      }
-                    }
-                  }
-                }
-                """)
+                        """)
                 .variable("parentId", posts.get(0).getId())
                 .execute()
                 .path("getPost.replies.edges[0].node.id")
@@ -1547,21 +1667,21 @@ public class PostIT extends BaseIntegrationTest {
         authenticatedTester
             .document(
                 """
-                query GetParent($parentId: ID!, $cursor: String) {
-                  getPost(postId: $parentId) {
-                    replies(first: 1, after: $cursor) {
-                      edges {
-                        node {
-                          id
+                    query GetParent($parentId: ID!, $cursor: String) {
+                      getPost(postId: $parentId) {
+                        replies(first: 1, after: $cursor) {
+                          edges {
+                            node {
+                              id
+                            }
+                          }
+                          pageInfo {
+                            hasNextPage
+                          }
                         }
                       }
-                      pageInfo {
-                        hasNextPage
-                      }
                     }
-                  }
-                }
-                """)
+                    """)
             .variable("parentId", posts.get(0).getId())
             .variable("cursor", endCursor)
             .execute()
@@ -1585,18 +1705,18 @@ public class PostIT extends BaseIntegrationTest {
         authenticatedTester
             .document(
                 """
-                query GetParent($parentId: ID!) {
-                  getPost(postId: $parentId) {
-                    replies {
-                      edges {
-                        node {
-                          id
+                    query GetParent($parentId: ID!) {
+                      getPost(postId: $parentId) {
+                        replies {
+                          edges {
+                            node {
+                              id
+                            }
+                          }
                         }
                       }
                     }
-                  }
-                }
-                """)
+                    """)
             .variable("parentId", posts.get(0).getId())
             .execute()
             .path("getPost.replies.edges[*].node")
@@ -1615,18 +1735,18 @@ public class PostIT extends BaseIntegrationTest {
         authenticatedTester
             .document(
                 """
-                query GetParent($parentId: ID!) {
-                  getPost(postId: $parentId) {
-                    replies {
-                      edges {
-                        node {
-                          id
+                    query GetParent($parentId: ID!) {
+                      getPost(postId: $parentId) {
+                        replies {
+                          edges {
+                            node {
+                              id
+                            }
+                          }
                         }
                       }
                     }
-                  }
-                }
-                """)
+                    """)
             .variable("parentId", posts.get(0).getId())
             .execute()
             .path("getPost.replies.edges[*].node")

@@ -1,12 +1,11 @@
 package com.xclone.reply.service;
 
 import com.xclone.common.connection.Cursor;
-import com.xclone.common.connection.PageInfo;
 import com.xclone.post.dto.PostProfile;
 import com.xclone.post.dto.connection.PostConnection;
-import com.xclone.post.dto.connection.PostEdge;
 import com.xclone.post.model.entity.Post;
 import com.xclone.post.repository.PostRepository;
+import com.xclone.post.service.PostService;
 import com.xclone.reply.dto.ReplyCount;
 import java.util.List;
 import java.util.Optional;
@@ -24,26 +23,10 @@ public class ReplyService {
     this.postRepository = postRepository;
   }
 
-  private PostConnection toPostConnection(Slice<Post> replies) {
-    List<PostEdge> edges =
-        replies.stream()
-            .map(
-                comment -> {
-                  Cursor cursor = new Cursor(comment.getCreatedAt(), comment.getId());
-                  return new PostEdge(comment.toPostProfile(), cursor.encode());
-                })
-            .toList();
-    PageInfo pageInfo =
-        new PageInfo(
-            replies.hasNext(),
-            replies.hasPrevious(),
-            edges.isEmpty() ? null : edges.getFirst().cursor(),
-            edges.isEmpty() ? null : edges.getLast().cursor());
-    return new PostConnection(edges, pageInfo);
-  }
-
   /**
    * Fetches the {@link PostProfile} for a valid and active parent.
+   *
+   * <p>Returns null for posts with no parent, e.g. the original post in a reply chain.
    *
    * @param parentId unique identifier of the parent post
    * @return a post
@@ -83,6 +66,6 @@ public class ReplyService {
       replies =
           postRepository.findNextPageOfReplies(postId, cursor.createdAt(), cursor.id(), pageable);
     }
-    return toPostConnection(replies);
+    return PostService.toPostConnection(replies);
   }
 }

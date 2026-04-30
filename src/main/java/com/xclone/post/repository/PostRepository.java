@@ -20,6 +20,9 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
   /**
    * Gets first page of feed.
    *
+   * <p>A null parent id corresponds to the first post in that post thread. TODO: Update comment
+   * when quotes are introduced.
+   *
    * @param userId excluded from results even if present in followingIds
    * @param followingIds IDs of users whose posts are included in the feed
    * @param pageable page size for the query
@@ -28,6 +31,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
       "select p from Post p join p.author a"
           + " where a.status = com.xclone.user.model.enums.UserStatus.ACTIVE"
           + " and p.status = com.xclone.common.enums.Status.ACTIVE"
+          + " and p.parentId is null"
           + " and p.authorId <> :userId"
           + " and p.authorId in :followingIds"
           + " order by p.createdAt desc, p.id asc")
@@ -39,6 +43,9 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
   /**
    * Gets next page of feed after the cursor.
    *
+   * <p>A null parent id corresponds to the first post in that post thread. TODO: Update comment
+   * when quotes are introduced.
+   *
    * @param userId excluded from results even if present in followingIds
    * @param followingIds IDs of users whose posts are included in the feed
    * @param cursorId id to query after
@@ -49,6 +56,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
       "select p from Post p join p.author a"
           + " where a.status = com.xclone.user.model.enums.UserStatus.ACTIVE"
           + " and p.status = com.xclone.common.enums.Status.ACTIVE"
+          + " and p.parentId is null"
           + " and p.authorId <> :userId"
           + " and p.authorId in :followingIds"
           + " and ((p.createdAt < :cursorCreatedAt)"
@@ -112,7 +120,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
           + " order by p.createdAt desc, p.id asc")
   Slice<Post> findNextPageOfReplies(
       @Param("parentId") UUID postId,
-      @Param("cursorCreatedAt") Instant createdAt,
-      @Param("cursorId") UUID cursorCreatedAt,
+      @Param("cursorCreatedAt") Instant cursorCreatedAt,
+      @Param("cursorId") UUID cursorId,
       Pageable pageable);
 }
