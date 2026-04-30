@@ -1194,6 +1194,15 @@ public class PostIT extends BaseIntegrationTest {
 
   @Nested
   class replyTests {
+    @BeforeEach
+    void deletePosts() {
+      postRepository.deleteAll();
+    }
+
+    /**
+     * Posts are reassigned in each test suite. To not trigger a FK error when deleting, the posts
+     * are deleted from newest -> oldest.
+     */
     @AfterEach
     void deletePostsInDescendingOrder() {
       for (int i = posts.size() - 1; i >= 0; i--) {
@@ -1422,8 +1431,6 @@ public class PostIT extends BaseIntegrationTest {
 
       List<Post> createFeed() {
         deletePostsInDescendingOrder();
-        postRepository.deleteAll();
-        System.out.println("posts size: " + postRepository.findAll().size());
         // Reply chain:
         //                post 3
         //               /
@@ -1461,9 +1468,8 @@ public class PostIT extends BaseIntegrationTest {
       @Test
       void fetchingFeed_eachPostHasReplyCount() {
         // After setup: user 0 follows user 1 + user 2
-
         FollowHelpers.seedFollow(followRepository, users.getFirst(), users.get(2));
-        List<Post> feed = createFeed();
+        posts = createFeed();
         // Reply chain:
         //                post 3
         //               /
@@ -1510,9 +1516,9 @@ public class PostIT extends BaseIntegrationTest {
                   assertThat(ids).hasSize(3);
 
                   // feed shows most recent posts first
-                  assertThat(ids.get(0)).isEqualTo(feed.get(2).getId());
-                  assertThat(ids.get(1)).isEqualTo(feed.get(1).getId());
-                  assertThat(ids.get(2)).isEqualTo(feed.get(0).getId());
+                  assertThat(ids.get(0)).isEqualTo(posts.get(2).getId());
+                  assertThat(ids.get(1)).isEqualTo(posts.get(1).getId());
+                  assertThat(ids.get(2)).isEqualTo(posts.get(0).getId());
                 })
             .path("feed.edges[*].node.replyCount")
             .entityList(Integer.class)
