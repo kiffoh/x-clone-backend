@@ -29,6 +29,7 @@ import com.xclone.user.model.entity.User;
 import com.xclone.user.model.enums.UserStatus;
 import com.xclone.user.repository.UserRepository;
 import com.xclone.validation.ValidationConstants;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -100,50 +101,68 @@ public class PostIT extends BaseIntegrationTest {
   class getPostTests {
     @Test
     void getOwnPost_returnsPostProfile() {
-      authenticatedTester
-          .document(
-              """
+      PostProfile post =
+          authenticatedTester
+              .document(
+                  """
                   query GetPost($id: ID!) {
                     getPost(postId: $id) {
-                      messageContent
                       author {
                         id
                       }
+                      messageContent
+                      createdAt
+                      updatedAt
+                      replyThreadId
                     }
                   }
                   """)
-          .variable("id", posts.getFirst().getId())
-          .execute()
-          .path("getPost.messageContent")
-          .entity(String.class)
-          .isEqualTo(messageContents.getFirst())
-          .path("getPost.author.id")
-          .entity(UUID.class)
-          .isEqualTo(authenticatedUser.getId());
+              .variable("id", posts.getFirst().getId())
+              .execute()
+              .path("getPost.author.id")
+              .entity(UUID.class)
+              .isEqualTo(authenticatedUser.getId())
+              .path("getPost")
+              .entity(PostProfile.class)
+              .get();
+
+      assertThat(post.messageContent()).isEqualTo(messageContents.getFirst());
+      assertThat(post.createdAt()).isExactlyInstanceOf(OffsetDateTime.class);
+      assertThat(post.updatedAt()).isExactlyInstanceOf(OffsetDateTime.class);
+      assertThat(post.replyThreadId()).isExactlyInstanceOf(UUID.class);
     }
 
     @Test
     void getOthersPost_returnsPostProfile() {
-      authenticatedTester
-          .document(
-              """
+      PostProfile post =
+          authenticatedTester
+              .document(
+                  """
                   query GetPost($id: ID!) {
                     getPost(postId: $id) {
-                      messageContent
                       author {
                         id
                       }
+                      messageContent
+                      createdAt
+                      updatedAt
+                      replyThreadId
                     }
                   }
                   """)
-          .variable("id", posts.get(1).getId())
-          .execute()
-          .path("getPost.messageContent")
-          .entity(String.class)
-          .isEqualTo(messageContents.get(1))
-          .path("getPost.author.id")
-          .entity(UUID.class)
-          .isEqualTo(users.get(1).getId());
+              .variable("id", posts.get(1).getId())
+              .execute()
+              .path("getPost.author.id")
+              .entity(UUID.class)
+              .isEqualTo(users.get(1).getId())
+              .path("getPost")
+              .entity(PostProfile.class)
+              .get();
+
+      assertThat(post.messageContent()).isEqualTo(messageContents.get(1));
+      assertThat(post.createdAt()).isExactlyInstanceOf(OffsetDateTime.class);
+      assertThat(post.updatedAt()).isExactlyInstanceOf(OffsetDateTime.class);
+      assertThat(post.replyThreadId()).isExactlyInstanceOf(UUID.class);
     }
 
     @Test

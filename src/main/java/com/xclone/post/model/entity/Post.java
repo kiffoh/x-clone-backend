@@ -74,6 +74,9 @@ public class Post {
   @ManyToOne(fetch = FetchType.LAZY)
   private Post parent;
 
+  @Column(name = "reply_thread_id")
+  private UUID replyThreadId;
+
   /**
    * Projects this entity to a {@link PostProfile} for use in GraphQL responses. Timestamps are
    * converted from {@link Instant} to {@link OffsetDateTime} at UTC.
@@ -86,6 +89,7 @@ public class Post {
         authorId,
         messageContent,
         parentId,
+        replyThreadId,
         createdAt.atOffset(ZoneOffset.UTC),
         updatedAt.atOffset(ZoneOffset.UTC));
   }

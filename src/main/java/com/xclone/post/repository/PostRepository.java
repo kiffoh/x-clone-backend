@@ -123,4 +123,6 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
       @Param("cursorCreatedAt") Instant cursorCreatedAt,
       @Param("cursorId") UUID cursorId,
       Pageable pageable);
+
+  List<Post> findAllByReplyThreadIdSortByCreatedAtAsc(UUID replyThreadId);
 }

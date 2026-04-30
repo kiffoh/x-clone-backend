@@ -56,6 +56,12 @@ type Post {
     Paginated list of posts which replied to this post.
     """
     replies(first: Int = 10, after: String): PostConnection!
+    """
+    Unique UUID identifier that signals the reply chain this post is a part of.
+
+    Null for posts that are not a part of a reply thread i.e. quotes or reposts.
+    """
+    replyThreadId: ID
 
     # Repost functionality
     # Idea here was to separate between when somebody reposts with a comment (quote) vs a simple repost
@@ -88,6 +94,13 @@ extend type Query {
     Authentication: Required.
     """
     feed(first: Int = 10, after: String): PostConnection!
+    """
+    Fetch all posts in the queried reply thread.
+
+    Authentication: Required.
+    """
+    # Auth is required but its not used in the query operation? Can I remove this line?
+    getReplyThread(replyThreadId: ID!, postId: ID!): PostConnection!
 }
 
 extend type Mutation {
