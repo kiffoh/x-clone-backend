@@ -124,5 +124,18 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
       @Param("cursorId") UUID cursorId,
       Pageable pageable);
 
-  List<Post> findAllByReplyThreadIdSortByCreatedAtAsc(UUID replyThreadId);
+  @Query(
+      value =
+          "WITH RECURSIVE post_tree AS ( "
+              + " SELECT * FROM posts WHERE id = :postId UNION ALL"
+              + " SELECT p.* FROM posts p JOIN post_tree pt ON p.id = pt.parent_id)"
+              + " SELECT * FROM post_tree",
+      nativeQuery = true)
+  List<Post> findAllAncestors(@Param("postId") UUID postId);
+
+  @Query(
+      "select p from Post p where p.parentId = :parentId and p.createdAt <= :postCreatedAt"
+          + " order by p.createdAt asc")
+  List<Post> findAllSiblings(
+      @Param("parentId") UUID parentId, @Param("postCreatedAt") Instant postCreatedAt);
 }

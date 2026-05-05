@@ -39,7 +39,6 @@ CREATE TABLE posts (
     status post_status NOT NULL DEFAULT 'ACTIVE',
 
     parent_id UUID, -- For direct replies
-    reply_thread_id UUID -- For reply threads
     quoted_post_id UUID, -- For reposts and quotes
 
     FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE,-- Implement soft delete by never deleting users
