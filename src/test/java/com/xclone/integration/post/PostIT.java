@@ -637,7 +637,7 @@ public class PostIT extends BaseIntegrationTest {
    * invalid UUID for post id have been omitted.
    */
   @Nested
-  class deletePostTests {
+  public class deletePostTests {
 
     @Test
     void validInput_returnsDeleteResponse() {

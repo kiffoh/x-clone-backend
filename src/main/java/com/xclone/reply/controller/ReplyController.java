@@ -1,13 +1,21 @@
 package com.xclone.reply.controller;
 
+import com.xclone.exception.GraphQlErrorMapper;
 import com.xclone.post.dto.PostProfile;
+import com.xclone.post.dto.mutation.PostResponse;
 import com.xclone.post.service.PostService;
 import com.xclone.reply.dto.ReplyThread;
+import com.xclone.reply.dto.request.CreateReplyInput;
 import com.xclone.reply.service.ReplyService;
+import com.xclone.security.jwt.JwtAuthenticationFilter;
+import com.xclone.security.user.CustomUserDetails;
+import jakarta.validation.ConstraintViolationException;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.graphql.data.method.annotation.Argument;
+import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 
 /** GraphQL controller for reply-related operations. */
@@ -28,7 +36,7 @@ public class ReplyController {
    * @return a 2D list of posts, one of ancestors and one of siblings, both sorted by creation date
    *     ascendingly
    */
-  @QueryMapping(name = "getReplyThread")
+  @QueryMapping
   public ReplyThread getReplyThread(@Argument UUID postId) {
     PostProfile post = postService.getPost(postId);
     if (post == null) {
@@ -39,5 +47,25 @@ public class ReplyController {
     }
 
     return replyService.getReplyThread(post);
+  }
+
+  /**
+   * Triggers {@link PostService#createReply(CreateReplyInput, UUID)} with the authenticated user as
+   * the author of the post.
+   *
+   * @param userDetails authenticated user; populated as part of the security chain with {@link
+   *     JwtAuthenticationFilter}
+   * @param input DTO containing the content and parent id of the post
+   * @return the created post
+   */
+  @MutationMapping
+  public PostResponse createReply(
+      @AuthenticationPrincipal CustomUserDetails userDetails, @Argument CreateReplyInput input) {
+    try {
+      PostProfile reply = postService.createReply(input, userDetails.getId());
+      return new PostResponse("200", true, reply, null);
+    } catch (ConstraintViolationException ex) {
+      return new PostResponse("400", false, null, GraphQlErrorMapper.fromConstraintViolations(ex));
+    }
   }
 }

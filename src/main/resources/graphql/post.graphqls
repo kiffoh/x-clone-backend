@@ -120,7 +120,7 @@ extend type Mutation {
     Authentication: Required.
     """
     createPost(input: CreatePostInput!): PostResponse!
-    createComment(input: CreateCommentInput!): PostResponse!
+    createReply(input: CreateReplyInput!): PostResponse!
     createRepost(input: CreateRepostInput!): PostResponse!
     createQuote(input: CreateQuoteInput!): PostResponse!
     """
@@ -167,16 +167,12 @@ input CreatePostInput {
 Information required to update a post.
 """
 input UpdatePostInput {
-    id: ID!
+    postId: ID!
     messageContent: String!
     mentionedUserIds: [ID!]
 }
 
-input UpdatePostLikesInput {
-    id: ID!
-}
-
-input CreateCommentInput {
+input CreateReplyInput {
     parentId: ID!
     messageContent: String!
     mentionedUserIds: [ID!]
