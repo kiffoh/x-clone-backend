@@ -13,6 +13,7 @@ import com.xclone.post.dto.request.CreatePostInput;
 import com.xclone.post.dto.request.UpdatePostInput;
 import com.xclone.post.model.entity.Post;
 import com.xclone.post.repository.PostRepository;
+import com.xclone.reply.dto.request.CreateReplyInput;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Optional;
@@ -118,6 +119,29 @@ public class PostService {
   }
 
   /**
+   * Creates a post entity with the provided input fields using a {@link Transactional} view,
+   * ensuring for atomicity and that dirty checking applies.
+   *
+   * @param input DTO with post details to be created
+   * @param authorId unique uuid of the authenticated user
+   * @return the created post
+   */
+  @Transactional
+  public PostProfile createReply(@Valid CreateReplyInput input, UUID authorId) {
+    Optional<Post> parent = postRepository.findById(input.parentId());
+    if (parent.isEmpty()) {
+      throw new PostNotFoundException("Parent post cannot be found");
+    }
+
+    Post reply = new Post();
+    reply.setAuthorId(authorId);
+    reply.setMessageContent(input.messageContent());
+    reply.setParentId(input.parentId());
+    Post savedPost = postRepository.save(reply);
+    return savedPost.toPostProfile();
+  }
+
+  /**
    * Updates the post entity with the provided input fields using a {@link Transactional} view,
    * ensuring for atomicity and that dirty checking applies.
    *
@@ -133,7 +157,7 @@ public class PostService {
   public PostProfile updatePost(@Valid UpdatePostInput input, UUID userId) {
     Post post =
         postRepository
-            .findById(input.id())
+            .findById(input.postId())
             .orElseThrow(() -> new PostNotFoundException("Post does not exist"));
 
     if (!userId.equals(post.getAuthorId())) {

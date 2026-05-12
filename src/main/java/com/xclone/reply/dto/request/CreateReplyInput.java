@@ -1,4 +1,4 @@
-package com.xclone.post.dto.request;
+package com.xclone.reply.dto.request;
 
 import com.xclone.validation.ValidationConstants;
 import jakarta.validation.constraints.NotBlank;
@@ -7,13 +7,12 @@ import jakarta.validation.constraints.Size;
 import java.util.UUID;
 
 /**
- * Represents an update post request.
+ * Represents the data needed to create a reply.
  *
- * @param postId unique identifier of the post to be updated
- * @param messageContent the message content of the post
+ * @param messageContent text content of the post
  */
-public record UpdatePostInput(
-    @NotNull UUID postId,
+public record CreateReplyInput(
+    @NotNull UUID parentId,
     @NotBlank(message = "Post message content is required")
         @Size(max = ValidationConstants.MAX_MESSAGE_CONTENT_SIZE)
         String messageContent) {}
