@@ -79,6 +79,8 @@ extend type Query {
     Fetch post with queried id.
 
     Returns null for a not-found post.
+
+    Authentication: Required.
     """
     getPost(postId: ID!): Post
     # TODO: Update schema comment when feed algorithm is improved
@@ -88,6 +90,27 @@ extend type Query {
     Authentication: Required.
     """
     feed(first: Int = 10, after: String): PostConnection!
+    """
+    Fetch all posts in the queried reply thread.
+
+    ReplyThread is nullable for request sent with an invalid postId.
+
+    Authentication: Required.
+    """
+    getReplyThread(postId: ID!): ReplyThread
+}
+"""
+Represents the posts in a reply thread. Contains 3 sections:
+- focused post is the post in the request.
+- ancestors are the posts which has the parent ids of each reply layer, finishing with the original post.
+- siblings are the posts which share the same parent id, and are older than, the queried post.
+
+Note: Each list is ordered by creation date ascendingly.
+"""
+type ReplyThread {
+    ancestors: [Post]!
+    siblings: [Post!]!
+    focusedPost: Post!
 }
 
 extend type Mutation {

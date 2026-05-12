@@ -1,12 +1,14 @@
 package com.xclone.reply.service;
 
 import com.xclone.common.connection.Cursor;
+import com.xclone.common.enums.Status;
 import com.xclone.post.dto.PostProfile;
 import com.xclone.post.dto.connection.PostConnection;
 import com.xclone.post.model.entity.Post;
 import com.xclone.post.repository.PostRepository;
 import com.xclone.post.service.PostService;
 import com.xclone.reply.dto.ReplyCount;
+import com.xclone.reply.dto.ReplyThread;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -67,5 +69,27 @@ public class ReplyService {
           postRepository.findNextPageOfReplies(postId, cursor.createdAt(), cursor.id(), pageable);
     }
     return PostService.toPostConnection(replies);
+  }
+
+  private PostProfile getActivePost(Post post) {
+    return post.getStatus() == Status.ACTIVE ? post.toPostProfile() : null;
+  }
+
+  /**
+   * Fetches reply thread slice for all posts which are created earlier than the queried {@code
+   * postId}.
+   *
+   * @param post starting post in a reply thread
+   * @return a 2D list of posts, one of ancestors and one of siblings, both sorted by creation date
+   *     ascendingly
+   */
+  public ReplyThread getReplyThread(PostProfile post) {
+    List<Post> ancestors = postRepository.findAllAncestors(post.id());
+    List<Post> siblings =
+        postRepository.findAllSiblings(post.parentId(), post.createdAt().toInstant());
+    return new ReplyThread(
+        ancestors.stream().map(this::getActivePost).toList(),
+        siblings.stream().map(Post::toPostProfile).toList(),
+        post);
   }
 }
