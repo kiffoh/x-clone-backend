@@ -124,18 +124,33 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
       @Param("cursorId") UUID cursorId,
       Pageable pageable);
 
+  /**
+   * Fetches older posts in the reply chain.
+   *
+   * <p>Posts with a deleted status and the queried post are excluded in the returned value.
+   *
+   * @param postId unique identifier of the queried post
+   * @return list of posts ordered by
+   */
   @Query(
       value =
           "WITH RECURSIVE post_tree AS ( "
               + " SELECT * FROM posts WHERE id = :postId UNION ALL"
               + " SELECT p.* FROM posts p JOIN post_tree pt ON p.id = pt.parent_id)"
-              + " SELECT * FROM post_tree ORDER BY created_at ASC",
+              + " SELECT * FROM post_tree WHERE id != :postId ORDER BY created_at ASC",
       nativeQuery = true)
   List<Post> findAllAncestors(@Param("postId") UUID postId);
 
+  /**
+   * Fetches older siblings that are active replies.
+   *
+   * @param parentId unique identifier of the shared parent post
+   * @param postCreatedAt datetime of when the queried post was created
+   * @return list of active posts sorted by created date ascendingly
+   */
   @Query(
       "select p from Post p where p.parentId = :parentId and p.createdAt < :postCreatedAt"
-          + " order by p.createdAt asc")
+          + " and p.status = com.xclone.common.enums.Status.ACTIVE order by p.createdAt asc")
   List<Post> findAllSiblings(
       @Param("parentId") UUID parentId, @Param("postCreatedAt") Instant postCreatedAt);
 }

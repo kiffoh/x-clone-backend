@@ -1,6 +1,7 @@
 package com.xclone.integration.reply;
 
 import static com.xclone.support.helpers.PostHelpers.createPostContents;
+import static com.xclone.support.helpers.PostHelpers.setPostStatusDeleted;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.xclone.integration.base.BaseIntegrationTest;
@@ -114,19 +115,19 @@ public class ReplyIT extends BaseIntegrationTest {
       authenticatedTester
           .document(
               """
-              query GetReplyChain($postId: ID!) {
-                 getReplyThread(postId: $postId) {
-                  ancestors {
-                    id
-                    createdAt
+                  query GetReplyChain($postId: ID!) {
+                     getReplyThread(postId: $postId) {
+                      ancestors {
+                        id
+                        createdAt
+                      }
+                      siblings {
+                        id
+                        createdAt
+                      }
+                     }
                   }
-                  siblings {
-                    id
-                    createdAt
-                  }
-                 }
-              }
-              """)
+                  """)
           .variable("postId", posts.get(5).getId())
           .execute()
           .path("getReplyThread.ancestors[*]")
@@ -166,19 +167,19 @@ public class ReplyIT extends BaseIntegrationTest {
       authenticatedTester
           .document(
               """
-              query GetReplyChain($postId: ID!) {
-                 getReplyThread(postId: $postId) {
-                  ancestors {
-                    id
-                    createdAt
+                  query GetReplyChain($postId: ID!) {
+                     getReplyThread(postId: $postId) {
+                      ancestors {
+                        id
+                        createdAt
+                      }
+                      siblings {
+                        id
+                        createdAt
+                      }
+                     }
                   }
-                  siblings {
-                    id
-                    createdAt
-                  }
-                 }
-              }
-              """)
+                  """)
           .variable("postId", posts.get(4).getId())
           .execute()
           .path("getReplyThread.ancestors[*]")
@@ -211,19 +212,19 @@ public class ReplyIT extends BaseIntegrationTest {
       authenticatedTester
           .document(
               """
-              query GetReplyChain($postId: ID!) {
-                 getReplyThread(postId: $postId) {
-                  ancestors {
-                    id
-                    createdAt
+                  query GetReplyChain($postId: ID!) {
+                     getReplyThread(postId: $postId) {
+                      ancestors {
+                        id
+                        createdAt
+                      }
+                      siblings {
+                        id
+                        createdAt
+                      }
+                     }
                   }
-                  siblings {
-                    id
-                    createdAt
-                  }
-                 }
-              }
-              """)
+                  """)
           .variable("postId", posts.get(3).getId())
           .execute()
           .path("getReplyThread.ancestors[*]")
@@ -242,6 +243,104 @@ public class ReplyIT extends BaseIntegrationTest {
     }
 
     @Test
+    void getAllAncestorsAndSiblings_DeletedSibling() {
+      setPostStatusDeleted(posts.get(4), postRepository);
+      // Reply chain:
+      //                post 1
+      //               /
+      // null - post 0                  post 4
+      //               \               X
+      //                post 2 - post 3
+      //                               \
+      //                                post 5
+      authenticatedTester
+          .document(
+              """
+                  query GetReplyChain($postId: ID!) {
+                     getReplyThread(postId: $postId) {
+                      ancestors {
+                        id
+                        createdAt
+                      }
+                      siblings {
+                        id
+                        createdAt
+                      }
+                     }
+                  }
+                  """)
+          .variable("postId", posts.get(5).getId())
+          .execute()
+          .path("getReplyThread.ancestors[*]")
+          .entityList(PostProfile.class)
+          .satisfies(
+              ancestors -> {
+                assertThat(ancestors).hasSize(3);
+                assertThat(ancestors.getFirst().id()).isEqualTo(posts.getFirst().getId());
+                assertThat(ancestors.get(1).id()).isEqualTo(posts.get(2).getId());
+                assertThat(ancestors.get(2).id()).isEqualTo(posts.get(3).getId());
+                // post 0 older than post 2. post 2 older than post 3
+                assertThat(ancestors.getFirst().createdAt()).isBefore(ancestors.get(1).createdAt());
+                assertThat(ancestors.get(1).createdAt()).isBefore(ancestors.get(2).createdAt());
+              })
+          .path("getReplyThread.siblings[*]")
+          .entityList(PostProfile.class)
+          .hasSize(0);
+    }
+
+    @Test
+    void getAllAncestorsAndSiblings_DeletedAncestor() {
+      setPostStatusDeleted(posts.get(2), postRepository);
+      // Reply chain:
+      //                post 1
+      //               /
+      // null - post 0                 post 4
+      //               \              /
+      //                null - post 3
+      //                              \
+      //                               post 5
+      authenticatedTester
+          .document(
+              """
+                  query GetReplyChain($postId: ID!) {
+                     getReplyThread(postId: $postId) {
+                      ancestors {
+                        id
+                        createdAt
+                      }
+                      siblings {
+                        id
+                        createdAt
+                      }
+                     }
+                  }
+                  """)
+          .variable("postId", posts.get(5).getId())
+          .execute()
+          .path("getReplyThread.ancestors[*]")
+          .entityList(PostProfile.class)
+          .satisfies(
+              ancestors -> {
+                assertThat(ancestors).hasSize(3);
+                assertThat(ancestors.getFirst().id()).isEqualTo(posts.getFirst().getId());
+                assertThat(ancestors.get(1)).isNull();
+                assertThat(ancestors.get(2).id()).isEqualTo(posts.get(3).getId());
+                // post 0 older than post 2. post 2 older than post 3
+                assertThat(ancestors.getFirst().createdAt()).isBefore(ancestors.get(2).createdAt());
+              })
+          .path("getReplyThread.siblings[*]")
+          .entityList(PostProfile.class)
+          .satisfies(
+              siblings -> {
+                assertThat(siblings).hasSize(1);
+                assertThat(siblings.getFirst().id()).isEqualTo(posts.get(4).getId());
+                // post 0 older than post 2. post 2 older than post 3
+                assertThat(siblings.getFirst().createdAt())
+                    .isBefore(posts.get(5).getCreatedAt().atOffset(ZoneOffset.UTC));
+              });
+    }
+
+    @Test
     void getReplyChain_OriginalPost() {
       // Reply chain:
       //                post 1
@@ -254,29 +353,31 @@ public class ReplyIT extends BaseIntegrationTest {
       authenticatedTester
           .document(
               """
-              query GetReplyChain($postId: ID!) {
-                 getReplyThread(postId: $postId) {
-                  ancestors {
-                    id
-                    createdAt
+                  query GetReplyChain($postId: ID!) {
+                     getReplyThread(postId: $postId) {
+                      ancestors {
+                        id
+                        createdAt
+                      }
+                      siblings {
+                        id
+                        createdAt
+                      }
+                      focusedPost {
+                        id
+                      }
+                     }
                   }
-                  siblings {
-                    id
-                    createdAt
-                  }
-                  queriedPost {
-                    id
-                  }
-                 }
-              }
-              """)
+                  """)
           .variable("postId", posts.getFirst().getId())
           .execute()
           .path("getReplyThread.ancestors")
-          .valueIsNull()
+          .entityList(PostProfile.class)
+          .hasSize(0)
           .path("getReplyThread.siblings")
-          .valueIsNull()
-          .path("getReplyThread.queriedPost.id")
+          .entityList(PostProfile.class)
+          .hasSize(0)
+          .path("getReplyThread.focusedPost.id")
           .entity(UUID.class)
           .isEqualTo(posts.getFirst().getId());
     }
@@ -294,22 +395,22 @@ public class ReplyIT extends BaseIntegrationTest {
       authenticatedTester
           .document(
               """
-              query GetReplyChain($postId: ID!) {
-                 getReplyThread(postId: $postId) {
-                  ancestors {
-                    id
-                    createdAt
+                  query GetReplyChain($postId: ID!) {
+                     getReplyThread(postId: $postId) {
+                      ancestors {
+                        id
+                        createdAt
+                      }
+                      siblings {
+                        id
+                        createdAt
+                      }
+                      focusedPost {
+                        id
+                      }
+                     }
                   }
-                  siblings {
-                    id
-                    createdAt
-                  }
-                  queriedPost {
-                    id
-                  }
-                 }
-              }
-              """)
+                  """)
           .variable("postId", UUID.randomUUID())
           .execute()
           .path("getReplyThread")

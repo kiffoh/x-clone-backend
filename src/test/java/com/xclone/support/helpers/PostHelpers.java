@@ -1,5 +1,6 @@
 package com.xclone.support.helpers;
 
+import com.xclone.common.enums.Status;
 import com.xclone.post.model.entity.Post;
 import com.xclone.post.repository.PostRepository;
 import com.xclone.support.fixtures.PostFixtures;
@@ -52,6 +53,11 @@ public class PostHelpers {
       posts.add(savedPost);
     }
     return posts;
+  }
+
+  public static void setPostStatusDeleted(Post post, PostRepository postRepository) {
+    post.setStatus(Status.DELETED);
+    postRepository.saveAndFlush(post);
   }
 
   public static List<String> createPostContents(int numberOfPosts) {

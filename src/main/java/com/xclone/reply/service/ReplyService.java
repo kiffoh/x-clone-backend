@@ -1,6 +1,7 @@
 package com.xclone.reply.service;
 
 import com.xclone.common.connection.Cursor;
+import com.xclone.common.enums.Status;
 import com.xclone.post.dto.PostProfile;
 import com.xclone.post.dto.connection.PostConnection;
 import com.xclone.post.model.entity.Post;
@@ -70,6 +71,10 @@ public class ReplyService {
     return PostService.toPostConnection(replies);
   }
 
+  private PostProfile getActivePost(Post post) {
+    return post.getStatus() == Status.ACTIVE ? post.toPostProfile() : null;
+  }
+
   /**
    * Fetches reply thread slice for all posts which are created earlier than the queried {@code
    * postId}.
@@ -80,13 +85,11 @@ public class ReplyService {
    */
   public ReplyThread getReplyThread(PostProfile post) {
     List<Post> ancestors = postRepository.findAllAncestors(post.id());
-    List<Post> filteredAncestors =
-        ancestors.stream().filter(ancestor -> !(ancestor.getId().equals(post.id()))).toList();
     List<Post> siblings =
         postRepository.findAllSiblings(post.parentId(), post.createdAt().toInstant());
     return new ReplyThread(
-        filteredAncestors.stream().map(Post::toPostProfile).toList(),
-        siblings.stream().map(Post::toPostProfile).toList(),
+        ancestors.stream().map(this::getActivePost).toList(),
+        siblings.stream().map(this::getActivePost).toList(),
         post);
   }
 }

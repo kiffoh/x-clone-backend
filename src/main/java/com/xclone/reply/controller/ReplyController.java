@@ -4,6 +4,7 @@ import com.xclone.post.dto.PostProfile;
 import com.xclone.post.service.PostService;
 import com.xclone.reply.dto.ReplyThread;
 import com.xclone.reply.service.ReplyService;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
@@ -12,8 +13,8 @@ import org.springframework.stereotype.Controller;
 /** GraphQL controller for reply-related operations. */
 @Controller
 public class ReplyController {
-  ReplyService replyService;
-  PostService postService;
+  private final ReplyService replyService;
+  private final PostService postService;
 
   ReplyController(ReplyService replyService, PostService postService) {
     this.replyService = replyService;
@@ -34,7 +35,7 @@ public class ReplyController {
       return null;
     }
     if (post.parentId() == null) {
-      return new ReplyThread(null, null, post);
+      return new ReplyThread(List.of(), List.of(), post);
     }
 
     return replyService.getReplyThread(post);

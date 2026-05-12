@@ -8,6 +8,7 @@ import java.util.List;
  *
  * @param ancestors list of posts sorted ascendingly that are nested replies to the original post
  * @param siblings list of posts sorted ascendingly that are direct replies to the queried post
+ * @param focusedPost post sent in the request
  */
 public record ReplyThread(
-    List<PostProfile> ancestors, List<PostProfile> siblings, PostProfile queriedPost) {}
+    List<PostProfile> ancestors, List<PostProfile> siblings, PostProfile focusedPost) {}

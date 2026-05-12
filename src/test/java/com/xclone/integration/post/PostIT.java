@@ -2,6 +2,7 @@ package com.xclone.integration.post;
 
 import static com.xclone.support.helpers.PostHelpers.createPostContents;
 import static com.xclone.support.helpers.PostHelpers.deletePostsInDescendingOrder;
+import static com.xclone.support.helpers.PostHelpers.setPostStatusDeleted;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -1303,9 +1304,7 @@ public class PostIT extends BaseIntegrationTest {
             .isEqualTo(posts.get(0).getId());
         // Reply chain:
         // null <- post 0 X post 1
-        Post parent = posts.get(0);
-        parent.setStatus(Status.DELETED);
-        postRepository.saveAndFlush(parent);
+        setPostStatusDeleted(posts.get(0), postRepository);
 
         authenticatedTester
             .document(
@@ -1418,9 +1417,7 @@ public class PostIT extends BaseIntegrationTest {
         // null - Post 0
         //               \
         //                post 2
-        Post child1 = posts.get(1);
-        child1.setStatus(Status.DELETED);
-        postRepository.saveAndFlush(child1);
+        setPostStatusDeleted(posts.get(1), postRepository);
 
         authenticatedTester
             .document(
@@ -1743,9 +1740,7 @@ public class PostIT extends BaseIntegrationTest {
         // null - Post 0
         //               \
         //                post 2
-        Post child1 = posts.get(1);
-        child1.setStatus(Status.DELETED);
-        postRepository.saveAndFlush(child1);
+        setPostStatusDeleted(posts.get(1), postRepository);
 
         authenticatedTester
             .document(
