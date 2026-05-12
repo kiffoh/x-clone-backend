@@ -95,12 +95,20 @@ extend type Query {
     """
     # Auth is required but its not used in the query operation? Can I remove this line?
     # replyThread is nullable for request sent for the original post (e.g. replyThreadId = postId)
-    getReplyThread(replyThreadId: ID!, postId: ID!): ReplyThread
+    getReplyThread(postId: ID!): ReplyThread
 }
+"""
+Represents the posts in a reply thread. Contains 3 sections:
+- queried post is the post in the request.
+- ancestors are the posts which has the parent ids of each reply layer, finishing with the original post.
+- siblings are the posts which share the same parent id, and are older than, the queried post.
 
+Note: Each list is ordered by creation date ascendingly.
+"""
 type ReplyThread {
-    ancestors: [Post]!
-    siblings: [Post!]!
+    ancestors: [Post]
+    siblings: [Post]
+    queriedPost: Post
 }
 
 extend type Mutation {

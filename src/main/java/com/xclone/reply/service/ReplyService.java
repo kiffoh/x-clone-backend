@@ -80,10 +80,13 @@ public class ReplyService {
    */
   public ReplyThread getReplyThread(PostProfile post) {
     List<Post> ancestors = postRepository.findAllAncestors(post.id());
+    List<Post> filteredAncestors =
+        ancestors.stream().filter(ancestor -> !(ancestor.getId().equals(post.id()))).toList();
     List<Post> siblings =
         postRepository.findAllSiblings(post.parentId(), post.createdAt().toInstant());
     return new ReplyThread(
-        ancestors.stream().map(Post::toPostProfile).toList(),
-        siblings.stream().map(Post::toPostProfile).toList());
+        filteredAncestors.stream().map(Post::toPostProfile).toList(),
+        siblings.stream().map(Post::toPostProfile).toList(),
+        post);
   }
 }

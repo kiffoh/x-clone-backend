@@ -1,8 +1,11 @@
 package com.xclone.reply.controller;
 
 import com.xclone.post.dto.PostProfile;
+import com.xclone.post.service.PostService;
 import com.xclone.reply.dto.ReplyThread;
 import com.xclone.reply.service.ReplyService;
+import java.util.UUID;
+import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.stereotype.Controller;
 
@@ -10,24 +13,28 @@ import org.springframework.stereotype.Controller;
 @Controller
 public class ReplyController {
   ReplyService replyService;
+  PostService postService;
 
-  ReplyController(ReplyService replyService) {
+  ReplyController(ReplyService replyService, PostService postService) {
     this.replyService = replyService;
+    this.postService = postService;
   }
 
   /**
    * Fetches the specific reply thread for the queried {@code postId}.
    *
-   * @param post starting post in a reply thread
+   * @param postId unique identifier of the starting post in a reply thread
    * @return a 2D list of posts, one of ancestors and one of siblings, both sorted by creation date
    *     ascendingly
    */
-  // Should I have a toggle for the backend to do the filtering?
-  // - Java is faster, and it means the request is sending less information (improved latency)
   @QueryMapping(name = "getReplyThread")
-  public ReplyThread getReplyThread(PostProfile post) {
-    if (post.parentId() == null) {
+  public ReplyThread getReplyThread(@Argument UUID postId) {
+    PostProfile post = postService.getPost(postId);
+    if (post == null) {
       return null;
+    }
+    if (post.parentId() == null) {
+      return new ReplyThread(null, null, post);
     }
 
     return replyService.getReplyThread(post);

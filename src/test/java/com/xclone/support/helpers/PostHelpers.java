@@ -53,4 +53,14 @@ public class PostHelpers {
     }
     return posts;
   }
+
+  public static List<String> createPostContents(int numberOfPosts) {
+    return new ArrayList<>(PostFixtures.magpieRhyme.subList(0, numberOfPosts));
+  }
+
+  public static void deletePostsInDescendingOrder(List<Post> posts, PostRepository postRepository) {
+    for (int i = posts.size() - 1; i >= 0; i--) {
+      postRepository.delete(posts.get(i));
+    }
+  }
 }

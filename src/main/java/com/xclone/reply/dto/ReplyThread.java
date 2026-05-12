@@ -9,4 +9,5 @@ import java.util.List;
  * @param ancestors list of posts sorted ascendingly that are nested replies to the original post
  * @param siblings list of posts sorted ascendingly that are direct replies to the queried post
  */
-public record ReplyThread(List<PostProfile> ancestors, List<PostProfile> siblings) {}
+public record ReplyThread(
+    List<PostProfile> ancestors, List<PostProfile> siblings, PostProfile queriedPost) {}

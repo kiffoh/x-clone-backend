@@ -11,7 +11,6 @@ public class PostFixtures {
     Post post = new Post();
     post.setMessageContent(messageContent);
     post.setAuthorId(author.getId());
-    post.setReplyThreadId(UUID.randomUUID());
     return post;
   }
 

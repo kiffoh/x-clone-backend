@@ -1,5 +1,7 @@
 package com.xclone.integration.post;
 
+import static com.xclone.support.helpers.PostHelpers.createPostContents;
+import static com.xclone.support.helpers.PostHelpers.deletePostsInDescendingOrder;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -18,7 +20,6 @@ import com.xclone.post.dto.connection.PostEdge;
 import com.xclone.post.dto.mutation.PostResponse;
 import com.xclone.post.model.entity.Post;
 import com.xclone.post.repository.PostRepository;
-import com.xclone.support.fixtures.PostFixtures;
 import com.xclone.support.fixtures.UserFixtures;
 import com.xclone.support.helpers.AuthHelpers;
 import com.xclone.support.helpers.FollowHelpers;
@@ -30,7 +31,6 @@ import com.xclone.user.model.enums.UserStatus;
 import com.xclone.user.repository.UserRepository;
 import com.xclone.validation.ValidationConstants;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -105,18 +105,17 @@ public class PostIT extends BaseIntegrationTest {
           authenticatedTester
               .document(
                   """
-                  query GetPost($id: ID!) {
-                    getPost(postId: $id) {
-                      author {
-                        id
+                      query GetPost($id: ID!) {
+                        getPost(postId: $id) {
+                          author {
+                            id
+                          }
+                          messageContent
+                          createdAt
+                          updatedAt
+                        }
                       }
-                      messageContent
-                      createdAt
-                      updatedAt
-                      replyThreadId
-                    }
-                  }
-                  """)
+                      """)
               .variable("id", posts.getFirst().getId())
               .execute()
               .path("getPost.author.id")
@@ -129,7 +128,6 @@ public class PostIT extends BaseIntegrationTest {
       assertThat(post.messageContent()).isEqualTo(messageContents.getFirst());
       assertThat(post.createdAt()).isExactlyInstanceOf(OffsetDateTime.class);
       assertThat(post.updatedAt()).isExactlyInstanceOf(OffsetDateTime.class);
-      assertThat(post.replyThreadId()).isExactlyInstanceOf(UUID.class);
     }
 
     @Test
@@ -138,18 +136,17 @@ public class PostIT extends BaseIntegrationTest {
           authenticatedTester
               .document(
                   """
-                  query GetPost($id: ID!) {
-                    getPost(postId: $id) {
-                      author {
-                        id
+                      query GetPost($id: ID!) {
+                        getPost(postId: $id) {
+                          author {
+                            id
+                          }
+                          messageContent
+                          createdAt
+                          updatedAt
+                        }
                       }
-                      messageContent
-                      createdAt
-                      updatedAt
-                      replyThreadId
-                    }
-                  }
-                  """)
+                      """)
               .variable("id", posts.get(1).getId())
               .execute()
               .path("getPost.author.id")
@@ -162,7 +159,6 @@ public class PostIT extends BaseIntegrationTest {
       assertThat(post.messageContent()).isEqualTo(messageContents.get(1));
       assertThat(post.createdAt()).isExactlyInstanceOf(OffsetDateTime.class);
       assertThat(post.updatedAt()).isExactlyInstanceOf(OffsetDateTime.class);
-      assertThat(post.replyThreadId()).isExactlyInstanceOf(UUID.class);
     }
 
     @Test
@@ -1223,10 +1219,8 @@ public class PostIT extends BaseIntegrationTest {
      * are deleted from newest -> oldest.
      */
     @AfterEach
-    void deletePostsInDescendingOrder() {
-      for (int i = posts.size() - 1; i >= 0; i--) {
-        postRepository.delete(posts.get(i));
-      }
+    void cleanup() {
+      deletePostsInDescendingOrder(posts, postRepository);
     }
 
     @Nested
@@ -1444,12 +1438,8 @@ public class PostIT extends BaseIntegrationTest {
             .isEqualTo(1);
       }
 
-      List<String> createPostContents(int numberOfPosts) {
-        return new ArrayList<>(PostFixtures.magpieRhyme.subList(0, numberOfPosts));
-      }
-
       List<Post> createFeed() {
-        deletePostsInDescendingOrder();
+        deletePostsInDescendingOrder(posts, postRepository);
         // Reply chain:
         //                post 3
         //               /
