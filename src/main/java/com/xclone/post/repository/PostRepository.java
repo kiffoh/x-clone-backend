@@ -127,10 +127,12 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
   /**
    * Fetches older posts in the reply chain.
    *
-   * <p>Posts with a deleted status and the queried post are excluded in the returned value.
+   * <p>Posts with a deleted status are included in the returned value.
+   *
+   * <p>The queried post is excluded in the returned value.
    *
    * @param postId unique identifier of the queried post
-   * @return list of posts ordered by
+   * @return list of posts sorted by created date ascendingly
    */
   @Query(
       value =

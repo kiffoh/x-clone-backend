@@ -79,6 +79,8 @@ extend type Query {
     Fetch post with queried id.
 
     Returns null for a not-found post.
+
+    Authentication: Required.
     """
     getPost(postId: ID!): Post
     # TODO: Update schema comment when feed algorithm is improved
@@ -91,10 +93,10 @@ extend type Query {
     """
     Fetch all posts in the queried reply thread.
 
+    ReplyThread is nullable for request sent with an invalid postId.
+
     Authentication: Required.
     """
-    # Auth is required but its not used in the query operation? Can I remove this line?
-    # replyThread is nullable for request sent for the original post (e.g. replyThreadId = postId)
     getReplyThread(postId: ID!): ReplyThread
 }
 """
@@ -107,8 +109,8 @@ Note: Each list is ordered by creation date ascendingly.
 """
 type ReplyThread {
     ancestors: [Post]!
-    siblings: [Post]!
-    focusedPost: Post
+    siblings: [Post!]!
+    focusedPost: Post!
 }
 
 extend type Mutation {

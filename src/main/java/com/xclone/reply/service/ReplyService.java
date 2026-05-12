@@ -89,7 +89,7 @@ public class ReplyService {
         postRepository.findAllSiblings(post.parentId(), post.createdAt().toInstant());
     return new ReplyThread(
         ancestors.stream().map(this::getActivePost).toList(),
-        siblings.stream().map(this::getActivePost).toList(),
+        siblings.stream().map(Post::toPostProfile).toList(),
         post);
   }
 }
