@@ -128,6 +128,11 @@ public class PostService {
    */
   @Transactional
   public PostProfile createReply(@Valid CreateReplyInput input, UUID authorId) {
+    Optional<Post> parent = postRepository.findById(input.parentId());
+    if (parent.isEmpty()) {
+      throw new PostNotFoundException("Parent post cannot be found");
+    }
+
     Post reply = new Post();
     reply.setAuthorId(authorId);
     reply.setMessageContent(input.messageContent());

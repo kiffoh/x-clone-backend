@@ -1,6 +1,7 @@
 package com.xclone.reply.controller;
 
 import com.xclone.exception.GraphQlErrorMapper;
+import com.xclone.exception.custom.PostNotFoundException;
 import com.xclone.post.dto.PostProfile;
 import com.xclone.post.dto.mutation.PostResponse;
 import com.xclone.post.service.PostService;
@@ -66,6 +67,9 @@ public class ReplyController {
       return new PostResponse("200", true, reply, null);
     } catch (ConstraintViolationException ex) {
       return new PostResponse("400", false, null, GraphQlErrorMapper.fromConstraintViolations(ex));
+    } catch (PostNotFoundException ex) {
+      return new PostResponse(
+          "404", false, null, GraphQlErrorMapper.fromPostNotFound("parentId", ex));
     }
   }
 }

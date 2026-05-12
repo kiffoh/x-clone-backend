@@ -449,43 +449,43 @@ public class ReplyIT extends BaseIntegrationTest {
           authenticatedTester
               .document(
                   """
-                  mutation CreateReply($input: CreateReplyInput!) {
-                    createReply(input: $input) {
-                      code
-                      success
-                      post {
-                        id
-                        messageContent
-                        author {
-                          id
-                        }
-                        parent {
-                          id
+                      mutation CreateReply($input: CreateReplyInput!) {
+                        createReply(input: $input) {
+                          code
+                          success
+                          post {
+                            id
+                            messageContent
+                            author {
+                              id
+                            }
+                            parent {
+                              id
+                            }
+                          }
                         }
                       }
-                    }
-                  }
-                  """)
+                      """)
               .variable("input", replyInput)
               .execute()
               .path("createReply")
               .matchesJson(
                   String.format(
                       """
-                      {
-                        "code": "200",
-                        "success": true,
-                        "post": {
-                          "messageContent": "%s",
-                          "author": {
-                            "id": "%s"
-                          },
-                          "parent": {
-                            "id": "%s"
+                          {
+                            "code": "200",
+                            "success": true,
+                            "post": {
+                              "messageContent": "%s",
+                              "author": {
+                                "id": "%s"
+                              },
+                              "parent": {
+                                "id": "%s"
+                              }
+                            }
                           }
-                        }
-                      }
-                      """,
+                          """,
                       replyInput.get("messageContent"),
                       authenticatedUser.getId(),
                       replyInput.get("parentId")))
@@ -498,6 +498,56 @@ public class ReplyIT extends BaseIntegrationTest {
 
       // Clean up
       postRepository.deleteById(newPostId);
+    }
+
+    @Test
+    void invalidInput_postIdDoesNotExist_returnsPostNotFound() {
+      Map<String, String> replyInput =
+          Map.of("messageContent", "first direct reply", "parentId", UUID.randomUUID().toString());
+
+      authenticatedTester
+          .document(
+              """
+                  mutation CreateReply($input: CreateReplyInput!) {
+                    createReply(input: $input) {
+                      code
+                      success
+                      post {
+                        messageContent
+                        author {
+                          id
+                        }
+                        parent {
+                          id
+                        }
+                      }
+                      errors {
+                        field
+                        message
+                      }
+                    }
+                  }
+                  """)
+          .variable("input", replyInput)
+          .execute()
+          .path("createReply")
+          .matchesJson(
+              String.format(
+                  """
+                      {
+                        "code": "404",
+                        "success": false,
+                        "post": null,
+                        "errors": [{
+                          "field": "parentId",
+                          "message": "%s"
+                        }]
+                      }
+                      """,
+                  "Parent post cannot be found"));
+
+      // Only the original post
+      assertThat(postRepository.findAll()).hasSize(1);
     }
 
     @Test
