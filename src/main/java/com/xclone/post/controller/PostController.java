@@ -141,10 +141,14 @@ public class PostController {
    */
   @SchemaMapping(typeName = "Post", field = "parent")
   public PostProfile parent(PostProfile post) {
-    if (post.parentId() == null) {
+    try {
+      if (post.parentId() == null) {
+        return null;
+      }
+      return postService.getPost(post.parentId());
+    } catch (PostNotFoundException ex) {
       return null;
     }
-    return replyService.getParent(post.parentId());
   }
 
   /**

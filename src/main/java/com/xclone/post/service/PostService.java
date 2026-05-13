@@ -60,9 +60,31 @@ public class PostService {
     return new PostConnection(edges, pageInfo);
   }
 
+  /**
+   * Maps an active post to a {@link PostProfile} entity.
+   *
+   * @param post post entity to be evaluated if active
+   * @return the {@link PostProfile} entity or null
+   */
+  public static PostProfile activePostMappedToPostProfile(Post post) {
+    return post.getStatus() == Status.ACTIVE ? post.toPostProfile() : null;
+  }
+
+  /**
+   * Fetches the {@link PostProfile} for a valid and active post.
+   *
+   * <p>Returns null is the post is not active.
+   *
+   * @param id unique identifier of the post
+   * @return a post
+   * @throws PostNotFoundException if the post does not exist.
+   */
   public PostProfile getPost(UUID id) {
     Optional<Post> post = postRepository.findById(id);
-    return post.map(Post::toPostProfile).orElse(null);
+    if (post.isEmpty()) {
+      throw new PostNotFoundException("Post does not exist with the specified id");
+    }
+    return activePostMappedToPostProfile(post.get());
   }
 
   // First implementation is just posts from followed users
