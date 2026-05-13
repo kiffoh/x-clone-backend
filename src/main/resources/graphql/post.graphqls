@@ -65,8 +65,8 @@ type Post {
     # - repostedBy returns Users who created either type
     repostCount: Int! # Pure reposts + quotes combined
     repostedByMe: Boolean!
-    quotedPost: Post
     repostedBy(first: Int, after: String): UserConnection!
+    quotedPost: Post
     quotes(first: Int, after: String): PostConnection!
 
     mentions: [User!] # Users tagged in post
@@ -117,9 +117,14 @@ extend type Mutation {
     """
     Create a post.
 
-    Authentication: Required.
+    Authentication: Required. The authenticated user is the author.
     """
     createPost(input: CreatePostInput!): PostResponse!
+    """
+    Create a reply.
+
+    Authentication: Required. The authenticated user is the author.
+    """
     createReply(input: CreateReplyInput!): PostResponse!
     createRepost(input: CreateRepostInput!): PostResponse!
     createQuote(input: CreateQuoteInput!): PostResponse!
@@ -172,6 +177,9 @@ input UpdatePostInput {
     mentionedUserIds: [ID!]
 }
 
+"""
+Information required to create a reply.
+"""
 input CreateReplyInput {
     parentId: ID!
     messageContent: String!

@@ -60,8 +60,27 @@ public class PostService {
     return new PostConnection(edges, pageInfo);
   }
 
+  /**
+   * Maps a post to a {@link PostProfile} record if the post has {@code status == Status.ACTIVE} or
+   * returns null if inactive.
+   *
+   * @param post post entity to be evaluated if active
+   * @return the {@link PostProfile} record or null
+   */
+  public static PostProfile mapIfActive(Post post) {
+    return post.getStatus() == Status.ACTIVE ? post.toPostProfile() : null;
+  }
+
+  /**
+   * Fetches the {@link PostProfile} for a valid and active post.
+   *
+   * <p>Returns null if the post is not active or when the post does not exist.
+   *
+   * @param id unique identifier of the post
+   * @return a post
+   */
   public PostProfile getPost(UUID id) {
-    Optional<Post> post = postRepository.findById(id);
+    Optional<Post> post = postRepository.findActivePostById(id);
     return post.map(Post::toPostProfile).orElse(null);
   }
 

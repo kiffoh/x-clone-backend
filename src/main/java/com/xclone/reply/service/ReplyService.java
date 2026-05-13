@@ -1,7 +1,6 @@
 package com.xclone.reply.service;
 
 import com.xclone.common.connection.Cursor;
-import com.xclone.common.enums.Status;
 import com.xclone.post.dto.PostProfile;
 import com.xclone.post.dto.connection.PostConnection;
 import com.xclone.post.model.entity.Post;
@@ -10,7 +9,6 @@ import com.xclone.post.service.PostService;
 import com.xclone.reply.dto.ReplyCount;
 import com.xclone.reply.dto.ReplyThread;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -23,19 +21,6 @@ public class ReplyService {
 
   public ReplyService(PostRepository postRepository) {
     this.postRepository = postRepository;
-  }
-
-  /**
-   * Fetches the {@link PostProfile} for a valid and active parent.
-   *
-   * <p>Returns null for posts with no parent, e.g. the original post in a reply chain.
-   *
-   * @param parentId unique identifier of the parent post
-   * @return a post
-   */
-  public PostProfile getParent(UUID parentId) {
-    Optional<Post> post = postRepository.findActivePostById(parentId);
-    return post.map(Post::toPostProfile).orElse(null);
   }
 
   /**
@@ -71,10 +56,6 @@ public class ReplyService {
     return PostService.toPostConnection(replies);
   }
 
-  private PostProfile getActivePost(Post post) {
-    return post.getStatus() == Status.ACTIVE ? post.toPostProfile() : null;
-  }
-
   /**
    * Fetches reply thread slice for all posts which are created earlier than the queried {@code
    * postId}.
@@ -88,7 +69,7 @@ public class ReplyService {
     List<Post> siblings =
         postRepository.findAllSiblings(post.parentId(), post.createdAt().toInstant());
     return new ReplyThread(
-        ancestors.stream().map(this::getActivePost).toList(),
+        ancestors.stream().map(PostService::mapIfActive).toList(),
         siblings.stream().map(Post::toPostProfile).toList(),
         post);
   }

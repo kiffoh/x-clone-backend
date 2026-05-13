@@ -144,7 +144,7 @@ public class PostController {
     if (post.parentId() == null) {
       return null;
     }
-    return replyService.getParent(post.parentId());
+    return postService.getPost(post.parentId());
   }
 
   /**

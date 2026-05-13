@@ -164,6 +164,7 @@ public class PostIT extends BaseIntegrationTest {
 
     @Test
     void getPost_invalidId_returnsNull() {
+
       authenticatedTester
           .document(
               """
@@ -177,6 +178,29 @@ public class PostIT extends BaseIntegrationTest {
                   }
                   """)
           .variable("id", UUID.randomUUID())
+          .execute()
+          .path("getPost")
+          .valueIsNull();
+    }
+
+    @Test
+    void getPost_postDeleted_returnsNull() {
+      // Delete post 0
+      setPostStatusDeleted(posts.getFirst(), postRepository);
+
+      authenticatedTester
+          .document(
+              """
+                  query GetPost($id: ID!) {
+                    getPost(postId: $id) {
+                      messageContent
+                      author {
+                        id
+                      }
+                    }
+                  }
+                  """)
+          .variable("id", posts.getFirst().getId())
           .execute()
           .path("getPost")
           .valueIsNull();
@@ -541,7 +565,7 @@ public class PostIT extends BaseIntegrationTest {
                       """)
               .variable(
                   "input",
-                  Map.of("id", posts.getFirst().getId(), "messageContent", updatedPostContent))
+                  Map.of("postId", posts.getFirst().getId(), "messageContent", updatedPostContent))
               .execute()
               .path("updatePostContent")
               .entity(PostResponse.class)
@@ -578,7 +602,7 @@ public class PostIT extends BaseIntegrationTest {
                       """)
               .variable(
                   "input",
-                  Map.of("id", posts.getLast().getId(), "messageContent", updatedPostContent))
+                  Map.of("postId", posts.getLast().getId(), "messageContent", updatedPostContent))
               .execute()
               .path("updatePostContent")
               .entity(PostResponse.class)
@@ -616,7 +640,8 @@ public class PostIT extends BaseIntegrationTest {
                       }
                       """)
               .variable(
-                  "input", Map.of("id", UUID.randomUUID(), "messageContent", updatedPostContent))
+                  "input",
+                  Map.of("postId", UUID.randomUUID(), "messageContent", updatedPostContent))
               .execute()
               .path("updatePostContent")
               .entity(PostResponse.class)
