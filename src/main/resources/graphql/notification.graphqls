@@ -21,6 +21,7 @@ enum NotificationType {
 extend type Query {
     """
     Get paginated notifications for the authenticated user.
+
     Returns notifications ordered by creation time (newest first).
     """
     getNotifications(first: Int, after: String): NotificationResponse
@@ -28,7 +29,7 @@ extend type Query {
     """
     Mark a notification as read.
     Returns the updated notification with read: true.
-    
+
     Throws error if notification doesn't belong to authenticated user.
     """
     readNotification(notificationId: ID!): Notification
