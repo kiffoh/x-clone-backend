@@ -61,19 +61,20 @@ public class PostService {
   }
 
   /**
-   * Maps an active post to a {@link PostProfile} entity.
+   * Maps a post to a {@link PostProfile} record if the post has {@code status == Status.ACTIVE} or
+   * returns null if inactive.
    *
    * @param post post entity to be evaluated if active
-   * @return the {@link PostProfile} entity or null
+   * @return the {@link PostProfile} record or null
    */
-  public static PostProfile activePostMappedToPostProfile(Post post) {
+  public static PostProfile mapIfActive(Post post) {
     return post.getStatus() == Status.ACTIVE ? post.toPostProfile() : null;
   }
 
   /**
    * Fetches the {@link PostProfile} for a valid and active post.
    *
-   * <p>Returns null is the post is not active.
+   * <p>Returns null if the post is not active or when the post does not exist.
    *
    * @param id unique identifier of the post
    * @return a post

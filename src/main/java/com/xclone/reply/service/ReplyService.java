@@ -69,7 +69,7 @@ public class ReplyService {
     List<Post> siblings =
         postRepository.findAllSiblings(post.parentId(), post.createdAt().toInstant());
     return new ReplyThread(
-        ancestors.stream().map(PostService::activePostMappedToPostProfile).toList(),
+        ancestors.stream().map(PostService::mapIfActive).toList(),
         siblings.stream().map(Post::toPostProfile).toList(),
         post);
   }
