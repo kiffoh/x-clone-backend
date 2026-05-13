@@ -77,14 +77,10 @@ public class PostService {
    *
    * @param id unique identifier of the post
    * @return a post
-   * @throws PostNotFoundException if the post does not exist.
    */
   public PostProfile getPost(UUID id) {
-    Optional<Post> post = postRepository.findById(id);
-    if (post.isEmpty()) {
-      throw new PostNotFoundException("Post does not exist with the specified id");
-    }
-    return activePostMappedToPostProfile(post.get());
+    Optional<Post> post = postRepository.findActivePostById(id);
+    return post.map(Post::toPostProfile).orElse(null);
   }
 
   // First implementation is just posts from followed users
