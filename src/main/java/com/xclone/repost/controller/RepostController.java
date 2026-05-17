@@ -1,6 +1,7 @@
 package com.xclone.repost.controller;
 
 import com.xclone.exception.GraphQlErrorMapper;
+import com.xclone.exception.custom.DuplicateRepostException;
 import com.xclone.exception.custom.PostNotFoundException;
 import com.xclone.post.dto.PostProfile;
 import com.xclone.post.dto.mutation.PostResponse;
@@ -30,15 +31,17 @@ public class RepostController {
    *
    * @param userDetails authenticated user; populated as part of the security chain with {@link
    *     JwtAuthenticationFilter}
-   * @param postId unique identifier of the reposted post
+   * @param originalPostId unique identifier of the reposted post
    * @return the created post
    */
   @MutationMapping
   public PostResponse createRepost(
-      @AuthenticationPrincipal CustomUserDetails userDetails, @Argument UUID postId) {
+      @AuthenticationPrincipal CustomUserDetails userDetails, @Argument UUID originalPostId) {
     try {
-      PostProfile repost = postService.createRepost(postId, userDetails.getId());
-      return new PostResponse("201", true, repost, null);
+      PostProfile repost = postService.createRepost(originalPostId, userDetails.getId());
+      return new PostResponse("200", true, repost, null);
+    } catch (DuplicateRepostException ex) {
+      return new PostResponse("400", false, null, GraphQlErrorMapper.fromDuplicateRepost(ex));
     } catch (PostNotFoundException ex) {
       return new PostResponse(
           "404", false, null, GraphQlErrorMapper.fromPostNotFound("postId", ex));

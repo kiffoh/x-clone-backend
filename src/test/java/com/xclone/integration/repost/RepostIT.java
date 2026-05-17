@@ -1,6 +1,8 @@
 package com.xclone.integration.repost;
 
 import static com.xclone.support.helpers.PostHelpers.seedPosts;
+import static com.xclone.support.helpers.PostHelpers.seedRepost;
+import static com.xclone.support.helpers.PostHelpers.setPostStatusDeleted;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.xclone.integration.base.BaseIntegrationTest;
@@ -59,33 +61,33 @@ public class RepostIT extends BaseIntegrationTest {
   @Nested
   class createRepostTests {
     @Test
-    void validInput_returnsPostResponse() {
+    void validInput_noExistingRepost_returnsPostResponse() {
       // TODO: ADD QUOTED POST ASSERTION
       UUID newPostId =
           authenticatedTester
               .document(
                   """
-                      mutation CreateRepost($postId: ID!) {
-                        createRepost(postId: $postId) {
-                          code
-                          success
-                          post {
-                            id
-                            author {
-                              id
+                      mutation CreateRepost($originalPostId: ID!) {
+                        createRepost(originalPostId: $originalPostId) {
+                              code
+                              success
+                              post {
+                                id
+                                author {
+                                  id
+                                }
+                              }
                             }
                           }
-                        }
-                      }
                       """)
-              .variable("postId", quotedPost.getId())
+              .variable("originalPostId", quotedPost.getId())
               .execute()
               .path("createRepost")
               .matchesJson(
                   String.format(
                       """
                           {
-                            "code": "201",
+                            "code": "200",
                             "success": true,
                             "post": {
                               "author": {
@@ -107,12 +109,107 @@ public class RepostIT extends BaseIntegrationTest {
     }
 
     @Test
+    void validInput_existingDeletedRepost_returnsPostResponse() {
+      // TODO: ADD QUOTED POST ASSERTION
+      // Create a repost with the same originalPostId and authorId
+      Post repost = seedRepost(quotedPost.getId(), authenticatedUser.getId(), postRepository);
+      setPostStatusDeleted(repost, postRepository);
+
+      authenticatedTester
+          .document(
+              """
+                  mutation CreateRepost($originalPostId: ID!) {
+                    createRepost(originalPostId: $originalPostId) {
+                      code
+                      success
+                      post {
+                        id
+                        author {
+                          id
+                        }
+                      }
+                    }
+                  }
+                  """)
+          .variable("originalPostId", quotedPost.getId())
+          .execute()
+          .path("createRepost")
+          .matchesJson(
+              String.format(
+                  """
+                      {
+                        "code": "200",
+                        "success": true,
+                        "post": {
+                          "id": "%s",
+                          "author": {
+                            "id": "%s"
+                          }
+                        }
+                      }
+                      """,
+                  repost.getId(), authenticatedUser.getId()));
+
+      // original post + repost
+      assertThat(postRepository.findAll()).hasSize(2);
+
+      // Clean up
+      postRepository.deleteById(repost.getId());
+    }
+
+    @Test
+    void invalidInput_existingActiveRepost_returnsDuplicateRepost() {
+      // Create a repost with the same originalPostId and authorId
+      Post repost = seedRepost(quotedPost.getId(), authenticatedUser.getId(), postRepository);
+
+      authenticatedTester
+          .document(
+              """
+                  mutation CreateRepost($originalPostId: ID!) {
+                    createRepost(originalPostId: $originalPostId) {
+                      code
+                      success
+                      post {
+                        id
+                      }
+                      errors {
+                        field
+                        message
+                      }
+                    }
+                  }
+                  """)
+          .variable("originalPostId", quotedPost.getId())
+          .execute()
+          .path("createRepost")
+          .matchesJson(
+              """
+                  {
+                    "code": "400",
+                    "success": false,
+                    "post": null,
+                    "errors": [{
+                      "field": "originalPostId",
+                      "message": "Repost already exists"
+                    }]
+                    }
+                  }
+                  """);
+
+      // original post + repost
+      assertThat(postRepository.findAll()).hasSize(2);
+
+      // Clean up
+      postRepository.deleteById(repost.getId());
+    }
+
+    @Test
     void invalidInput_postIdDoesNotExist_returnsPostNotFound() {
       authenticatedTester
           .document(
               """
-                  mutation CreateRepost($postId: ID!) {
-                    createRepost(postId: $postId) {
+                  mutation CreateRepost($originalPostId: ID!) {
+                    createRepost(originalPostId: $originalPostId) {
                       code
                       success
                       post {
@@ -130,7 +227,7 @@ public class RepostIT extends BaseIntegrationTest {
                     }
                   }
                   """)
-          .variable("postId", UUID.randomUUID())
+          .variable("originalPostId", UUID.randomUUID())
           .execute()
           .path("createRepost")
           .matchesJson(
@@ -141,7 +238,7 @@ public class RepostIT extends BaseIntegrationTest {
                     "post": null,
                     "errors": [{
                       "field": "postId",
-                      "message": "Quoted post cannot be found"
+                      "message": "Original post cannot be found"
                     }]
                   }
                   """);
@@ -155,8 +252,8 @@ public class RepostIT extends BaseIntegrationTest {
       authenticatedTester
           .document(
               """
-                  mutation CreateRepost($postId: ID!) {
-                    createRepost(postId: $postId) {
+                  mutation CreateRepost($originalPostId: ID!) {
+                    createRepost(originalPostId: $originalPostId) {
                       code
                       success
                       post {
@@ -174,7 +271,7 @@ public class RepostIT extends BaseIntegrationTest {
                     }
                   }
                   """)
-          .variable("postId", null)
+          .variable("originalPostId", null)
           .execute()
           .errors()
           .satisfy(
@@ -185,8 +282,8 @@ public class RepostIT extends BaseIntegrationTest {
                     .anySatisfy(
                         error -> {
                           assertThat(error.getMessage())
-                              .contains("postId")
-                              .contains("'postId' has an invalid value");
+                              .contains("originalPostId")
+                              .contains("'originalPostId' has an invalid value");
                           assertThat(error.getExtensions())
                               .containsEntry("classification", "ValidationError");
                         });

@@ -106,6 +106,9 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
           + " and p.status = com.xclone.common.enums.Status.ACTIVE")
   Optional<Post> findActivePostById(@Param("postId") UUID postId);
 
+  @Query("select p from Post p where p.quotedPostId = :quotedPostId and p.authorId = :authorId")
+  Optional<Post> findRepost(@Param("quotedPostId") UUID postId, @Param("authorId") UUID authorId);
+
   @Query(
       "select p from Post p where p.parentId = :parentId"
           + " and p.status = com.xclone.common.enums.Status.ACTIVE"

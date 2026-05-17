@@ -126,7 +126,7 @@ extend type Mutation {
     Authentication: Required. The authenticated user is the author.
     """
     createReply(input: CreateReplyInput!): PostResponse!
-    createRepost(postId: ID!): PostResponse!
+    createRepost(originalPostId: ID!): PostResponse!
     createQuote(input: CreateQuoteInput!): PostResponse!
     """
     Update post content.

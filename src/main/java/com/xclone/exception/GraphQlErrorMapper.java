@@ -3,6 +3,7 @@ package com.xclone.exception;
 import com.xclone.exception.custom.AccountNotActiveException;
 import com.xclone.exception.custom.DuplicateFollowException;
 import com.xclone.exception.custom.DuplicateHandleException;
+import com.xclone.exception.custom.DuplicateRepostException;
 import com.xclone.exception.custom.NotPostAuthorException;
 import com.xclone.exception.custom.PostNotFoundException;
 import com.xclone.exception.custom.SelfFollowException;
@@ -10,6 +11,7 @@ import com.xclone.exception.dto.FieldError;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.graphql.GraphQlResponse;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
@@ -24,6 +26,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
  * <p>Each mapping method handles a specific exception type and produces one or more {@link
  * FieldError} instances containing a field name and user-facing message.
  */
+@Slf4j
 public class GraphQlErrorMapper {
 
   /**
@@ -122,5 +125,17 @@ public class GraphQlErrorMapper {
    */
   public static List<FieldError> fromPostNotFound(String field, PostNotFoundException ex) {
     return List.of(new FieldError(field, ex.getMessage()));
+  }
+
+  /**
+   * Maps a {@link DuplicateRepostException} to a list of {@link FieldError} DTOs.
+   *
+   * @param ex exception whose message is used as the field-level error message
+   * @return a list of {@link FieldError} instances representing the entity violation not found
+   *     exception
+   */
+  public static List<FieldError> fromDuplicateRepost(DuplicateRepostException ex) {
+    log.debug(String.valueOf(ex));
+    return List.of(new FieldError("originalPostId", "Repost already exists"));
   }
 }

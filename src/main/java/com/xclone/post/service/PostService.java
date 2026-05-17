@@ -3,6 +3,7 @@ package com.xclone.post.service;
 import com.xclone.common.connection.Cursor;
 import com.xclone.common.connection.PageInfo;
 import com.xclone.common.enums.Status;
+import com.xclone.exception.custom.DuplicateRepostException;
 import com.xclone.exception.custom.NotPostAuthorException;
 import com.xclone.exception.custom.PostNotFoundException;
 import com.xclone.follow.service.FollowService;
@@ -161,23 +162,41 @@ public class PostService {
   }
 
   /**
-   * Creates a repost entity with the provided input fields using a {@link Transactional} view,
-   * ensuring for atomicity and that dirty checking applies.
+   * Creates or reactivates a repost entity with the provided input fields using a {@link
+   * Transactional} view, ensuring for atomicity and that dirty checking applies.
    *
-   * @param postId unique identifier of the quoted post
-   * @param userId unique uuid of the authenticated user
+   * @param originalPostId unique identifier of the original post id
+   * @param authorId unique uuid of the authenticated user
    * @return the created repost
+   * @throws PostNotFoundException if the quoted post cannot be found with {@link
+   *     PostRepository#findActivePostById(UUID)}
+   * @throws DuplicateRepostException if there is an existing active repost with a matching {@code
+   *     originalPostId} and {@code authorId}
    */
   @Transactional
-  public PostProfile createRepost(UUID postId, UUID userId) {
-    Optional<Post> quotedPost = postRepository.findById(postId);
+  public PostProfile createRepost(UUID originalPostId, UUID authorId) {
+    Optional<Post> quotedPost = postRepository.findActivePostById(originalPostId);
     if (quotedPost.isEmpty()) {
-      throw new PostNotFoundException("Quoted post cannot be found");
+      throw new PostNotFoundException("Original post cannot be found");
     }
-    Post repost = new Post();
-    repost.setAuthorId(userId);
-    repost.setQuotedPostId(postId);
-    Post savedPost = postRepository.save(repost);
+    Optional<Post> repost = postRepository.findRepost(originalPostId, authorId);
+    if (repost.isPresent()) {
+      if (repost.get().getStatus() == Status.DELETED) {
+        // Existing repost needs to be reactivated
+        repost.get().setStatus(Status.ACTIVE);
+        return repost.get().toPostProfile();
+      }
+      // Existing repost found; status is active
+      throw new DuplicateRepostException(
+          String.format(
+              "Repost already exists for originalPostId: %s and authorId: %s",
+              originalPostId, authorId));
+    }
+    // No existing repost found; create new
+    Post newRepost = new Post();
+    newRepost.setAuthorId(authorId);
+    newRepost.setQuotedPostId(originalPostId);
+    Post savedPost = postRepository.save(newRepost);
     return savedPost.toPostProfile();
   }
 
