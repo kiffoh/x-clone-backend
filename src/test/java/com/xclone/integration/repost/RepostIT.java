@@ -236,7 +236,7 @@ public class RepostIT extends BaseIntegrationTest {
                     "success": false,
                     "post": null,
                     "errors": [{
-                      "field": "postId",
+                      "field": "originalPostId",
                       "message": "Original post cannot be found"
                     }]
                   }

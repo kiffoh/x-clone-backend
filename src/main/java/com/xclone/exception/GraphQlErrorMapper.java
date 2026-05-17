@@ -131,8 +131,7 @@ public class GraphQlErrorMapper {
    * Maps a {@link DuplicateRepostException} to a list of {@link FieldError} DTOs.
    *
    * @param ex exception whose message is used as the field-level error message
-   * @return a list of {@link FieldError} instances representing the entity violation not found
-   *     exception
+   * @return a list of {@link FieldError} instances representing the duplicate repost violation
    */
   public static List<FieldError> fromDuplicateRepost(DuplicateRepostException ex) {
     log.debug("Duplicate repost attempted", ex);
