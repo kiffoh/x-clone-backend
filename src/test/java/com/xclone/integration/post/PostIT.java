@@ -2,6 +2,7 @@ package com.xclone.integration.post;
 
 import static com.xclone.support.helpers.PostHelpers.createPostContents;
 import static com.xclone.support.helpers.PostHelpers.deletePostsInDescendingOrder;
+import static com.xclone.support.helpers.PostHelpers.seedPosts;
 import static com.xclone.support.helpers.PostHelpers.setPostStatusDeleted;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
@@ -82,7 +83,7 @@ public class PostIT extends BaseIntegrationTest {
     // - authenticated user authors post at index-0
     // - user at index-1 authors post at index-1
     // - user at index-2 authors post at index-2
-    posts = PostHelpers.seedPosts(messageContents, users, postRepository);
+    posts = seedPosts(messageContents, users, postRepository);
   }
 
   void cleanupDBs() {
@@ -1205,8 +1206,7 @@ public class PostIT extends BaseIntegrationTest {
       void getLikes_noLikes_postAuthor_returnsEmptyUserConnection() {
         // authenticated user authors a post with no likes
         Post postWithNoLikes =
-            PostHelpers.seedPosts(
-                    List.of("postWithNoLikes"), List.of(authenticatedUser), postRepository)
+            seedPosts(List.of("postWithNoLikes"), List.of(authenticatedUser), postRepository)
                 .getFirst();
 
         authenticatedTester

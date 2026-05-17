@@ -138,12 +138,12 @@ public class PostService {
   }
 
   /**
-   * Creates a post entity with the provided input fields using a {@link Transactional} view,
+   * Creates a reply entity with the provided input fields using a {@link Transactional} view,
    * ensuring for atomicity and that dirty checking applies.
    *
    * @param input DTO with post details to be created
    * @param authorId unique uuid of the authenticated user
-   * @return the created post
+   * @return the created reply
    */
   @Transactional
   public PostProfile createReply(@Valid CreateReplyInput input, UUID authorId) {
@@ -157,6 +157,27 @@ public class PostService {
     reply.setMessageContent(input.messageContent());
     reply.setParentId(input.parentId());
     Post savedPost = postRepository.save(reply);
+    return savedPost.toPostProfile();
+  }
+
+  /**
+   * Creates a repost entity with the provided input fields using a {@link Transactional} view,
+   * ensuring for atomicity and that dirty checking applies.
+   *
+   * @param postId unique identifier of the quoted post
+   * @param userId unique uuid of the authenticated user
+   * @return the created repost
+   */
+  @Transactional
+  public PostProfile createRepost(UUID postId, UUID userId) {
+    Optional<Post> quotedPost = postRepository.findById(postId);
+    if (quotedPost.isEmpty()) {
+      throw new PostNotFoundException("Quoted post cannot be found");
+    }
+    Post repost = new Post();
+    repost.setAuthorId(userId);
+    repost.setQuotedPostId(postId);
+    Post savedPost = postRepository.save(repost);
     return savedPost.toPostProfile();
   }
 
