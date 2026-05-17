@@ -192,7 +192,6 @@ public class RepostIT extends BaseIntegrationTest {
                       "field": "originalPostId",
                       "message": "Repost already exists"
                     }]
-                    }
                   }
                   """);
 

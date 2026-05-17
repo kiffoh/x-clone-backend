@@ -44,7 +44,7 @@ public class RepostController {
       return new PostResponse("400", false, null, GraphQlErrorMapper.fromDuplicateRepost(ex));
     } catch (PostNotFoundException ex) {
       return new PostResponse(
-          "404", false, null, GraphQlErrorMapper.fromPostNotFound("postId", ex));
+          "404", false, null, GraphQlErrorMapper.fromPostNotFound("originalPostId", ex));
     }
   }
 }
