@@ -5,36 +5,22 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.xclone.exception.GlobalGraphQlExceptionHandlerTest;
-import com.xclone.follow.repository.FollowRepository;
-import com.xclone.integration.base.BaseIntegrationTest;
+import com.xclone.integration.base.BaseGraphQLIntegrationTest;
 import com.xclone.support.fixtures.UserFixtures;
-import com.xclone.support.helpers.AuthHelpers;
 import com.xclone.user.dto.connection.UserConnection;
 import com.xclone.user.dto.mutation.UserResponse;
 import com.xclone.user.model.entity.User;
 import com.xclone.user.model.enums.UserStatus;
-import com.xclone.user.repository.UserRepository;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.graphql.tester.AutoConfigureHttpGraphQlTester;
-import org.springframework.context.annotation.Import;
 import org.springframework.graphql.execution.ErrorType;
-import org.springframework.graphql.test.tester.HttpGraphQlTester;
 import org.springframework.validation.BindException;
 
-@AutoConfigureHttpGraphQlTester
-@Import(AuthHelpers.class)
-public class FollowIT extends BaseIntegrationTest {
-  @Autowired UserRepository userRepository;
-  @Autowired FollowRepository followRepository;
-  @Autowired AuthHelpers authHelpers;
-  @Autowired HttpGraphQlTester authenticatedTester;
-
+public class FollowIT extends BaseGraphQLIntegrationTest {
   List<String> handles = List.of("example1", "example2", "example3");
 
   List<User> users;

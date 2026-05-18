@@ -14,23 +14,18 @@ import com.xclone.common.enums.Status;
 import com.xclone.common.mutation.DeleteResponse;
 import com.xclone.exception.GlobalGraphQlExceptionHandlerTest;
 import com.xclone.exception.dto.FieldError;
-import com.xclone.follow.repository.FollowRepository;
-import com.xclone.integration.base.BaseIntegrationTest;
-import com.xclone.like.repository.LikeRepository;
+import com.xclone.integration.base.BaseGraphQLIntegrationTest;
 import com.xclone.post.dto.PostProfile;
 import com.xclone.post.dto.connection.PostEdge;
 import com.xclone.post.dto.mutation.PostResponse;
 import com.xclone.post.model.entity.Post;
-import com.xclone.post.repository.PostRepository;
 import com.xclone.support.fixtures.UserFixtures;
-import com.xclone.support.helpers.AuthHelpers;
 import com.xclone.support.helpers.FollowHelpers;
 import com.xclone.support.helpers.LikeHelpers;
 import com.xclone.support.helpers.PostHelpers;
 import com.xclone.user.dto.UserProfile;
 import com.xclone.user.model.entity.User;
 import com.xclone.user.model.enums.UserStatus;
-import com.xclone.user.repository.UserRepository;
 import com.xclone.validation.ValidationConstants;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
@@ -42,23 +37,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.graphql.tester.AutoConfigureHttpGraphQlTester;
-import org.springframework.context.annotation.Import;
 import org.springframework.graphql.execution.ErrorType;
-import org.springframework.graphql.test.tester.HttpGraphQlTester;
 import org.springframework.validation.BindException;
 
-@AutoConfigureHttpGraphQlTester
-@Import(AuthHelpers.class)
-public class PostIT extends BaseIntegrationTest {
-  @Autowired UserRepository userRepository;
-  @Autowired PostRepository postRepository;
-  @Autowired FollowRepository followRepository;
-  @Autowired LikeRepository likeRepository;
-  @Autowired AuthHelpers authHelpers;
-  @Autowired HttpGraphQlTester authenticatedTester;
-
+public class PostIT extends BaseGraphQLIntegrationTest {
   List<String> handles = List.of("example1", "example2", "example3");
   List<User> users;
   User authenticatedUser;

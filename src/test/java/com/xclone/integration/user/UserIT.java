@@ -12,19 +12,17 @@ import com.xclone.common.enums.Status;
 import com.xclone.common.mutation.DeleteResponse;
 import com.xclone.exception.dto.FieldError;
 import com.xclone.follow.repository.FollowRepository;
-import com.xclone.integration.base.BaseIntegrationTest;
+import com.xclone.integration.base.BaseGraphQLIntegrationTest;
 import com.xclone.post.dto.connection.PostEdge;
 import com.xclone.post.model.entity.Post;
 import com.xclone.post.repository.PostRepository;
 import com.xclone.support.fixtures.UserFixtures;
-import com.xclone.support.helpers.AuthHelpers;
 import com.xclone.support.helpers.FollowHelpers;
 import com.xclone.support.helpers.PostHelpers;
 import com.xclone.user.dto.connection.UserConnection;
 import com.xclone.user.dto.mutation.UserResponse;
 import com.xclone.user.model.entity.User;
 import com.xclone.user.model.enums.UserStatus;
-import com.xclone.user.repository.UserRepository;
 import com.xclone.validation.ValidationConstants;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -37,22 +35,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.graphql.tester.AutoConfigureHttpGraphQlTester;
-import org.springframework.context.annotation.Import;
 import org.springframework.graphql.ResponseError;
-import org.springframework.graphql.test.tester.HttpGraphQlTester;
 
-@AutoConfigureHttpGraphQlTester
-@Import(AuthHelpers.class)
-public class UserIT extends BaseIntegrationTest {
-
-  @Autowired UserRepository userRepository;
-  @Autowired FollowRepository followRepository;
-  @Autowired PostRepository postRepository;
-
-  @Autowired AuthHelpers authHelpers;
-  @Autowired HttpGraphQlTester graphQlTester;
-
+public class UserIT extends BaseGraphQLIntegrationTest {
   List<String> handles = List.of("example1", "example2", "example3", "example4");
 
   List<User> users;
@@ -74,11 +59,8 @@ public class UserIT extends BaseIntegrationTest {
         handles.stream().map(UserFixtures::createUserWithHandle).map(userRepository::save).toList();
     // Sets the accessToken to match that of the first user
     accessToken = authHelpers.getUserAccessToken(users.getFirst().getId().toString());
-  }
-
-  // Helpers
-  private HttpGraphQlTester authenticatedTester() {
-    return graphQlTester.mutate().headers(headers -> headers.setBearerAuth(accessToken)).build();
+    authenticatedTester =
+        authenticatedTester.mutate().headers(headers -> headers.setBearerAuth(accessToken)).build();
   }
 
   /**
@@ -90,7 +72,7 @@ public class UserIT extends BaseIntegrationTest {
     @Test
     void me_returnsUser() {
       User authenticatedUser = users.getFirst();
-      authenticatedTester()
+      authenticatedTester
           .document(
               """
                   {
@@ -115,7 +97,7 @@ public class UserIT extends BaseIntegrationTest {
     @Test
     void userByHandle_userExists_returnsUser() {
       String handle = handles.getFirst();
-      authenticatedTester()
+      authenticatedTester
           .document(
               String.format(
                   """
@@ -139,7 +121,7 @@ public class UserIT extends BaseIntegrationTest {
     @Test
     void userByHandle_userNotExist_returnsNull() {
       String userWithHandleDoesNotExist = "handleNotExist";
-      authenticatedTester()
+      authenticatedTester
           .document(
               String.format(
                   """
@@ -163,7 +145,7 @@ public class UserIT extends BaseIntegrationTest {
       int numberOfViolations = 2;
 
       List<ResponseError> errors =
-          authenticatedTester()
+          authenticatedTester
               .document(
                   String.format(
                       """
@@ -194,7 +176,7 @@ public class UserIT extends BaseIntegrationTest {
     @Test
     void userById_userExists_returnsUser() {
       User user = users.getFirst();
-      authenticatedTester()
+      authenticatedTester
           .document(
               """
                   query UserById($Id: ID!) {
@@ -217,7 +199,7 @@ public class UserIT extends BaseIntegrationTest {
     @Test
     void userById_userNotExist_returnsNull() {
       User userDoesNotExist = UserFixtures.getDefaultUserWithRandomId();
-      authenticatedTester()
+      authenticatedTester
           .document(
               String.format(
                   """
@@ -240,7 +222,7 @@ public class UserIT extends BaseIntegrationTest {
     @Test
     void searchUsers_validQueryForMultipleUser_returnsUserConnection() {
       String query = "exam";
-      authenticatedTester()
+      authenticatedTester
           .document(
               String.format(
                   """
@@ -264,7 +246,7 @@ public class UserIT extends BaseIntegrationTest {
     @Test
     void searchUsers_validQueryForSingleUser_returnsUserConnection() {
       String query = "example1";
-      authenticatedTester()
+      authenticatedTester
           .document(
               String.format(
                   """
@@ -288,7 +270,7 @@ public class UserIT extends BaseIntegrationTest {
     @Test
     void searchUsers_queryWithNoMatch_returnsUserConnection() {
       String query = "noUserHasThisHandle";
-      authenticatedTester()
+      authenticatedTester
           .document(
               String.format(
                   """
@@ -332,7 +314,7 @@ public class UserIT extends BaseIntegrationTest {
       FollowHelpers.seedFollow(followRepository, authenticatedUser, user2);
 
       List<UUID> response =
-          authenticatedTester()
+          authenticatedTester
               .document(
                   """
                       {
@@ -366,7 +348,7 @@ public class UserIT extends BaseIntegrationTest {
       FollowHelpers.seedFollow(followRepository, authenticatedUser, user3);
 
       List<UUID> response =
-          authenticatedTester()
+          authenticatedTester
               .document(
                   """
                       {
@@ -401,7 +383,7 @@ public class UserIT extends BaseIntegrationTest {
       FollowHelpers.seedFollow(followRepository, authenticatedUser, user4);
 
       List<UUID> response =
-          authenticatedTester()
+          authenticatedTester
               .document(
                   """
                       {
@@ -433,7 +415,7 @@ public class UserIT extends BaseIntegrationTest {
       String bio = "this is my new bio";
       String profileImage = "https://www.linktonewuri.com";
 
-      authenticatedTester()
+      authenticatedTester
           .document(
               """
                   mutation UpdateProfile($input: UpdateUserInput!) {
@@ -486,7 +468,7 @@ public class UserIT extends BaseIntegrationTest {
       String newDisplayName = "newName";
 
       UserResponse response =
-          authenticatedTester()
+          authenticatedTester
               .document(
                   """
                       mutation UpdateProfile($input: UpdateUserInput!) {
@@ -528,7 +510,7 @@ public class UserIT extends BaseIntegrationTest {
       input.put("handle", "invalidHandle!!!!!!");
 
       UserResponse response =
-          authenticatedTester()
+          authenticatedTester
               .document(
                   """
                       mutation UpdateProfile($input: UpdateUserInput!) {
@@ -573,7 +555,7 @@ public class UserIT extends BaseIntegrationTest {
       input.put("handle", authenticatedUser.getHandle());
 
       UserResponse response =
-          authenticatedTester()
+          authenticatedTester
               .document(
                   """
                       mutation UpdateProfile($input: UpdateUserInput!) {
@@ -616,7 +598,7 @@ public class UserIT extends BaseIntegrationTest {
       input.put("handle", users.getLast().getHandle());
 
       UserResponse response =
-          authenticatedTester()
+          authenticatedTester
               .document(
                   """
                       mutation UpdateProfile($input: UpdateUserInput!) {
@@ -658,7 +640,7 @@ public class UserIT extends BaseIntegrationTest {
       User authenticatedUser = users.getFirst();
 
       DeleteResponse response =
-          authenticatedTester()
+          authenticatedTester
               .document(
                   """
                       mutation DeleteAccount {
@@ -697,7 +679,7 @@ public class UserIT extends BaseIntegrationTest {
       PostHelpers.seedPosts(messageContents, authors, postRepository);
       List<Post> postsBeforeDelete = postRepository.findAllByAuthorId(authenticatedUser.getId());
 
-      authenticatedTester()
+      authenticatedTester
           .document(
               """
                   mutation DeleteAccount {
@@ -756,7 +738,7 @@ public class UserIT extends BaseIntegrationTest {
 
     @Test
     void userHasNoPosts_returnsEmptyPostConnection() {
-      authenticatedTester()
+      authenticatedTester
           .document(
               """
                   query getPosts {
@@ -787,7 +769,7 @@ public class UserIT extends BaseIntegrationTest {
     void userHasPosts_noCursor_returnsPostConnection() {
       createPostsForAuthenticatedUser();
 
-      authenticatedTester()
+      authenticatedTester
           .document(
               """
                   query getPosts {
@@ -817,7 +799,7 @@ public class UserIT extends BaseIntegrationTest {
       createPostsForAuthenticatedUser();
 
       String endCursor =
-          authenticatedTester()
+          authenticatedTester
               .document(
                   """
                       query getPosts {
@@ -848,7 +830,7 @@ public class UserIT extends BaseIntegrationTest {
               .entity(String.class)
               .get();
 
-      authenticatedTester()
+      authenticatedTester
           .document(
               """
                   query getPosts($after: String) {
@@ -886,7 +868,7 @@ public class UserIT extends BaseIntegrationTest {
       String cursorPastEnd =
           new Cursor(Instant.now().minus(1, ChronoUnit.HOURS), UUID.randomUUID()).encode();
 
-      authenticatedTester()
+      authenticatedTester
           .document(
               """
                   query getPosts($after: String) {
@@ -956,7 +938,7 @@ public class UserIT extends BaseIntegrationTest {
       @Test
       void followingNoCursor_returnsUserConnection() {
         // Utilises the default first value (first 5 results)
-        authenticatedTester()
+        authenticatedTester
             .document(
                 """
                     {
@@ -1002,7 +984,7 @@ public class UserIT extends BaseIntegrationTest {
       @Test
       void paginationWithValidAfter_returnsNextUserConnection() {
         UserConnection firstPage =
-            authenticatedTester()
+            authenticatedTester
                 .document(
                     """
                         {
@@ -1039,7 +1021,7 @@ public class UserIT extends BaseIntegrationTest {
         assertTrue(firstPage.pageInfo().hasNextPage());
 
         UserConnection secondPage =
-            authenticatedTester()
+            authenticatedTester
                 .document(
                     """
                         query getFollowing($after: String) {
@@ -1082,7 +1064,7 @@ public class UserIT extends BaseIntegrationTest {
 
         // Act
         UserConnection emptyData =
-            authenticatedTester()
+            authenticatedTester
                 .document(
                     """
                         query getFollowing($after: String) {
@@ -1140,7 +1122,7 @@ public class UserIT extends BaseIntegrationTest {
 
       @Test
       void followersNoCursor_returnsUserConnection() {
-        authenticatedTester()
+        authenticatedTester
             .document(
                 """
                     {
@@ -1188,7 +1170,7 @@ public class UserIT extends BaseIntegrationTest {
       @Test
       void paginationWithValidAfter_returnsNextUserConnection() {
         UserConnection firstPage =
-            authenticatedTester()
+            authenticatedTester
                 .document(
                     """
                         {
@@ -1225,7 +1207,7 @@ public class UserIT extends BaseIntegrationTest {
         assertTrue(firstPage.pageInfo().hasNextPage());
 
         UserConnection secondPage =
-            authenticatedTester()
+            authenticatedTester
                 .document(
                     """
                         query getFollowers($after: String) {
@@ -1268,7 +1250,7 @@ public class UserIT extends BaseIntegrationTest {
 
         // Act
         UserConnection emptyData =
-            authenticatedTester()
+            authenticatedTester
                 .document(
                     """
                         query getFollowers($after: String) {
@@ -1318,7 +1300,7 @@ public class UserIT extends BaseIntegrationTest {
         // authenticated user only follows user 3
         FollowHelpers.seedFollow(followRepository, authenticatedUser, user3);
 
-        authenticatedTester()
+        authenticatedTester
             .document(
                 String.format(
                     """

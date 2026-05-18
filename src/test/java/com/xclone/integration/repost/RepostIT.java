@@ -5,32 +5,18 @@ import static com.xclone.support.helpers.PostHelpers.seedRepost;
 import static com.xclone.support.helpers.PostHelpers.setPostStatusDeleted;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.xclone.integration.base.BaseIntegrationTest;
+import com.xclone.integration.base.BaseGraphQLIntegrationTest;
 import com.xclone.post.model.entity.Post;
-import com.xclone.post.repository.PostRepository;
 import com.xclone.support.fixtures.UserFixtures;
-import com.xclone.support.helpers.AuthHelpers;
 import com.xclone.user.model.entity.User;
-import com.xclone.user.repository.UserRepository;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.graphql.tester.AutoConfigureHttpGraphQlTester;
-import org.springframework.context.annotation.Import;
-import org.springframework.graphql.test.tester.HttpGraphQlTester;
 
-@AutoConfigureHttpGraphQlTester
-@Import(AuthHelpers.class)
-public class RepostIT extends BaseIntegrationTest {
-  @Autowired UserRepository userRepository;
-  @Autowired PostRepository postRepository;
-  @Autowired AuthHelpers authHelpers;
-  @Autowired HttpGraphQlTester authenticatedTester;
-
+public class RepostIT extends BaseGraphQLIntegrationTest {
   List<String> handles = List.of("example1", "example2", "example3");
   List<User> users;
   User authenticatedUser;
