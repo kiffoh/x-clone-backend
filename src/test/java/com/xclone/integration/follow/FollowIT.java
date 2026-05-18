@@ -16,6 +16,7 @@ import com.xclone.user.model.enums.UserStatus;
 import com.xclone.user.repository.UserRepository;
 import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -54,6 +55,11 @@ public class FollowIT extends BaseIntegrationTest {
     String accessToken = authHelpers.getUserAccessToken(users.getFirst().getId().toString());
     authenticatedTester =
         authenticatedTester.mutate().headers(headers -> headers.setBearerAuth(accessToken)).build();
+  }
+
+  @AfterEach
+  void cleanup() {
+    wipeDBs();
   }
 
   /**
