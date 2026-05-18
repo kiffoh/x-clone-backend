@@ -71,9 +71,9 @@ public class GlobalGraphQlExceptionHandler {
     log.error("Invalid request: {} - {} ", ex.getClass().getSimpleName(), ex.getMessage(), ex);
 
     String message = "Invalid input format";
-    if (ex.getFieldError() != null) {
-      message =
-          String.format("Invalid value '%s' for argument", ex.getFieldError().getRejectedValue());
+    org.springframework.validation.FieldError fieldError = ex.getFieldError();
+    if (fieldError != null) {
+      message = String.format("Invalid value '%s' for argument", fieldError.getRejectedValue());
     }
 
     return GraphQLError.newError().message(message).errorType(ErrorType.BAD_REQUEST).build();

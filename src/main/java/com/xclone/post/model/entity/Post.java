@@ -43,11 +43,14 @@ public class Post {
   @Column(name = "author_id", nullable = false)
   private UUID authorId;
 
-  @JoinColumn(name = "author_id", insertable = false, updatable = false)
+  @JoinColumn(
+      name = "author_id",
+      insertable = false,
+      updatable = false,
+      foreignKey = @ForeignKey(name = PostConstraintName.AUTHOR_ID_FK))
   @ManyToOne(fetch = FetchType.LAZY)
   private User author;
 
-  // TODO add nullable=true when reposts are added
   @Column(name = "message_content", length = ValidationConstants.MAX_MESSAGE_CONTENT_SIZE)
   private String messageContent;
 
@@ -73,6 +76,17 @@ public class Post {
       foreignKey = @ForeignKey(name = PostConstraintName.POST_PARENT_FK))
   @ManyToOne(fetch = FetchType.LAZY)
   private Post parent;
+
+  @Column(name = "quoted_post_id")
+  private UUID quotedPostId;
+
+  @JoinColumn(
+      name = "quoted_post_id",
+      insertable = false,
+      updatable = false,
+      foreignKey = @ForeignKey(name = PostConstraintName.QUOTED_POST_FK))
+  @ManyToOne(fetch = FetchType.LAZY)
+  private Post quotedPost;
 
   /**
    * Projects this entity to a {@link PostProfile} for use in GraphQL responses. Timestamps are

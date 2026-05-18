@@ -33,6 +33,13 @@ public class PostHelpers {
     return posts;
   }
 
+  public static Post seedRepost(UUID originalPostId, UUID authorId, PostRepository postRepository) {
+    Post newRepost = new Post();
+    newRepost.setAuthorId(authorId);
+    newRepost.setQuotedPostId(originalPostId);
+    return postRepository.save(newRepost);
+  }
+
   public static List<Post> seedReplies(
       List<String> messageContents,
       List<User> authors,

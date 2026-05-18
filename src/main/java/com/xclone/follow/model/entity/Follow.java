@@ -6,6 +6,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -38,11 +39,17 @@ public class Follow {
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;
 
-  @JoinColumn(name = "follower_id", nullable = false)
+  @JoinColumn(
+      name = "follower_id",
+      nullable = false,
+      foreignKey = @ForeignKey(name = FollowConstraintName.FOLLOWER_FK))
   @ManyToOne(fetch = FetchType.LAZY)
   private User follower;
 
-  @JoinColumn(name = "following_id", nullable = false)
+  @JoinColumn(
+      name = "following_id",
+      nullable = false,
+      foreignKey = @ForeignKey(name = FollowConstraintName.FOLLOWING_FK))
   @ManyToOne(fetch = FetchType.LAZY)
   private User following;
 
