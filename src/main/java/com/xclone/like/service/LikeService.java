@@ -17,6 +17,7 @@ import java.util.Set;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.postgresql.util.PSQLException;
+import org.postgresql.util.ServerErrorMessage;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -107,14 +108,21 @@ public class LikeService {
     } catch (DataIntegrityViolationException ex) {
       if (ex.contains(PSQLException.class)) {
         PSQLException psql = (PSQLException) ex.getRootCause();
-        String constraintName = psql.getServerErrorMessage().getConstraint();
-        if (constraintName.equals(LikeConstraintName.LIKE_EXISTS)) {
-          // Swallow duplicate like as idempotent behaviour is acceptable
-          log.debug("Like already exists");
-          return;
-        }
-        if (constraintName.equals(LikeConstraintName.LIKE_POST_FK)) {
-          throw new PostNotFoundException("Post does not exist");
+        if (psql != null) {
+          ServerErrorMessage serverError = psql.getServerErrorMessage();
+          if (serverError != null) {
+            String constraintName = serverError.getConstraint();
+            if (constraintName != null) {
+              if (constraintName.equals(LikeConstraintName.LIKE_EXISTS)) {
+                // Swallow duplicate like as idempotent behaviour is acceptable
+                log.debug("Like already exists");
+                return;
+              }
+              if (constraintName.equals(LikeConstraintName.LIKE_POST_FK)) {
+                throw new PostNotFoundException("Post does not exist");
+              }
+            }
+          }
         }
       }
       throw ex;

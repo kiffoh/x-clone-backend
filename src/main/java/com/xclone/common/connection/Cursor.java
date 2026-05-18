@@ -19,7 +19,8 @@ public record Cursor(Instant createdAt, UUID id) {
    * @return a base64-encoded string representation of this cursor
    */
   public String encode() {
-    return Base64.getEncoder().encodeToString((createdAt + "_" + id).getBytes());
+    return Base64.getEncoder()
+        .encodeToString((createdAt + "_" + id).getBytes(StandardCharsets.UTF_8));
   }
 
   /**

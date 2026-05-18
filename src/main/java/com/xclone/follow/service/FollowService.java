@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.postgresql.util.PSQLException;
+import org.postgresql.util.ServerErrorMessage;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -176,11 +177,18 @@ public class FollowService {
     } catch (DataIntegrityViolationException ex) {
       if (ex.contains(PSQLException.class)) {
         PSQLException psql = (PSQLException) ex.getRootCause();
-        String constraintName = psql.getServerErrorMessage().getConstraint();
-        if (constraintName.equals(FollowConstraintName.FOLLOW_EXISTS)) {
-          throw new DuplicateFollowException("Follow already exists");
-        } else if (constraintName.equals(FollowConstraintName.SELF_FOLLOW)) {
-          throw new SelfFollowException("User cannot follow self");
+        if (psql != null) {
+          ServerErrorMessage serverError = psql.getServerErrorMessage();
+          if (serverError != null) {
+            String constraintName = serverError.getConstraint();
+            if (constraintName != null) {
+              if (constraintName.equals(FollowConstraintName.FOLLOW_EXISTS)) {
+                throw new DuplicateFollowException("Follow already exists");
+              } else if (constraintName.equals(FollowConstraintName.SELF_FOLLOW)) {
+                throw new SelfFollowException("User cannot follow self");
+              }
+            }
+          }
         }
       }
       throw ex;
