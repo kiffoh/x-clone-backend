@@ -6,6 +6,7 @@ import com.xclone.post.repository.PostRepository;
 import com.xclone.support.helpers.AuthHelpers;
 import com.xclone.user.model.entity.User;
 import com.xclone.user.repository.UserRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.graphql.tester.AutoConfigureHttpGraphQlTester;
@@ -23,11 +24,20 @@ public class BaseGraphQLIntegrationTest extends BaseIntegrationTest {
   @Autowired protected HttpGraphQlTester authenticatedTester;
   protected User authenticatedUser;
 
-  @BeforeEach
   void wipeDBs() {
     likeRepository.deleteAll();
     postRepository.deleteAll();
     followRepository.deleteAll();
     userRepository.deleteAll();
+  }
+
+  @BeforeEach
+  void setup() {
+    wipeDBs();
+  }
+
+  @AfterEach
+  void cleanup() {
+    wipeDBs();
   }
 }
