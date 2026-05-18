@@ -51,7 +51,7 @@ public class AuthenticationIT extends BaseAuthIntegrationTest {
   private ResponseEntity<AuthResponse> signup() {
     return testRestTemplate.postForEntity(
         "/api/auth/signup",
-        new SignupRequest("exampleHandle", "password", null, null, null),
+        new SignupRequest("exampleHandle", "Password123!", null, null, null),
         AuthResponse.class);
   }
 
@@ -64,7 +64,7 @@ public class AuthenticationIT extends BaseAuthIntegrationTest {
 
     @Test
     void signup_validRequest_returns200AndSetsRefreshCookie() {
-      SignupRequest request = new SignupRequest("exampleHandle", "password", null, null, null);
+      SignupRequest request = new SignupRequest("exampleHandle", "Password123!", null, null, null);
 
       ResponseEntity<AuthResponse> response =
           testRestTemplate.postForEntity("/api/auth/signup", request, AuthResponse.class);
@@ -96,7 +96,7 @@ public class AuthenticationIT extends BaseAuthIntegrationTest {
 
     @Test
     void signup_duplicateHandle_returns409() {
-      SignupRequest request = new SignupRequest("exampleHandle", "password", null, null, null);
+      SignupRequest request = new SignupRequest("exampleHandle", "Password123!", null, null, null);
       testRestTemplate.postForEntity("/api/auth/signup", request, AuthResponse.class);
 
       ResponseEntity<ErrorResponse> response =
@@ -123,7 +123,7 @@ public class AuthenticationIT extends BaseAuthIntegrationTest {
     @Test
     void login_validRequest_returns200AndSetsRefreshCookie() {
       signup();
-      LoginRequest request = new LoginRequest("exampleHandle", "password");
+      LoginRequest request = new LoginRequest("exampleHandle", "Password123!");
       ResponseEntity<AuthResponse> response =
           testRestTemplate.postForEntity("/api/auth/login", request, AuthResponse.class);
 
@@ -149,7 +149,7 @@ public class AuthenticationIT extends BaseAuthIntegrationTest {
     @Test
     void login_validRequest_storesRefreshTokensInRedis() {
       signup();
-      LoginRequest request = new LoginRequest("exampleHandle", "password");
+      LoginRequest request = new LoginRequest("exampleHandle", "Password123!");
       testRestTemplate.postForEntity("/api/auth/login", request, AuthResponse.class);
 
       // Refresh tokens stored in redis (one for signup, one for login)
@@ -160,7 +160,7 @@ public class AuthenticationIT extends BaseAuthIntegrationTest {
     @Test
     void login_invalidCredentials_returns401() {
       signup();
-      LoginRequest request = new LoginRequest("exampleHandle", "passwordDoesNotMatch");
+      LoginRequest request = new LoginRequest("exampleHandle", "passwordDoesNotMatch1!");
       ResponseEntity<ErrorResponse> response =
           testRestTemplate.postForEntity("/api/auth/login", request, ErrorResponse.class);
 
