@@ -30,14 +30,12 @@ import org.junit.jupiter.api.Test;
 public class ReplyIT extends BaseGraphQLIntegrationTest {
   List<String> handles = List.of("example1", "example2", "example3");
   List<User> users;
-  User authenticatedUser;
 
   List<String> messageContents = createPostContents(6);
   List<Post> posts = List.of();
 
   @BeforeEach
   void setup() {
-    cleanupDBs();
     // Adds 3 users to the DB under the handles
     users =
         handles.stream().map(UserFixtures::createUserWithHandle).map(userRepository::save).toList();
@@ -48,11 +46,9 @@ public class ReplyIT extends BaseGraphQLIntegrationTest {
         authenticatedTester.mutate().headers(headers -> headers.setBearerAuth(accessToken)).build();
   }
 
-  void cleanupDBs() {
-    // Flushes DBs
+  @AfterEach
+  void cleanup() {
     deletePostsInDescendingOrder(posts, postRepository);
-    postRepository.deleteAll();
-    userRepository.deleteAll();
   }
 
   @Nested

@@ -13,7 +13,6 @@ import com.xclone.user.model.entity.User;
 import com.xclone.user.model.enums.UserStatus;
 import java.util.List;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -25,27 +24,16 @@ public class FollowIT extends BaseGraphQLIntegrationTest {
 
   List<User> users;
 
-  void wipeDBs() {
-    followRepository.deleteAll();
-    userRepository.deleteAll();
-  }
-
   @BeforeEach
   void setup() {
-    // Flushes DB
-    wipeDBs();
     // Adds 3 users to the DB under the handles
     users =
         handles.stream().map(UserFixtures::createUserWithHandle).map(userRepository::save).toList();
+    authenticatedUser = users.getFirst();
     // Sets the accessToken to match that of the first user
     String accessToken = authHelpers.getUserAccessToken(users.getFirst().getId().toString());
     authenticatedTester =
         authenticatedTester.mutate().headers(headers -> headers.setBearerAuth(accessToken)).build();
-  }
-
-  @AfterEach
-  void cleanup() {
-    wipeDBs();
   }
 
   /**
@@ -57,7 +45,6 @@ public class FollowIT extends BaseGraphQLIntegrationTest {
   class followUserTests {
     @Test
     void validInput_returnsUserProfile() {
-      User authenticatedUser = users.getFirst();
       // Not the authenticated user
       User userToFollow = users.get(1);
 
@@ -233,8 +220,6 @@ public class FollowIT extends BaseGraphQLIntegrationTest {
 
     @Test
     void followSelf_returnsFieldError() {
-      User authenticatedUser = users.getFirst();
-
       UserResponse followResponse =
           authenticatedTester
               .document(
@@ -310,13 +295,11 @@ public class FollowIT extends BaseGraphQLIntegrationTest {
    */
   @Nested
   class unfollowUserTests {
-    User authenticatedUser;
     // Not the authenticated user
     User userToUnfollow;
 
     @BeforeEach
     void setup() {
-      authenticatedUser = users.getFirst();
       userToUnfollow = users.get(1);
 
       // Initialise follower as part of setup

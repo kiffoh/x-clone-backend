@@ -15,7 +15,6 @@ import com.xclone.follow.repository.FollowRepository;
 import com.xclone.integration.base.BaseGraphQLIntegrationTest;
 import com.xclone.post.dto.connection.PostEdge;
 import com.xclone.post.model.entity.Post;
-import com.xclone.post.repository.PostRepository;
 import com.xclone.support.fixtures.UserFixtures;
 import com.xclone.support.helpers.FollowHelpers;
 import com.xclone.support.helpers.PostHelpers;
@@ -44,19 +43,12 @@ public class UserIT extends BaseGraphQLIntegrationTest {
 
   String accessToken;
 
-  void wipeDBs() {
-    postRepository.deleteAll();
-    followRepository.deleteAll();
-    userRepository.deleteAll();
-  }
-
   @BeforeEach
   void setup() {
-    // Flushes DB
-    wipeDBs();
     // Adds 3 users to the DB under the handles
     users =
         handles.stream().map(UserFixtures::createUserWithHandle).map(userRepository::save).toList();
+    authenticatedUser = users.getFirst();
     // Sets the accessToken to match that of the first user
     accessToken = authHelpers.getUserAccessToken(users.getFirst().getId().toString());
     authenticatedTester =
@@ -71,7 +63,6 @@ public class UserIT extends BaseGraphQLIntegrationTest {
   class meTests {
     @Test
     void me_returnsUser() {
-      User authenticatedUser = users.getFirst();
       authenticatedTester
           .document(
               """
@@ -294,15 +285,12 @@ public class UserIT extends BaseGraphQLIntegrationTest {
 
   @Nested
   class suggestedUsersTests {
-
-    User authenticatedUser;
     User user2;
     User user3;
     User user4;
 
     @BeforeEach
     void setup() {
-      authenticatedUser = users.getFirst();
       user2 = users.get(1);
       user3 = users.get(2);
       user4 = users.get(3);
@@ -464,7 +452,6 @@ public class UserIT extends BaseGraphQLIntegrationTest {
 
     @Test
     void updateMyProfile_validInput_onlyDisplayName_returnsUserResponse() {
-      User authenticatedUser = users.getFirst();
       String newDisplayName = "newName";
 
       UserResponse response =
@@ -549,7 +536,6 @@ public class UserIT extends BaseGraphQLIntegrationTest {
     @Test
     void updateMyProfile_usingCurrentHandle_returnsUserResponse() {
       Map<String, Object> input = new HashMap<>();
-      User authenticatedUser = users.getFirst();
       String newDisplayName = "newName";
       input.put("displayName", newDisplayName);
       input.put("handle", authenticatedUser.getHandle());
@@ -637,8 +623,6 @@ public class UserIT extends BaseGraphQLIntegrationTest {
   class deleteMyAccountTests {
     @Test
     void deleteMyAccount_deletesAccount() {
-      User authenticatedUser = users.getFirst();
-
       DeleteResponse response =
           authenticatedTester
               .document(
@@ -673,7 +657,6 @@ public class UserIT extends BaseGraphQLIntegrationTest {
     @Test
     void deleteMyAccount_cascadeSoftDeletesPosts() {
       // Creates 3 posts with the authenticated user as the author
-      User authenticatedUser = users.getFirst();
       List<String> messageContents = List.of("one for sorrow", "two for joy", "three for a girl");
       List<User> authors = Collections.nCopies(3, authenticatedUser);
       PostHelpers.seedPosts(messageContents, authors, postRepository);
@@ -713,22 +696,8 @@ public class UserIT extends BaseGraphQLIntegrationTest {
    */
   @Nested
   class postMappingTests {
-    @Autowired PostRepository postRepository;
-
-    User authenticatedUser;
-
     List<Post> posts;
     List<String> messageContents = List.of("one for sorrow", "two for joy", "three for a girl");
-
-    void wipePostDB() {
-      postRepository.deleteAll();
-    }
-
-    @BeforeEach
-    void setup() {
-      wipePostDB();
-      authenticatedUser = users.getFirst();
-    }
 
     /** Creates 3 posts with the authenticated user as the author. */
     void createPostsForAuthenticatedUser() {
@@ -905,13 +874,8 @@ public class UserIT extends BaseGraphQLIntegrationTest {
   class followMappingTests {
     @Autowired FollowRepository followRepository;
 
-    User authenticatedUser;
     User user2;
     User user3;
-
-    void wipeFollowDB() {
-      followRepository.deleteAll();
-    }
 
     @Nested
     class followingTests {
@@ -927,8 +891,6 @@ public class UserIT extends BaseGraphQLIntegrationTest {
        */
       @BeforeEach
       void setup() {
-        wipeFollowDB();
-        authenticatedUser = users.getFirst();
         user2 = users.get(1);
         user3 = users.get(2);
         FollowHelpers.seedFollow(followRepository, authenticatedUser, user2);
@@ -1113,7 +1075,6 @@ public class UserIT extends BaseGraphQLIntegrationTest {
        */
       @BeforeEach
       void setup() {
-        authenticatedUser = users.getFirst();
         user2 = users.get(1);
         user3 = users.get(2);
         FollowHelpers.seedFollow(followRepository, user2, authenticatedUser);
@@ -1291,7 +1252,6 @@ public class UserIT extends BaseGraphQLIntegrationTest {
       @Test
       void getUserWithFollowersAndIsFollowing() {
         // Initialise
-        User authenticatedUser = users.getFirst();
         User user2 = users.get(1);
         User user3 = users.get(2);
         // both user 1 and user 2 follow authenticatedUser

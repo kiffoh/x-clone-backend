@@ -21,14 +21,12 @@ import org.springframework.validation.BindException;
 public class LikeIT extends BaseGraphQLIntegrationTest {
   List<String> handles = List.of("example1", "example2", "example3");
   List<User> users;
-  User authenticatedUser;
 
   List<String> messageContents = List.of("one for sorrow", "two for joy", "three for a girl");
   List<Post> posts;
 
   @BeforeEach
   void setup() {
-    cleanupDBs();
     // Adds 3 users to the DB under the handles
     users =
         handles.stream().map(UserFixtures::createUserWithHandle).map(userRepository::save).toList();
@@ -42,13 +40,6 @@ public class LikeIT extends BaseGraphQLIntegrationTest {
     // - user at index-1 authors post at index-1
     // - user at index-2 authors post at index-2
     posts = PostHelpers.seedPosts(messageContents, users, postRepository);
-  }
-
-  void cleanupDBs() {
-    // Flushes DBs
-    likeRepository.deleteAll();
-    postRepository.deleteAll();
-    userRepository.deleteAll();
   }
 
   /**

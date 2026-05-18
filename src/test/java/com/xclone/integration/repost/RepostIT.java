@@ -11,7 +11,6 @@ import com.xclone.support.fixtures.UserFixtures;
 import com.xclone.user.model.entity.User;
 import java.util.List;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -19,14 +18,12 @@ import org.junit.jupiter.api.Test;
 public class RepostIT extends BaseGraphQLIntegrationTest {
   List<String> handles = List.of("example1", "example2", "example3");
   List<User> users;
-  User authenticatedUser;
 
   List<Post> posts;
   Post quotedPost;
 
   @BeforeEach
   void setup() {
-    cleanupDBs();
     // Adds 3 users to the DB under the handles
     users =
         handles.stream().map(UserFixtures::createUserWithHandle).map(userRepository::save).toList();
@@ -37,13 +34,6 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
         authenticatedTester.mutate().headers(headers -> headers.setBearerAuth(accessToken)).build();
     posts = seedPosts(List.of("original post"), List.of(users.get(1)), postRepository);
     quotedPost = posts.getFirst();
-  }
-
-  @AfterEach
-  void cleanupDBs() {
-    // Flushes DBs
-    postRepository.deleteAll();
-    userRepository.deleteAll();
   }
 
   @Nested
