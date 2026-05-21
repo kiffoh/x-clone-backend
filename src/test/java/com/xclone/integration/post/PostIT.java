@@ -413,6 +413,13 @@ public class PostIT extends BaseGraphQLIntegrationTest {
 
   @Nested
   class createPostTests {
+
+    // wipes post repository so that rows in post repository can be used in assertions
+    @BeforeEach
+    void wipePostDB() {
+      postRepository.deleteAll();
+    }
+
     @Test
     void validInput_returnsPostResponse() {
       String messageContent = "hello this is my new post";
