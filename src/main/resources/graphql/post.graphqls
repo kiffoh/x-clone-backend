@@ -73,7 +73,7 @@ type Post {
 
     If quotedPostId is non-null and quotedPost is null; the quoted post has been deleted.
     """
-    quotedPostId: String
+    quotedPostId: ID
     """
     Post that this post quoted.
 

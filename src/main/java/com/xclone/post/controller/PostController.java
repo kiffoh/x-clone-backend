@@ -198,13 +198,17 @@ public class PostController {
     List<PostProfile> quotedPosts = repostService.getQuotedPosts(quotes);
     Map<UUID, PostProfile> idToQuotedPostMap =
         quotedPosts.stream().collect(Collectors.toMap(PostProfile::id, Function.identity()));
-    Map<PostProfile, PostProfile> quoteToQuotedPostMap = new HashMap<>();
 
-    quotes.forEach(
-        quote -> {
-          PostProfile quotedPost = idToQuotedPostMap.get(quote.quotedPostId());
-          quoteToQuotedPostMap.put(quote, quotedPost);
-        });
+    Map<PostProfile, PostProfile> quoteToQuotedPostMap = new HashMap<>();
+    quotes.stream()
+        .filter(quote -> quote.quotedPostId() != null)
+        .forEach(
+            quote -> {
+              PostProfile quotedPost = idToQuotedPostMap.get(quote.quotedPostId());
+              if (quotedPost != null) {
+                quoteToQuotedPostMap.put(quote, quotedPost);
+              }
+            });
     return quoteToQuotedPostMap;
   }
 

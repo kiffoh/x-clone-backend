@@ -31,18 +31,18 @@ public class RepostService {
    * @return a list of posts sorted by creation date
    */
   public PostConnection getQuotes(UUID quotedPostId, Integer first, String after) {
-    Slice<Post> replies;
+    Slice<Post> quotes;
     Pageable pageable = Pageable.ofSize(first);
 
     if (after == null) {
-      replies = postRepository.findFirstPageOfQuotes(quotedPostId, pageable);
+      quotes = postRepository.findFirstPageOfQuotes(quotedPostId, pageable);
     } else {
       Cursor cursor = Cursor.toCursor(after);
-      replies =
+      quotes =
           postRepository.findNextPageOfQuotes(
               quotedPostId, cursor.createdAt(), cursor.id(), pageable);
     }
-    return PostService.toPostConnection(replies);
+    return PostService.toPostConnection(quotes);
   }
 
   /**
@@ -54,6 +54,9 @@ public class RepostService {
   public List<PostProfile> getQuotedPosts(List<PostProfile> quotes) {
     List<UUID> quotedPostIds =
         quotes.stream().map(PostProfile::quotedPostId).filter(Objects::nonNull).toList();
+    if (quotedPostIds.isEmpty()) {
+      return List.of();
+    }
     List<Post> quotedPosts = postRepository.findQuotedPosts(quotedPostIds);
     return quotedPosts.stream().map(Post::toPostProfile).toList();
   }

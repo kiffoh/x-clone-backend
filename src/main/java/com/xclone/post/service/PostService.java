@@ -211,7 +211,7 @@ public class PostService {
    *
    * @param input DTO with post details to be created
    * @param authorId unique uuid of the authenticated user
-   * @return the created repost
+   * @return the created quote
    * @throws PostNotFoundException if the quoted post cannot be found with {@link
    *     PostRepository#findActivePostById(UUID)}
    */
