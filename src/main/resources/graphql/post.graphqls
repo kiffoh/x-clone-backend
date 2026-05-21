@@ -67,6 +67,14 @@ type Post {
     repostedByMe: Boolean!
     repostedBy(first: Int, after: String): UserConnection!
     """
+    Unique UUID identifier of the quoted post.
+
+    Null for posts which are not quotes.
+
+    If quotedPostId is non-null and quotedPost is null; the quoted post has been deleted.
+    """
+    quotedPostId: String
+    """
     Post that this post quoted.
 
     Null for posts which are not quotes (e.g. original posts in a post chain).
@@ -141,7 +149,7 @@ extend type Mutation {
 
     Authentication: Required. The authenticated user is the author.
     """
-    createRepost(originalPostId: ID!): PostResponse!
+    createRepost(quotedPostId: ID!): PostResponse!
     """
     Create a quote; a quotes has a messageContent and a quotedPost pointing to the original post.
 

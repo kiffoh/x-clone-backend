@@ -367,6 +367,48 @@ public class PostIT extends BaseGraphQLIntegrationTest {
           .entityList(PostProfile.class)
           .hasSize(0);
     }
+
+    @Test
+    void getFeed_quotesAppearInFeed_returnsPostConnection() {
+      // Initialise a new quote in feed for post 1 by user 2
+      Post quotedPost = posts.get(1);
+      Post quote =
+          seedQuotes(
+                  quotedPost.getId(),
+                  List.of(users.get(2)),
+                  List.of(messageContents.getFirst()),
+                  postRepository)
+              .getFirst();
+      // user 0 follows user 1 + user 2 post initialisation
+      FollowHelpers.seedFollow(followRepository, authenticatedUser, users.get(2));
+
+      authenticatedTester
+          .document(
+              """
+                  {
+                    feed {
+                      edges {
+                        node {
+                          quotedPostId
+                        }
+                      }
+                    }
+                  }
+                  """)
+          .execute()
+          .path("feed.edges[*].node.quotedPostId")
+          .entityList(UUID.class)
+          .satisfies(
+              ids -> {
+                assertThat(ids).hasSize(3);
+
+                // feed is returned in created at descendingly
+                assertThat(ids).containsExactly(quotedPost.getId(), null, null);
+              });
+
+      // clean up
+      postRepository.delete(quote);
+    }
   }
 
   @Nested
@@ -1863,22 +1905,22 @@ public class PostIT extends BaseGraphQLIntegrationTest {
             authenticatedTester
                 .document(
                     """
-                    query GetQuotes($postId: ID!) {
-                      getPost(postId: $postId) {
-                        quotes(first: 1) {
-                          edges {
-                            node {
-                              id
+                        query GetQuotes($postId: ID!) {
+                          getPost(postId: $postId) {
+                            quotes(first: 1) {
+                              edges {
+                                node {
+                                  id
+                                }
+                              }
+                              pageInfo {
+                                hasNextPage
+                                endCursor
+                              }
                             }
                           }
-                          pageInfo {
-                            hasNextPage
-                            endCursor
-                          }
                         }
-                      }
-                    }
-                    """)
+                        """)
                 .variable("postId", quotedPost.getId())
                 .execute()
                 .path("getPost.quotes.edges[*].node.id")
@@ -2014,6 +2056,8 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                     """)
             .variable("quoteId", quote.getId())
             .execute()
+            .path("getPost.quotedPostId")
+            .entity(UUID.class)
             .path("getPost.quotedPost.id")
             .entity(UUID.class)
             .isEqualTo(quotedPost.getId());
@@ -2021,7 +2065,7 @@ public class PostIT extends BaseGraphQLIntegrationTest {
 
       @Test
       void quotedPostIsDeleted_returnsNull() {
-        setPostStatusDeleted(quote, postRepository);
+        setPostStatusDeleted(quotedPost, postRepository);
         // Quote chain:
         // post 0 X post 1 -> null
         authenticatedTester
@@ -2029,14 +2073,17 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                 """
                     query GetQuotedPost($quoteId: ID!) {
                       getPost(postId: $quoteId) {
+                        quotedPostId
                         quotedPost {
                           id
                         }
                       }
                     }
                     """)
-            .variable("quoteId", quotedPost.getId())
+            .variable("quoteId", quote.getId())
             .execute()
+            .path("getPost.quotedPostId")
+            .hasValue()
             .path("getPost.quotedPost")
             .valueIsNull();
       }
@@ -2050,6 +2097,7 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                 """
                     query GetQuotedPost($quoteId: ID!) {
                       getPost(postId: $quoteId) {
+                        quotedPostId
                         quotedPost {
                           id
                         }
@@ -2058,6 +2106,8 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                     """)
             .variable("quoteId", posts.get(2).getId())
             .execute()
+            .path("getPost.quotedPostId")
+            .valueIsNull()
             .path("getPost.quotedPost")
             .valueIsNull();
       }

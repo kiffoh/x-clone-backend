@@ -35,10 +35,10 @@ public class PostHelpers {
     return posts;
   }
 
-  public static Post seedRepost(UUID originalPostId, UUID authorId, PostRepository postRepository) {
+  public static Post seedRepost(UUID quotedPostId, UUID authorId, PostRepository postRepository) {
     Post newRepost = new Post();
     newRepost.setAuthorId(authorId);
-    newRepost.setQuotedPostId(originalPostId);
+    newRepost.setQuotedPostId(quotedPostId);
     return postRepository.save(newRepost);
   }
 

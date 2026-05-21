@@ -202,7 +202,7 @@ public class PostController {
 
     quotes.forEach(
         quote -> {
-          PostProfile quotedPost = idToQuotedPostMap.getOrDefault(quote.quotedPostId(), null);
+          PostProfile quotedPost = idToQuotedPostMap.get(quote.quotedPostId());
           quoteToQuotedPostMap.put(quote, quotedPost);
         });
     return quoteToQuotedPostMap;

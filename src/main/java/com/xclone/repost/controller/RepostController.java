@@ -29,32 +29,32 @@ public class RepostController {
    * Triggers {@link PostService#createRepost(UUID, UUID)} with the authenticated user as the author
    * of the post.
    *
-   * <p>Method used to create a simple repost i.e. a post with no message content.
+   * <p>Method used to create a simple repost i.e. a post with no message content..
    *
    * @param userDetails authenticated user; populated as part of the security chain with {@link
    *     JwtAuthenticationFilter}
-   * @param originalPostId unique identifier of the reposted post
+   * @param quotedPostId unique identifier of the reposted post
    * @return the created post
    */
   @MutationMapping
   public PostResponse createRepost(
-      @AuthenticationPrincipal CustomUserDetails userDetails, @Argument UUID originalPostId) {
+      @AuthenticationPrincipal CustomUserDetails userDetails, @Argument UUID quotedPostId) {
     try {
-      PostProfile repost = postService.createRepost(originalPostId, userDetails.getId());
+      PostProfile repost = postService.createRepost(quotedPostId, userDetails.getId());
       return new PostResponse("200", true, repost, null);
     } catch (DuplicateRepostException ex) {
       return new PostResponse("400", false, null, GraphQlErrorMapper.fromDuplicateRepost(ex));
     } catch (PostNotFoundException ex) {
       return new PostResponse(
-          "404", false, null, GraphQlErrorMapper.fromPostNotFound("originalPostId", ex));
+          "404", false, null, GraphQlErrorMapper.fromPostNotFound("quotedPostId", ex));
     }
   }
 
   /**
-   * Triggers {@link PostService#createRepost(UUID, UUID)} with the authenticated user as the author
-   * of the post.
+   * Triggers {@link PostService#createQuote(CreateQuoteInput, UUID)} with the authenticated user as
+   * the author of the post.
    *
-   * <p>Method used to create a simple repost i.e. a post with no message content.
+   * <p>Method used to create a quote i.e. a repost with message content.
    *
    * @param userDetails authenticated user; populated as part of the security chain with {@link
    *     JwtAuthenticationFilter}
