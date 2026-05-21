@@ -777,4 +777,184 @@ public class ValidationIT extends BaseAuthIntegrationTest {
           .expect(error -> error.getMessage().contains("Field 'parentId' has coerced Null"));
     }
   }
+
+  @Nested
+  class CreateQuoteInputTests {
+    User authenticatedUser;
+    String accessToken;
+    HttpGraphQlTester authenticatedTester;
+    List<Post> posts;
+
+    @BeforeEach
+    void setup() {
+      userRepository.deleteAll();
+      authenticatedUser = userRepository.save(UserFixtures.createUserWithHandle("example1"));
+      accessToken = authHelpers.getUserAccessToken(authenticatedUser.getId().toString());
+      authenticatedTester =
+          graphQlTester.mutate().headers(headers -> headers.setBearerAuth(accessToken)).build();
+      posts = seedPosts(List.of("original post"), List.of(authenticatedUser), postRepository);
+    }
+
+    @Test
+    void invalidMessageContent_tooLong_returns400() {
+      String longMessage = "this message will be over 280 characters".repeat(20);
+      Map<String, Object> createQuoteInput = new HashMap<>();
+      createQuoteInput.put("messageContent", longMessage);
+      createQuoteInput.put("quotedPostId", posts.getFirst().getId().toString());
+
+      PostResponse response =
+          authenticatedTester
+              .document(
+                  """
+                      mutation CreateQuote($input: CreateQuoteInput!) {
+                        createQuote(input: $input) {
+                          code
+                          success
+                          post {
+                            messageContent
+                            author {
+                              id
+                            }
+                            quotedPost {
+                              id
+                            }
+                          }
+                          errors {
+                            field
+                            message
+                          }
+                        }
+                      }
+                      """)
+              .variable("input", createQuoteInput)
+              .execute()
+              .path("createQuote")
+              .entity(PostResponse.class)
+              .get();
+
+      assertEquals("400", response.code());
+      assertFalse(response.success());
+      assertNull(response.post());
+      assertThat(response.errors())
+          .extracting(FieldError::field, FieldError::message)
+          .containsExactly(
+              tuple("messageContent", ValidationConstants.INVALID_MESSAGE_CONTENT_SIZE));
+    }
+
+    @Test
+    void invalidMessageContent_empty_returns400() {
+      Map<String, Object> createQuoteInput = new HashMap<>();
+      createQuoteInput.put("messageContent", "");
+      createQuoteInput.put("quotedPostId", posts.getFirst().getId().toString());
+
+      PostResponse response =
+          authenticatedTester
+              .document(
+                  """
+                      mutation CreateQuote($input: CreateQuoteInput!) {
+                        createQuote(input: $input) {
+                          code
+                          success
+                          post {
+                            messageContent
+                            author {
+                              id
+                            }
+                            quotedPost {
+                              id
+                            }
+                          }
+                          errors {
+                            field
+                            message
+                          }
+                        }
+                      }
+                      """)
+              .variable("input", createQuoteInput)
+              .execute()
+              .path("createQuote")
+              .entity(PostResponse.class)
+              .get();
+
+      assertEquals("400", response.code());
+      assertFalse(response.success());
+      assertNull(response.post());
+      assertThat(response.errors())
+          .extracting(FieldError::field, FieldError::message)
+          .containsExactly(tuple("messageContent", "Post message content is required"));
+    }
+
+    @Test
+    void nullMessageContent_returns400() {
+      Map<String, Object> createQuoteInput = new HashMap<>();
+      createQuoteInput.put("messageContent", null);
+      createQuoteInput.put("quotedPostId", posts.getFirst().getId().toString());
+
+      authenticatedTester
+          .document(
+              """
+                  mutation CreateQuote($input: CreateQuoteInput!) {
+                    createQuote(input: $input) {
+                      code
+                      success
+                      post {
+                        messageContent
+                        author {
+                          id
+                        }
+                        quotedPost {
+                          id
+                        }
+                      }
+                      errors {
+                        field
+                        message
+                      }
+                    }
+                  }
+                  """)
+          .variable("input", createQuoteInput)
+          .execute()
+          .errors()
+          .filter(error -> "BAD_REQUEST".equals(error.getExtensions().get("classification")))
+          .expect(error -> error.getMessage().contains("Field 'messageContent' has coerced Null"));
+    }
+
+    @Test
+    void nullQuotedPostId_returns400() {
+      Map<String, Object> createQuoteInput = new HashMap<>();
+      createQuoteInput.put("messageContent", "original message");
+      createQuoteInput.put("quotedPostId", null);
+
+      authenticatedTester
+          .document(
+              """
+                  mutation CreateQuote($input: CreateQuoteInput!) {
+                    createQuote(input: $input) {
+                      code
+                      success
+                      post {
+                        messageContent
+                        author {
+                          id
+                        }
+                        quotedPost {
+                          id
+                        }
+                      }
+                      errors {
+                        field
+                        message
+                      }
+                    }
+                  }
+                  """)
+          .variable("input", createQuoteInput)
+          .execute()
+          .errors()
+          .filter(error -> "BAD_REQUEST".equals(error.getExtensions().get("classification")))
+          .expect(error -> error.getMessage().contains("Field 'quotedPostId' has coerced Null"));
+    }
+  }
 }

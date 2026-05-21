@@ -34,4 +34,12 @@ public class PostFixtures {
     post.setParentId(parentId);
     return post;
   }
+
+  public static Post createQuote(UUID quotedPostId, User author, String messageContent) {
+    Post post = new Post();
+    post.setMessageContent(messageContent);
+    post.setAuthorId(author.getId());
+    post.setQuotedPostId(quotedPostId);
+    return post;
+  }
 }

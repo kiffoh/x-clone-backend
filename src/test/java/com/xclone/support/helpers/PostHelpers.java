@@ -1,5 +1,7 @@
 package com.xclone.support.helpers;
 
+import static com.xclone.support.fixtures.PostFixtures.createQuote;
+
 import com.xclone.common.enums.Status;
 import com.xclone.post.model.entity.Post;
 import com.xclone.post.repository.PostRepository;
@@ -60,6 +62,24 @@ public class PostHelpers {
       posts.add(savedPost);
     }
     return posts;
+  }
+
+  public static List<Post> seedQuotes(
+      UUID quotedPostId,
+      List<User> authors,
+      List<String> messageContents,
+      PostRepository postRepository) {
+    if ((messageContents.size() != authors.size())) {
+      throw new IllegalArgumentException(
+          "messageContents, authors and postIndexes must be the same length");
+    }
+    List<Post> quotes = new ArrayList<>();
+    for (int i = 0; i < messageContents.size(); i++) {
+      Post quote = createQuote(quotedPostId, authors.get(i), messageContents.get(i));
+      Post savedPost = postRepository.save(quote);
+      quotes.add(savedPost);
+    }
+    return quotes;
   }
 
   public static void setPostStatusDeleted(Post post, PostRepository postRepository) {

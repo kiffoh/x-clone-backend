@@ -3,6 +3,7 @@ package com.xclone.integration.post;
 import static com.xclone.support.helpers.PostHelpers.createPostContents;
 import static com.xclone.support.helpers.PostHelpers.deletePostsInDescendingOrder;
 import static com.xclone.support.helpers.PostHelpers.seedPosts;
+import static com.xclone.support.helpers.PostHelpers.seedQuotes;
 import static com.xclone.support.helpers.PostHelpers.setPostStatusDeleted;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
@@ -370,11 +371,6 @@ public class PostIT extends BaseGraphQLIntegrationTest {
 
   @Nested
   class createPostTests {
-    @BeforeEach
-    void removeAllPosts() {
-      postRepository.deleteAll();
-    }
-
     @Test
     void validInput_returnsPostResponse() {
       String messageContent = "hello this is my new post";
@@ -1207,11 +1203,6 @@ public class PostIT extends BaseGraphQLIntegrationTest {
 
   @Nested
   class replyTests {
-    @BeforeEach
-    void deletePosts() {
-      postRepository.deleteAll();
-    }
-
     /**
      * Posts are reassigned in each test suite. To not trigger a FK error when deleting, the posts
      * are deleted from newest -> oldest.
@@ -1763,6 +1754,312 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                   assertThat(postProfiles).hasSize(1);
                   assertThat(postProfiles.getFirst().id()).isEqualTo(posts.get(2).getId());
                 });
+      }
+    }
+  }
+
+  @Nested
+  class quoteTests {
+    @Nested
+    class quotesTests {
+      Post quotedPost;
+      List<Post> quotes;
+
+      @BeforeEach
+      void setup() {
+        quotedPost = posts.get(1);
+        quotes =
+            seedQuotes(
+                quotedPost.getId(),
+                List.of(authenticatedUser, users.get(2)),
+                createPostContents(2),
+                postRepository);
+      }
+
+      @AfterEach
+      void deleteQuotes() {
+        postRepository.deleteAll(quotes);
+      }
+
+      @Test
+      void noQuotes_returnsEmptyPostConnection() {
+        // Quote chain:
+        // quote 0
+        //         \
+        //           post 1 -> null
+        //         /
+        // quote 1
+
+        authenticatedTester
+            .document(
+                """
+                    query GetQuotes($postId: ID!) {
+                      getPost(postId: $postId) {
+                        quotes {
+                          edges {
+                            node {
+                              id
+                            }
+                          }
+                        }
+                      }
+                    }
+                    """)
+            .variable("postId", posts.getFirst().getId())
+            .execute()
+            .path("getPost.quotes.edges[*].node.id")
+            .entityList(UUID.class)
+            .hasSize(0);
+      }
+
+      @Test
+      void hasQuotes_NoCursor_returnsPostConnection() {
+        // Quote chain:
+        // quote 0
+        //         \
+        //           post 1 -> null
+        //         /
+        // quote 1
+
+        authenticatedTester
+            .document(
+                """
+                    query GetQuotes($postId: ID!) {
+                      getPost(postId: $postId) {
+                        quotes {
+                          edges {
+                            node {
+                              id
+                            }
+                          }
+                        }
+                      }
+                    }
+                    """)
+            .variable("postId", quotedPost.getId())
+            .execute()
+            .path("getPost.quotes.edges[*].node.id")
+            .entityList(UUID.class)
+            .satisfies(
+                ids -> {
+                  assertThat(ids).hasSize(2);
+
+                  // quotes are returned with created date descendingly
+                  assertThat(ids.getFirst()).isEqualTo(quotes.getLast().getId());
+                  assertThat(ids.getLast()).isEqualTo(quotes.getFirst().getId());
+                });
+      }
+
+      @Test
+      void hasQuotes_WithValidCursor_returnsPostConnection() {
+        // Quote chain:
+        // quote 0
+        //         \
+        //           post 1 -> null
+        //         /
+        // quote 1
+
+        String endCursor =
+            authenticatedTester
+                .document(
+                    """
+                    query GetQuotes($postId: ID!) {
+                      getPost(postId: $postId) {
+                        quotes(first: 1) {
+                          edges {
+                            node {
+                              id
+                            }
+                          }
+                          pageInfo {
+                            hasNextPage
+                            endCursor
+                          }
+                        }
+                      }
+                    }
+                    """)
+                .variable("postId", quotedPost.getId())
+                .execute()
+                .path("getPost.quotes.edges[*].node.id")
+                .entityList(UUID.class)
+                .satisfies(
+                    ids -> {
+                      assertThat(ids).hasSize(1);
+
+                      // quotes are returned with created date descendingly
+                      assertThat(ids.getFirst()).isEqualTo(quotes.getLast().getId());
+                    })
+                .path("getPost.quotes.pageInfo.hasNextPage")
+                .entity(Boolean.class)
+                .isEqualTo(true)
+                .path("getPost.quotes.pageInfo.endCursor")
+                .entity(String.class)
+                .get();
+
+        authenticatedTester
+            .document(
+                """
+                    query GetQuotes($postId: ID!, $cursor: String) {
+                      getPost(postId: $postId) {
+                        quotes(first: 1, after: $cursor) {
+                          edges {
+                            node {
+                              id
+                            }
+                          }
+                          pageInfo {
+                            hasNextPage
+                          }
+                        }
+                      }
+                    }
+                    """)
+            .variable("postId", quotedPost.getId())
+            .variable("cursor", endCursor)
+            .execute()
+            .path("getPost.quotes.edges[*].node.id")
+            .entityList(UUID.class)
+            .satisfies(
+                ids -> {
+                  assertThat(ids).hasSize(1);
+
+                  // quotes are returned with created date descendingly
+                  assertThat(ids.getFirst()).isEqualTo(quotes.getFirst().getId());
+                })
+            .path("getPost.quotes.pageInfo.hasNextPage")
+            .entity(Boolean.class)
+            .isEqualTo(false);
+      }
+
+      @Test
+      void hasDeletedQuotes_returnsPostConnection() {
+        setPostStatusDeleted(quotes.getLast(), postRepository);
+        // Quote chain:
+        // quote 0
+        //         \
+        //           post 1 -> null
+        //         X
+        // quote 1
+
+        authenticatedTester
+            .document(
+                """
+                    query GetQuotes($postId: ID!) {
+                      getPost(postId: $postId) {
+                        quotes {
+                          edges {
+                            node {
+                              id
+                            }
+                          }
+                          pageInfo {
+                            hasNextPage
+                          }
+                        }
+                      }
+                    }
+                    """)
+            .variable("postId", quotedPost.getId())
+            .execute()
+            .path("getPost.quotes.edges[*].node.id")
+            .entityList(UUID.class)
+            .satisfies(
+                ids -> {
+                  assertThat(ids).hasSize(1);
+                  assertThat(ids.getFirst()).isEqualTo(quotes.getFirst().getId());
+                })
+            .path("getPost.quotes.pageInfo.hasNextPage")
+            .entity(Boolean.class)
+            .isEqualTo(false);
+      }
+    }
+
+    @Nested
+    class quotedPostTests {
+      Post quotedPost;
+      Post quote;
+
+      @BeforeEach
+      void setup() {
+        quotedPost = posts.get(1);
+        quote =
+            seedQuotes(
+                    quotedPost.getId(),
+                    List.of(authenticatedUser),
+                    List.of(messageContents.getFirst()),
+                    postRepository)
+                .getFirst();
+      }
+
+      @AfterEach
+      void deleteQuotes() {
+        postRepository.delete(quote);
+      }
+
+      @Test
+      void validQuote_returnsQuotedPost() {
+        // Quote chain:
+        // post 0 -> post 1 -> null
+        authenticatedTester
+            .document(
+                """
+                    query GetQuotedPost($quoteId: ID!) {
+                      getPost(postId: $quoteId) {
+                        quotedPost {
+                          id
+                        }
+                      }
+                    }
+                    """)
+            .variable("quoteId", quote.getId())
+            .execute()
+            .path("getPost.quotedPost.id")
+            .entity(UUID.class)
+            .isEqualTo(quotedPost.getId());
+      }
+
+      @Test
+      void quotedPostIsDeleted_returnsNull() {
+        setPostStatusDeleted(quote, postRepository);
+        // Quote chain:
+        // post 0 X post 1 -> null
+        authenticatedTester
+            .document(
+                """
+                    query GetQuotedPost($quoteId: ID!) {
+                      getPost(postId: $quoteId) {
+                        quotedPost {
+                          id
+                        }
+                      }
+                    }
+                    """)
+            .variable("quoteId", quotedPost.getId())
+            .execute()
+            .path("getPost.quotedPost")
+            .valueIsNull();
+      }
+
+      @Test
+      void postIsNotAQuote_returnsNull() {
+        // Quote chain:
+        // post 2 (original post) -> null
+        authenticatedTester
+            .document(
+                """
+                    query GetQuotedPost($quoteId: ID!) {
+                      getPost(postId: $quoteId) {
+                        quotedPost {
+                          id
+                        }
+                      }
+                    }
+                    """)
+            .variable("quoteId", posts.get(2).getId())
+            .execute()
+            .path("getPost.quotedPost")
+            .valueIsNull();
       }
     }
   }
