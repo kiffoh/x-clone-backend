@@ -100,6 +100,7 @@ public class Post {
         authorId,
         messageContent,
         parentId,
+        quotedPostId,
         createdAt.atOffset(ZoneOffset.UTC),
         updatedAt.atOffset(ZoneOffset.UTC));
   }

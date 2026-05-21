@@ -14,6 +14,7 @@ import com.xclone.post.dto.request.UpdatePostInput;
 import com.xclone.post.service.PostService;
 import com.xclone.reply.dto.ReplyCount;
 import com.xclone.reply.service.ReplyService;
+import com.xclone.repost.service.RepostService;
 import com.xclone.security.jwt.JwtAuthenticationFilter;
 import com.xclone.security.user.CustomUserDetails;
 import com.xclone.user.dto.UserProfile;
@@ -43,16 +44,19 @@ public class PostController {
   private final UserService userService;
   private final LikeService likeService;
   private final ReplyService replyService;
+  private final RepostService repostService;
 
   public PostController(
       PostService postService,
       UserService userService,
       LikeService likeService,
-      ReplyService replyService) {
+      ReplyService replyService,
+      RepostService repostService) {
     this.postService = postService;
     this.userService = userService;
     this.likeService = likeService;
     this.replyService = replyService;
+    this.repostService = repostService;
   }
 
   /**
@@ -179,6 +183,42 @@ public class PostController {
   @SchemaMapping(typeName = "Post", field = "replies")
   public PostConnection replies(PostProfile post, @Argument Integer first, @Argument String after) {
     return replyService.getReplies(post.id(), first, after);
+  }
+
+  /**
+   * Fetches the quoted post for the quote entity.
+   *
+   * <p>The quoted post is null for the original post in the post chain.
+   *
+   * @param quotes list of quote posts
+   * @return each quote mapped to the original post or null
+   */
+  @BatchMapping(typeName = "Post", field = "quotedPost")
+  public Map<PostProfile, PostProfile> quotedPost(List<PostProfile> quotes) {
+    List<PostProfile> quotedPosts = repostService.getQuotedPosts(quotes);
+    Map<UUID, PostProfile> idToQuotedPostMap =
+        quotedPosts.stream().collect(Collectors.toMap(PostProfile::id, Function.identity()));
+    Map<PostProfile, PostProfile> quoteToQuotedPostMap = new HashMap<>();
+
+    quotes.forEach(
+        quote -> {
+          PostProfile quotedPost = idToQuotedPostMap.getOrDefault(quote.quotedPostId(), null);
+          quoteToQuotedPostMap.put(quote, quotedPost);
+        });
+    return quoteToQuotedPostMap;
+  }
+
+  /**
+   * Fetches the direct quotes for the queried post.
+   *
+   * @param post parent post
+   * @param first optional number of quotes; defaults to 10 in graphql schema
+   * @param after optional cursor for cursor-pagination
+   * @return a paginated list of quotes sorted descendingly by creation date
+   */
+  @SchemaMapping(typeName = "Post", field = "quotes")
+  public PostConnection quotes(PostProfile post, @Argument Integer first, @Argument String after) {
+    return repostService.getQuotes(post.id(), first, after);
   }
 
   /**

@@ -6,8 +6,10 @@ import com.xclone.exception.custom.PostNotFoundException;
 import com.xclone.post.dto.PostProfile;
 import com.xclone.post.dto.mutation.PostResponse;
 import com.xclone.post.service.PostService;
+import com.xclone.repost.dto.request.CreateQuoteInput;
 import com.xclone.security.jwt.JwtAuthenticationFilter;
 import com.xclone.security.user.CustomUserDetails;
+import jakarta.validation.ConstraintViolationException;
 import java.util.UUID;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
@@ -45,6 +47,31 @@ public class RepostController {
     } catch (PostNotFoundException ex) {
       return new PostResponse(
           "404", false, null, GraphQlErrorMapper.fromPostNotFound("originalPostId", ex));
+    }
+  }
+
+  /**
+   * Triggers {@link PostService#createRepost(UUID, UUID)} with the authenticated user as the author
+   * of the post.
+   *
+   * <p>Method used to create a simple repost i.e. a post with no message content.
+   *
+   * @param userDetails authenticated user; populated as part of the security chain with {@link
+   *     JwtAuthenticationFilter}
+   * @param input unique identifier of the reposted post
+   * @return the created post
+   */
+  @MutationMapping
+  public PostResponse createQuote(
+      @AuthenticationPrincipal CustomUserDetails userDetails, @Argument CreateQuoteInput input) {
+    try {
+      PostProfile quote = postService.createQuote(input, userDetails.getId());
+      return new PostResponse("200", true, quote, null);
+    } catch (ConstraintViolationException ex) {
+      return new PostResponse("400", false, null, GraphQlErrorMapper.fromConstraintViolations(ex));
+    } catch (PostNotFoundException ex) {
+      return new PostResponse(
+          "404", false, null, GraphQlErrorMapper.fromPostNotFound("quotedPostId", ex));
     }
   }
 }

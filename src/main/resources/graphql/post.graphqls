@@ -53,7 +53,7 @@ type Post {
     """
     replyCount: Int!
     """
-    Paginated list of posts which replied to this post.
+    Paginated list of posts which directly replied to this post.
     """
     replies(first: Int = 10, after: String): PostConnection!
 
@@ -66,8 +66,16 @@ type Post {
     repostCount: Int! # Pure reposts + quotes combined
     repostedByMe: Boolean!
     repostedBy(first: Int, after: String): UserConnection!
+    """
+    Post that this post quoted.
+
+    Null for posts which are not quotes (e.g. original posts in a post chain).
+    """
     quotedPost: Post
-    quotes(first: Int, after: String): PostConnection!
+    """
+    Paginated list of posts which directly quoted to this post.
+    """
+    quotes(first: Int = 10, after: String): PostConnection!
 
     mentions: [User!] # Users tagged in post
 }
@@ -126,7 +134,19 @@ extend type Mutation {
     Authentication: Required. The authenticated user is the author.
     """
     createReply(input: CreateReplyInput!): PostResponse!
+    """
+    Create a repost; a repost has a messageContent of null and a quotedPost pointing to the original post.
+
+    A user cannot have more than one active repost at one time.
+
+    Authentication: Required. The authenticated user is the author.
+    """
     createRepost(originalPostId: ID!): PostResponse!
+    """
+    Create a quote; a quotes has a messageContent and a quotedPost pointing to the original post.
+
+    Authentication: Required. The authenticated user is the author.
+    """
     createQuote(input: CreateQuoteInput!): PostResponse!
     """
     Update post content.
@@ -186,6 +206,9 @@ input CreateReplyInput {
     mentionedUserIds: [ID!]
 }
 
+"""
+Information required to create a quote.
+"""
 input CreateQuoteInput {
     quotedPostId: ID!
     messageContent: String!

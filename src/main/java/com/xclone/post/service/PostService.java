@@ -15,6 +15,7 @@ import com.xclone.post.dto.request.UpdatePostInput;
 import com.xclone.post.model.entity.Post;
 import com.xclone.post.repository.PostRepository;
 import com.xclone.reply.dto.request.CreateReplyInput;
+import com.xclone.repost.dto.request.CreateQuoteInput;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Optional;
@@ -197,6 +198,31 @@ public class PostService {
     newRepost.setAuthorId(authorId);
     newRepost.setQuotedPostId(originalPostId);
     Post savedPost = postRepository.save(newRepost);
+    return savedPost.toPostProfile();
+  }
+
+  /**
+   * Creates a quote entity with the provided input fields using a {@link Transactional} view,
+   * ensuring for atomicity and that dirty checking applies.
+   *
+   * @param input DTO with post details to be created
+   * @param authorId unique uuid of the authenticated user
+   * @return the created repost
+   * @throws PostNotFoundException if the quoted post cannot be found with {@link
+   *     PostRepository#findActivePostById(UUID)}
+   */
+  @Transactional
+  public PostProfile createQuote(@Valid CreateQuoteInput input, UUID authorId) {
+    Optional<Post> quotedPost = postRepository.findById(input.quotedPostId());
+    if (quotedPost.isEmpty()) {
+      throw new PostNotFoundException("Quoted post cannot be found");
+    }
+
+    Post quote = new Post();
+    quote.setAuthorId(authorId);
+    quote.setMessageContent(input.messageContent());
+    quote.setQuotedPostId(input.quotedPostId());
+    Post savedPost = postRepository.save(quote);
     return savedPost.toPostProfile();
   }
 
