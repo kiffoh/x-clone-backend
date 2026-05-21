@@ -1474,6 +1474,7 @@ public class PostIT extends BaseGraphQLIntegrationTest {
 
       List<Post> createFeed() {
         deletePostsInDescendingOrder(posts, postRepository);
+        postRepository.deleteAll();
         // Reply chain:
         //                post 3
         //               /
@@ -1532,6 +1533,7 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                           edges {
                             node {
                               id
+                              quotedPostId
                               replyCount
                               parent {
                                 id
@@ -2055,6 +2057,7 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                 """
                     query GetQuotedPost($quoteId: ID!) {
                       getPost(postId: $quoteId) {
+                        quotedPostId
                         quotedPost {
                           id
                         }
