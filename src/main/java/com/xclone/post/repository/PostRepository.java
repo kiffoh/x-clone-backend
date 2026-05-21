@@ -111,14 +111,15 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
    *
    * <p>Method is agnostic of post status to allow for repost activation.
    *
-   * @param postId unique identifier of the original post id
+   * @param quotedPostId unique identifier of the quoted post
    * @param authorId unique identifier of the post author
    * @return post entity or null
    */
   @Query(
       "select p from Post p where p.quotedPostId = :quotedPostId and p.authorId = :authorId "
           + "and p.messageContent is null")
-  Optional<Post> findRepost(@Param("quotedPostId") UUID postId, @Param("authorId") UUID authorId);
+  Optional<Post> findRepost(
+      @Param("quotedPostId") UUID quotedPostId, @Param("authorId") UUID authorId);
 
   @Query(
       "select p from Post p where p.parentId = :parentId"
@@ -150,13 +151,13 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
   List<Post> findQuotedPosts(@Param("quotedPostIds") List<UUID> quotedPostIds);
 
   @Query(
-      "select p from Post p where p.quotedPostId = :quotedPostId"
+      "select p from Post p where p.quotedPostId = :quotedPostId and p.messageContent is not null"
           + " and p.status = com.xclone.common.enums.Status.ACTIVE"
           + " order by p.createdAt desc, p.id asc")
   Slice<Post> findFirstPageOfQuotes(@Param("quotedPostId") UUID quotedPostId, Pageable pageable);
 
   @Query(
-      "select p from Post p where p.quotedPostId = :quotedPostId"
+      "select p from Post p where p.quotedPostId = :quotedPostId and p.messageContent is not null"
           + " and p.status = com.xclone.common.enums.Status.ACTIVE"
           + " and ((p.createdAt < :cursorCreatedAt)"
           + " or (p.createdAt = :cursorCreatedAt and p.id > :cursorId))"

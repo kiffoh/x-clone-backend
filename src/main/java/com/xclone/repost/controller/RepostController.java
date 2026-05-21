@@ -29,7 +29,7 @@ public class RepostController {
    * Triggers {@link PostService#createRepost(UUID, UUID)} with the authenticated user as the author
    * of the post.
    *
-   * <p>Method used to create a simple repost i.e. a post with no message content..
+   * <p>Method used to create a simple repost i.e. a post with no message content.
    *
    * @param userDetails authenticated user; populated as part of the security chain with {@link
    *     JwtAuthenticationFilter}
@@ -58,7 +58,7 @@ public class RepostController {
    *
    * @param userDetails authenticated user; populated as part of the security chain with {@link
    *     JwtAuthenticationFilter}
-   * @param input unique identifier of the reposted post
+   * @param input DTO containing the information of the quote
    * @return the created post
    */
   @MutationMapping
