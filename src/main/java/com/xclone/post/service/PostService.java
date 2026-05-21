@@ -15,6 +15,7 @@ import com.xclone.post.dto.request.UpdatePostInput;
 import com.xclone.post.model.entity.Post;
 import com.xclone.post.repository.PostRepository;
 import com.xclone.reply.dto.request.CreateReplyInput;
+import com.xclone.repost.dto.request.CreateQuoteInput;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Optional;
@@ -165,21 +166,23 @@ public class PostService {
    * Creates or reactivates a repost entity with the provided input fields using a {@link
    * Transactional} view, ensuring for atomicity and that dirty checking applies.
    *
-   * @param originalPostId unique identifier of the original post id
+   * <p>A repost can only be created if the original post is active.
+   *
+   * @param quotedPostId unique identifier of the quoted post
    * @param authorId unique uuid of the authenticated user
    * @return the created repost
    * @throws PostNotFoundException if the quoted post cannot be found with {@link
    *     PostRepository#findActivePostById(UUID)}
    * @throws DuplicateRepostException if there is an existing active repost with a matching {@code
-   *     originalPostId} and {@code authorId}
+   *     quotedPostId} and {@code authorId}
    */
   @Transactional
-  public PostProfile createRepost(UUID originalPostId, UUID authorId) {
-    Optional<Post> quotedPost = postRepository.findActivePostById(originalPostId);
+  public PostProfile createRepost(UUID quotedPostId, UUID authorId) {
+    Optional<Post> quotedPost = postRepository.findActivePostById(quotedPostId);
     if (quotedPost.isEmpty()) {
       throw new PostNotFoundException("Original post cannot be found");
     }
-    Optional<Post> repost = postRepository.findRepost(originalPostId, authorId);
+    Optional<Post> repost = postRepository.findRepost(quotedPostId, authorId);
     if (repost.isPresent()) {
       if (repost.get().getStatus() == Status.DELETED) {
         // Existing repost needs to be reactivated
@@ -189,14 +192,41 @@ public class PostService {
       // Existing repost found; status is active
       throw new DuplicateRepostException(
           String.format(
-              "Repost already exists for originalPostId: %s and authorId: %s",
-              originalPostId, authorId));
+              "Repost already exists for quotedPostId: %s and authorId: %s",
+              quotedPostId, authorId));
     }
     // No existing repost found; create new
     Post newRepost = new Post();
     newRepost.setAuthorId(authorId);
-    newRepost.setQuotedPostId(originalPostId);
+    newRepost.setQuotedPostId(quotedPostId);
     Post savedPost = postRepository.save(newRepost);
+    return savedPost.toPostProfile();
+  }
+
+  /**
+   * Creates a quote entity with the provided input fields using a {@link Transactional} view,
+   * ensuring for atomicity and that dirty checking applies.
+   *
+   * <p>A quote can only be created if the original post is active.
+   *
+   * @param input DTO with post details to be created
+   * @param authorId unique uuid of the authenticated user
+   * @return the created quote
+   * @throws PostNotFoundException if the quoted post cannot be found with {@link
+   *     PostRepository#findActivePostById(UUID)}
+   */
+  @Transactional
+  public PostProfile createQuote(@Valid CreateQuoteInput input, UUID authorId) {
+    Optional<Post> quotedPost = postRepository.findActivePostById(input.quotedPostId());
+    if (quotedPost.isEmpty()) {
+      throw new PostNotFoundException("Quoted post cannot be found");
+    }
+
+    Post quote = new Post();
+    quote.setAuthorId(authorId);
+    quote.setMessageContent(input.messageContent());
+    quote.setQuotedPostId(input.quotedPostId());
+    Post savedPost = postRepository.save(quote);
     return savedPost.toPostProfile();
   }
 

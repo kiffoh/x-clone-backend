@@ -106,10 +106,20 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
           + " and p.status = com.xclone.common.enums.Status.ACTIVE")
   Optional<Post> findActivePostById(@Param("postId") UUID postId);
 
+  /**
+   * Fetches a repost.
+   *
+   * <p>Method is agnostic of post status to allow for repost activation.
+   *
+   * @param quotedPostId unique identifier of the quoted post
+   * @param authorId unique identifier of the post author
+   * @return post entity or null
+   */
   @Query(
       "select p from Post p where p.quotedPostId = :quotedPostId and p.authorId = :authorId "
           + "and p.messageContent is null")
-  Optional<Post> findRepost(@Param("quotedPostId") UUID postId, @Param("authorId") UUID authorId);
+  Optional<Post> findRepost(
+      @Param("quotedPostId") UUID quotedPostId, @Param("authorId") UUID authorId);
 
   @Query(
       "select p from Post p where p.parentId = :parentId"
@@ -125,6 +135,35 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
           + " order by p.createdAt desc, p.id asc")
   Slice<Post> findNextPageOfReplies(
       @Param("parentId") UUID postId,
+      @Param("cursorCreatedAt") Instant cursorCreatedAt,
+      @Param("cursorId") UUID cursorId,
+      Pageable pageable);
+
+  /**
+   * Fetches the original posts for each quote.
+   *
+   * @param quotedPostIds list of ids for each quote entity
+   * @return list of quoted posts
+   */
+  @Query(
+      "select p from Post p where p.id in :quotedPostIds "
+          + " and p.status = com.xclone.common.enums.Status.ACTIVE")
+  List<Post> findQuotedPosts(@Param("quotedPostIds") List<UUID> quotedPostIds);
+
+  @Query(
+      "select p from Post p where p.quotedPostId = :quotedPostId and p.messageContent is not null"
+          + " and p.status = com.xclone.common.enums.Status.ACTIVE"
+          + " order by p.createdAt desc, p.id asc")
+  Slice<Post> findFirstPageOfQuotes(@Param("quotedPostId") UUID quotedPostId, Pageable pageable);
+
+  @Query(
+      "select p from Post p where p.quotedPostId = :quotedPostId and p.messageContent is not null"
+          + " and p.status = com.xclone.common.enums.Status.ACTIVE"
+          + " and ((p.createdAt < :cursorCreatedAt)"
+          + " or (p.createdAt = :cursorCreatedAt and p.id > :cursorId))"
+          + " order by p.createdAt desc, p.id asc")
+  Slice<Post> findNextPageOfQuotes(
+      @Param("quotedPostId") UUID quotedPostId,
       @Param("cursorCreatedAt") Instant cursorCreatedAt,
       @Param("cursorId") UUID cursorId,
       Pageable pageable);

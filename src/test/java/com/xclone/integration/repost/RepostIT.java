@@ -9,12 +9,19 @@ import com.xclone.integration.base.BaseGraphQLIntegrationTest;
 import com.xclone.post.model.entity.Post;
 import com.xclone.support.fixtures.UserFixtures;
 import com.xclone.user.model.entity.User;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+/**
+ * Delete Quote/Repost tests are covered in {@link
+ * com.xclone.integration.post.PostIT.deletePostTests} as this method is used for the deletion of
+ * all post types.
+ */
 public class RepostIT extends BaseGraphQLIntegrationTest {
   List<String> handles = List.of("example1", "example2", "example3");
   List<User> users;
@@ -40,13 +47,12 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
   class createRepostTests {
     @Test
     void validInput_noExistingRepost_returnsPostResponse() {
-      // TODO: ADD QUOTED POST ASSERTION
       UUID newPostId =
           authenticatedTester
               .document(
                   """
-                      mutation CreateRepost($originalPostId: ID!) {
-                        createRepost(originalPostId: $originalPostId) {
+                      mutation CreateRepost($quotedPostId: ID!) {
+                        createRepost(quotedPostId: $quotedPostId) {
                               code
                               success
                               post {
@@ -54,11 +60,14 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
                                 author {
                                   id
                                 }
+                                quotedPost {
+                                  id
+                                }
                               }
                             }
                           }
                       """)
-              .variable("originalPostId", quotedPost.getId())
+              .variable("quotedPostId", quotedPost.getId())
               .execute()
               .path("createRepost")
               .matchesJson(
@@ -70,11 +79,14 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
                             "post": {
                               "author": {
                                 "id": "%s"
+                              },
+                              "quotedPost": {
+                                "id": "%s"
                               }
                             }
                           }
                           """,
-                      authenticatedUser.getId()))
+                      authenticatedUser.getId(), quotedPost.getId()))
               .path("createRepost.post.id")
               .entity(UUID.class)
               .get();
@@ -88,16 +100,15 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
 
     @Test
     void validInput_existingDeletedRepost_returnsPostResponse() {
-      // TODO: ADD QUOTED POST ASSERTION
-      // Create a repost with the same originalPostId and authorId
+      // Create a repost with the same quotedPostId and authorId
       Post repost = seedRepost(quotedPost.getId(), authenticatedUser.getId(), postRepository);
       setPostStatusDeleted(repost, postRepository);
 
       authenticatedTester
           .document(
               """
-                  mutation CreateRepost($originalPostId: ID!) {
-                    createRepost(originalPostId: $originalPostId) {
+                  mutation CreateRepost($quotedPostId: ID!) {
+                    createRepost(quotedPostId: $quotedPostId) {
                       code
                       success
                       post {
@@ -105,11 +116,14 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
                         author {
                           id
                         }
+                        quotedPost {
+                          id
+                        }
                       }
                     }
                   }
                   """)
-          .variable("originalPostId", quotedPost.getId())
+          .variable("quotedPostId", quotedPost.getId())
           .execute()
           .path("createRepost")
           .matchesJson(
@@ -122,11 +136,14 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
                           "id": "%s",
                           "author": {
                             "id": "%s"
+                          },
+                          "quotedPost": {
+                            "id": "%s"
                           }
                         }
                       }
                       """,
-                  repost.getId(), authenticatedUser.getId()));
+                  repost.getId(), authenticatedUser.getId(), quotedPost.getId()));
 
       // original post + repost
       assertThat(postRepository.findAll()).hasSize(2);
@@ -137,14 +154,14 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
 
     @Test
     void invalidInput_existingActiveRepost_returnsDuplicateRepost() {
-      // Create a repost with the same originalPostId and authorId
+      // Create a repost with the same quotedPostId and authorId
       Post repost = seedRepost(quotedPost.getId(), authenticatedUser.getId(), postRepository);
 
       authenticatedTester
           .document(
               """
-                  mutation CreateRepost($originalPostId: ID!) {
-                    createRepost(originalPostId: $originalPostId) {
+                  mutation CreateRepost($quotedPostId: ID!) {
+                    createRepost(quotedPostId: $quotedPostId) {
                       code
                       success
                       post {
@@ -157,7 +174,7 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
                     }
                   }
                   """)
-          .variable("originalPostId", quotedPost.getId())
+          .variable("quotedPostId", quotedPost.getId())
           .execute()
           .path("createRepost")
           .matchesJson(
@@ -167,7 +184,7 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
                     "success": false,
                     "post": null,
                     "errors": [{
-                      "field": "originalPostId",
+                      "field": "quotedPostId",
                       "message": "Repost already exists"
                     }]
                   }
@@ -185,8 +202,8 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
       authenticatedTester
           .document(
               """
-                  mutation CreateRepost($originalPostId: ID!) {
-                    createRepost(originalPostId: $originalPostId) {
+                  mutation CreateRepost($quotedPostId: ID!) {
+                    createRepost(quotedPostId: $quotedPostId) {
                       code
                       success
                       post {
@@ -204,7 +221,7 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
                     }
                   }
                   """)
-          .variable("originalPostId", UUID.randomUUID())
+          .variable("quotedPostId", UUID.randomUUID())
           .execute()
           .path("createRepost")
           .matchesJson(
@@ -214,7 +231,7 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
                     "success": false,
                     "post": null,
                     "errors": [{
-                      "field": "originalPostId",
+                      "field": "quotedPostId",
                       "message": "Original post cannot be found"
                     }]
                   }
@@ -229,8 +246,8 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
       authenticatedTester
           .document(
               """
-                  mutation CreateRepost($originalPostId: ID!) {
-                    createRepost(originalPostId: $originalPostId) {
+                  mutation CreateRepost($quotedPostId: ID!) {
+                    createRepost(quotedPostId: $quotedPostId) {
                       code
                       success
                       post {
@@ -248,7 +265,7 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
                     }
                   }
                   """)
-          .variable("originalPostId", null)
+          .variable("quotedPostId", null)
           .execute()
           .errors()
           .satisfy(
@@ -259,8 +276,160 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
                     .anySatisfy(
                         error -> {
                           assertThat(error.getMessage())
-                              .contains("originalPostId")
-                              .contains("'originalPostId' has an invalid value");
+                              .contains("quotedPostId")
+                              .contains("'quotedPostId' has an invalid value");
+                          assertThat(error.getExtensions())
+                              .containsEntry("classification", "ValidationError");
+                        });
+              });
+
+      // Only the original post
+      assertThat(postRepository.findAll()).hasSize(1);
+    }
+  }
+
+  @Nested
+  class createQuoteTests {
+    @Test
+    void validInput_noExistingQuote_returnsPostResponse() {
+      Map<String, Object> createQuoteInput = new HashMap<>();
+      createQuoteInput.put("quotedPostId", quotedPost.getId());
+      createQuoteInput.put("messageContent", "this is a valid quote");
+
+      UUID newPostId =
+          authenticatedTester
+              .document(
+                  """
+                      mutation CreateQuote($input: CreateQuoteInput!) {
+                        createQuote(input: $input) {
+                              code
+                              success
+                              post {
+                                id
+                                author {
+                                  id
+                                }
+                                quotedPost {
+                                  id
+                                }
+                              }
+                            }
+                          }
+                      """)
+              .variable("input", createQuoteInput)
+              .execute()
+              .path("createQuote")
+              .matchesJson(
+                  String.format(
+                      """
+                          {
+                            "code": "200",
+                            "success": true,
+                            "post": {
+                              "author": {
+                                "id": "%s"
+                              },
+                              "quotedPost": {
+                                "id": "%s"
+                              }
+                            }
+                          }
+                          """,
+                      authenticatedUser.getId(), quotedPost.getId()))
+              .path("createQuote.post.id")
+              .entity(UUID.class)
+              .get();
+
+      // original post + repost
+      assertThat(postRepository.findAll()).hasSize(2);
+
+      // Clean up
+      postRepository.deleteById(newPostId);
+    }
+
+    @Test
+    void invalidInput_postIdDoesNotExist_returnsPostNotFound() {
+      Map<String, Object> createQuoteInput = new HashMap<>();
+      createQuoteInput.put("quotedPostId", UUID.randomUUID());
+      createQuoteInput.put("messageContent", "this is the message");
+
+      authenticatedTester
+          .document(
+              """
+                  mutation CreateQuote($input: CreateQuoteInput!) {
+                    createQuote(input: $input) {
+                          code
+                          success
+                          post {
+                            id
+                            author {
+                              id
+                            }
+                            quotedPost {
+                              id
+                            }
+                          }
+                          errors {
+                            field
+                            message
+                          }
+                        }
+                      }
+                  """)
+          .variable("input", createQuoteInput)
+          .execute()
+          .path("createQuote")
+          .matchesJson(
+              """
+                  {
+                    "code": "404",
+                    "success": false,
+                    "post": null,
+                    "errors": [{
+                      "field": "quotedPostId",
+                      "message": "Quoted post cannot be found"
+                    }]
+                  }
+                  """);
+
+      // Only the original post
+      assertThat(postRepository.findAll()).hasSize(1);
+    }
+
+    @Test
+    void invalidInput_inputMissing_returnsConstraintViolation() {
+      authenticatedTester
+          .document(
+              """
+                  mutation CreateQuote($input: CreateQuoteInput!) {
+                    createQuote(input: $input) {
+                          code
+                          success
+                          post {
+                            id
+                            author {
+                              id
+                            }
+                            quotedPost {
+                              id
+                            }
+                          }
+                        }
+                      }
+                  """)
+          .variable("input", null)
+          .execute()
+          .errors()
+          .satisfy(
+              errors -> {
+                assertThat(errors).hasSize(1);
+
+                assertThat(errors)
+                    .anySatisfy(
+                        error -> {
+                          assertThat(error.getMessage())
+                              .contains("input")
+                              .contains("'input' has an invalid value");
                           assertThat(error.getExtensions())
                               .containsEntry("classification", "ValidationError");
                         });
