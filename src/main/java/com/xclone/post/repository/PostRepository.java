@@ -2,6 +2,7 @@ package com.xclone.post.repository;
 
 import com.xclone.post.model.entity.Post;
 import com.xclone.reply.dto.ReplyCount;
+import com.xclone.repost.dto.RepostCount;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -168,6 +169,25 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
       @Param("cursorId") UUID cursorId,
       Pageable pageable);
 
+  @Query(
+      "select p from Post p join fetch p.author a where p.quotedPostId = :quotedPostId"
+          + " and p.messageContent is null and p.status = com.xclone.common.enums.Status.ACTIVE"
+          + " order by p.createdAt desc, p.id asc")
+  Slice<Post> findFirstPageOfPureReposts(
+      @Param("quotedPostId") UUID quotedPostId, Pageable pageable);
+
+  @Query(
+      "select p from Post p join fetch p.author a where p.quotedPostId = :quotedPostId"
+          + " and p.messageContent is null and p.status = com.xclone.common.enums.Status.ACTIVE"
+          + " and ((p.createdAt < :cursorCreatedAt)"
+          + " or (p.createdAt = :cursorCreatedAt and p.id > :cursorId))"
+          + " order by p.createdAt desc, p.id asc")
+  Slice<Post> findNextPageOfPureReposts(
+      @Param("quotedPostId") UUID quotedPostId,
+      @Param("cursorCreatedAt") Instant cursorCreatedAt,
+      @Param("cursorId") UUID cursorId,
+      Pageable pageable);
+
   /**
    * Fetches older posts in the reply chain.
    *
@@ -199,4 +219,15 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
           + " and p.status = com.xclone.common.enums.Status.ACTIVE order by p.createdAt asc")
   List<Post> findAllSiblings(
       @Param("parentId") UUID parentId, @Param("postCreatedAt") Instant postCreatedAt);
+
+  @Query(
+      "select new com.xclone.repost.dto.RepostCount(p.quotedPostId, count(p)) from Post p"
+          + " where p.quotedPostId in :quotedPostIds "
+          + "and p.status = com.xclone.common.enums.Status.ACTIVE group by p.quotedPostId")
+  List<RepostCount> getRepostCounts(@Param("quotedPostIds") List<UUID> quotedPostIds);
+
+  @Query(
+      "select p.id from Post p where p.authorId = :userId and p.quotedPostId in :postIds"
+          + " and p.status = com.xclone.common.enums.Status.ACTIVE")
+  List<UUID> getRepostedPostIds(@Param("postIds") List<UUID> postIds, @Param("userId") UUID userId);
 }

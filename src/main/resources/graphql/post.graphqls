@@ -63,9 +63,6 @@ type Post {
     # - Pure repost: Creates Post with messageContent=null, quotedPost=originalPost
     # - Quote: Creates Post with messageContent + quotedPost=originalPost
     # - repostedBy returns Users who created either type
-    repostCount: Int! # Pure reposts + quotes combined
-    repostedByMe: Boolean!
-    repostedBy(first: Int, after: String): UserConnection!
     """
     Unique UUID identifier of the quoted post.
 
@@ -84,6 +81,9 @@ type Post {
     Paginated list of posts which directly quoted to this post.
     """
     quotes(first: Int = 10, after: String): PostConnection!
+    repostedBy(first: Int, after: String): UserConnection! # only reposts
+    repostCount: Int! # Pure reposts + quotes combined
+    repostedByMe: Boolean! # reposts + quotes
 
     mentions: [User!] # Users tagged in post
 }

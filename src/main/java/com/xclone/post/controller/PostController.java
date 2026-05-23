@@ -14,6 +14,7 @@ import com.xclone.post.dto.request.UpdatePostInput;
 import com.xclone.post.service.PostService;
 import com.xclone.reply.dto.ReplyCount;
 import com.xclone.reply.service.ReplyService;
+import com.xclone.repost.dto.RepostCount;
 import com.xclone.repost.service.RepostService;
 import com.xclone.security.jwt.JwtAuthenticationFilter;
 import com.xclone.security.user.CustomUserDetails;
@@ -215,7 +216,7 @@ public class PostController {
   /**
    * Fetches the direct quotes for the queried post.
    *
-   * @param post parent post
+   * @param post quoted post
    * @param first optional number of quotes; defaults to 10 in graphql schema
    * @param after optional cursor for cursor-pagination
    * @return a paginated list of quotes sorted descendingly by creation date
@@ -223,6 +224,62 @@ public class PostController {
   @SchemaMapping(typeName = "Post", field = "quotes")
   public PostConnection quotes(PostProfile post, @Argument Integer first, @Argument String after) {
     return repostService.getQuotes(post.id(), first, after);
+  }
+
+  /**
+   * Fetches the users which reposted the queried post.
+   *
+   * @param post quoted post
+   * @param first optional number of reposts; defaults to 10 in graphql schema
+   * @param after optional cursor for cursor-pagination
+   * @return a paginated list of users sorted descendingly by repost creation date
+   */
+  @SchemaMapping(typeName = "Post", field = "repostedBy")
+  public UserConnection repostedBy(
+      PostProfile post, @Argument Integer first, @Argument String after) {
+    return repostService.getRepostedUsers(post.id(), first, after);
+  }
+
+  /**
+   * Fetches the count of reposts and quotes for each post.
+   *
+   * <p>Repost in this context covers both reposts and quotes.
+   *
+   * @param posts list of post entities
+   * @return a map of each post and its summed repost and quote count.
+   */
+  @BatchMapping(typeName = "Post", field = "repostCount")
+  public Map<PostProfile, Integer> repostCount(List<PostProfile> posts) {
+    List<UUID> postIds = posts.stream().map(PostProfile::id).toList();
+    List<RepostCount> repostCounts = repostService.getRepostCounts(postIds);
+    Map<UUID, Integer> repostCountPerPost =
+        repostCounts.stream()
+            .collect(Collectors.toMap(RepostCount::quotedPostId, RepostCount::numberOfReposts));
+
+    return posts.stream()
+        .collect(
+            Collectors.toMap(
+                Function.identity(), post -> repostCountPerPost.getOrDefault(post.id(), 0)));
+  }
+
+  /**
+   * Fetches if the authenticated user has reposted or quoted each queried post.
+   *
+   * @param posts list of post entities
+   * @return each post with {@code repostedByMe=true} if the user has reposted or quoted the post
+   */
+  @BatchMapping(typeName = "Post", field = "repostedBy")
+  public Map<PostProfile, Boolean> repostedByMe(List<PostProfile> posts) {
+    CustomUserDetails userDetails =
+        (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    List<UUID> postIds = posts.stream().map(PostProfile::id).toList();
+    Set<UUID> postIdsThatUserReposted =
+        repostService.getPostIdsThatUserReposted(postIds, userDetails.getId());
+
+    return posts.stream()
+        .collect(
+            Collectors.toMap(
+                Function.identity(), post -> postIdsThatUserReposted.contains(post.id())));
   }
 
   /**

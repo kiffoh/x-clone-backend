@@ -42,7 +42,7 @@ public class LikeHelpers {
    * authenticatedTester}.
    *
    * @param authenticatedTester graphql tester with a valid access token attached in the
-   *     authorization headers
+   *     authorisation headers
    * @param postId unique identifier of the post to like
    * @param numberOfLikes amount of likes to assert the queried post has
    */

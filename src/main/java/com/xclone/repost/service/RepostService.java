@@ -1,13 +1,19 @@
 package com.xclone.repost.service;
 
 import com.xclone.common.connection.Cursor;
+import com.xclone.common.connection.PageInfo;
 import com.xclone.post.dto.PostProfile;
 import com.xclone.post.dto.connection.PostConnection;
 import com.xclone.post.model.entity.Post;
 import com.xclone.post.repository.PostRepository;
 import com.xclone.post.service.PostService;
+import com.xclone.repost.dto.RepostCount;
+import com.xclone.user.dto.connection.UserConnection;
+import com.xclone.user.dto.connection.UserEdge;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -20,6 +26,24 @@ public class RepostService {
 
   public RepostService(PostRepository postRepository) {
     this.postRepository = postRepository;
+  }
+
+  private UserConnection toUserConnection(Slice<Post> reposts) {
+    List<UserEdge> edges =
+        reposts.stream()
+            .map(
+                repost -> {
+                  Cursor cursor = new Cursor(repost.getCreatedAt(), repost.getId());
+                  return new UserEdge(repost.getAuthor().toUserProfile(), cursor.encode());
+                })
+            .toList();
+    PageInfo pageInfo =
+        new PageInfo(
+            reposts.hasNext(),
+            reposts.hasPrevious(),
+            edges.isEmpty() ? null : edges.getFirst().cursor(),
+            edges.isEmpty() ? null : edges.getLast().cursor());
+    return new UserConnection(edges, pageInfo);
   }
 
   /**
@@ -59,5 +83,36 @@ public class RepostService {
     }
     List<Post> quotedPosts = postRepository.findQuotedPosts(quotedPostIds);
     return quotedPosts.stream().map(Post::toPostProfile).toList();
+  }
+
+  /**
+   * Fetches a paginated list of posts which are direct quotes to the queried post.
+   *
+   * @param quotedPostId unique identifier of the parent post
+   * @param first desired number of results
+   * @param after optional cursor of where the previous pagination finished
+   * @return a list of posts sorted by creation date
+   */
+  public UserConnection getRepostedUsers(UUID quotedPostId, Integer first, String after) {
+    Slice<Post> reposts;
+    Pageable pageable = Pageable.ofSize(first);
+
+    if (after == null) {
+      reposts = postRepository.findFirstPageOfPureReposts(quotedPostId, pageable);
+    } else {
+      Cursor cursor = Cursor.toCursor(after);
+      reposts =
+          postRepository.findNextPageOfPureReposts(
+              quotedPostId, cursor.createdAt(), cursor.id(), pageable);
+    }
+    return toUserConnection(reposts);
+  }
+
+  public List<RepostCount> getRepostCounts(List<UUID> postIds) {
+    return postRepository.getRepostCounts(postIds);
+  }
+
+  public Set<UUID> getPostIdsThatUserReposted(List<UUID> postIds, UUID userId) {
+    return new HashSet<>(postRepository.getRepostedPostIds(postIds, userId));
   }
 }
