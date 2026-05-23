@@ -1,6 +1,7 @@
 package com.xclone.support.helpers;
 
 import static com.xclone.support.fixtures.PostFixtures.createQuote;
+import static com.xclone.support.fixtures.PostFixtures.createRepost;
 
 import com.xclone.common.enums.Status;
 import com.xclone.post.model.entity.Post;
@@ -80,6 +81,17 @@ public class PostHelpers {
       quotes.add(savedPost);
     }
     return quotes;
+  }
+
+  public static List<Post> seedReposts(
+      UUID quotedPostId, List<User> authors, PostRepository postRepository) {
+    List<Post> reposts = new ArrayList<>();
+    for (User author : authors) {
+      Post repost = createRepost(quotedPostId, author);
+      Post savedPost = postRepository.save(repost);
+      reposts.add(savedPost);
+    }
+    return reposts;
   }
 
   public static void setPostStatusDeleted(Post post, PostRepository postRepository) {

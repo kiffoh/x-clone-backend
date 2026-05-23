@@ -1,4 +1,4 @@
-package com.xclone.repost.dto.request;
+package com.xclone.share.dto.request;
 
 import com.xclone.validation.ValidationConstants;
 import jakarta.validation.constraints.NotBlank;
@@ -9,11 +9,12 @@ import java.util.UUID;
 /**
  * Represents the data needed to create a quote. TODO: add mentions
  *
- * @param quotedPostId unique identifier of the quoted post
+ * @param quotedPostId   unique identifier of the quoted post
  * @param messageContent text content of the post
  */
 public record CreateQuoteInput(
     @NotNull UUID quotedPostId,
     @NotBlank(message = "Post message content is required")
-        @Size(max = ValidationConstants.MAX_MESSAGE_CONTENT_SIZE)
-        String messageContent) {}
+    @Size(max = ValidationConstants.MAX_MESSAGE_CONTENT_SIZE)
+    String messageContent) {
+}

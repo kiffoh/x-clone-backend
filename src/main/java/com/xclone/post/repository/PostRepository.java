@@ -2,7 +2,7 @@ package com.xclone.post.repository;
 
 import com.xclone.post.model.entity.Post;
 import com.xclone.reply.dto.ReplyCount;
-import com.xclone.repost.dto.RepostCount;
+import com.xclone.share.dto.ShareCount;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -179,6 +179,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
   @Query(
       "select p from Post p join fetch p.author a where p.quotedPostId = :quotedPostId"
           + " and p.messageContent is null and p.status = com.xclone.common.enums.Status.ACTIVE"
+          + " and a.status = com.xclone.user.model.enums.UserStatus.ACTIVE"
           + " and ((p.createdAt < :cursorCreatedAt)"
           + " or (p.createdAt = :cursorCreatedAt and p.id > :cursorId))"
           + " order by p.createdAt desc, p.id asc")
@@ -221,13 +222,13 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
       @Param("parentId") UUID parentId, @Param("postCreatedAt") Instant postCreatedAt);
 
   @Query(
-      "select new com.xclone.repost.dto.RepostCount(p.quotedPostId, count(p)) from Post p"
+      "select new com.xclone.share.dto.ShareCount(p.quotedPostId, count(p)) from Post p"
           + " where p.quotedPostId in :quotedPostIds "
           + "and p.status = com.xclone.common.enums.Status.ACTIVE group by p.quotedPostId")
-  List<RepostCount> getRepostCounts(@Param("quotedPostIds") List<UUID> quotedPostIds);
+  List<ShareCount> getShareCounts(@Param("quotedPostIds") List<UUID> quotedPostIds);
 
   @Query(
-      "select p.id from Post p where p.authorId = :userId and p.quotedPostId in :postIds"
+      "select p.quotedPostId from Post p where p.authorId = :userId and p.quotedPostId in :postIds"
           + " and p.status = com.xclone.common.enums.Status.ACTIVE")
-  List<UUID> getRepostedPostIds(@Param("postIds") List<UUID> postIds, @Param("userId") UUID userId);
+  List<UUID> getSharedPostIds(@Param("postIds") List<UUID> postIds, @Param("userId") UUID userId);
 }

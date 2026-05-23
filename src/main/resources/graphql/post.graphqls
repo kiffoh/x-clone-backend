@@ -79,11 +79,18 @@ type Post {
     quotedPost: Post
     """
     Paginated list of posts which directly quoted to this post.
+
+    Sorted descendingly by quote creation date.
     """
     quotes(first: Int = 10, after: String): PostConnection!
-    repostedBy(first: Int, after: String): UserConnection! # only reposts
-    repostCount: Int! # Pure reposts + quotes combined
-    repostedByMe: Boolean! # reposts + quotes
+    """
+    Paginated list of users which reposted this post.
+
+    Users sorted descendingly by repost creation date.
+    """
+    reposts(first: Int = 10, after: String): UserConnection! # only reposts
+    shareCount: Int! # Pure reposts + quotes combined
+    sharedByMe: Boolean! # reposts + quotes
 
     mentions: [User!] # Users tagged in post
 }

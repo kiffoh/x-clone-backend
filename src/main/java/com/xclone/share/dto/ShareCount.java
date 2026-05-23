@@ -1,4 +1,4 @@
-package com.xclone.repost.dto;
+package com.xclone.share.dto;
 
 import java.util.UUID;
 
@@ -9,11 +9,11 @@ import java.util.UUID;
  * Long value.
  *
  * @param quotedPostId unique identifier of the quoted post
- * @param numberOfReposts the combined amount of reposts and quotes
+ * @param numberOfShares the combined amount of reposts and quotes
  */
-public record RepostCount(UUID quotedPostId, int numberOfReposts) {
+public record ShareCount(UUID quotedPostId, int numberOfShares) {
 
-  public RepostCount(UUID quotedPostId, Long numberOfReposts) {
-    this(quotedPostId, numberOfReposts.intValue());
+  public ShareCount(UUID quotedPostId, Long numberOfShares) {
+    this(quotedPostId, numberOfShares.intValue());
   }
 }

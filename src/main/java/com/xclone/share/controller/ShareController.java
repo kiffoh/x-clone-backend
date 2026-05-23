@@ -1,4 +1,4 @@
-package com.xclone.repost.controller;
+package com.xclone.share.controller;
 
 import com.xclone.exception.GraphQlErrorMapper;
 import com.xclone.exception.custom.DuplicateRepostException;
@@ -6,9 +6,9 @@ import com.xclone.exception.custom.PostNotFoundException;
 import com.xclone.post.dto.PostProfile;
 import com.xclone.post.dto.mutation.PostResponse;
 import com.xclone.post.service.PostService;
-import com.xclone.repost.dto.request.CreateQuoteInput;
 import com.xclone.security.jwt.JwtAuthenticationFilter;
 import com.xclone.security.user.CustomUserDetails;
+import com.xclone.share.dto.request.CreateQuoteInput;
 import jakarta.validation.ConstraintViolationException;
 import java.util.UUID;
 import org.springframework.graphql.data.method.annotation.Argument;
@@ -16,12 +16,14 @@ import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 
-/** GraphQL controller for repost-related operations. */
+/**
+ * GraphQL controller for share-related operations.
+ */
 @Controller
-public class RepostController {
+public class ShareController {
   private final PostService postService;
 
-  RepostController(PostService postService) {
+  ShareController(PostService postService) {
     this.postService = postService;
   }
 
@@ -31,8 +33,8 @@ public class RepostController {
    *
    * <p>Method used to create a simple repost i.e. a post with no message content.
    *
-   * @param userDetails authenticated user; populated as part of the security chain with {@link
-   *     JwtAuthenticationFilter}
+   * @param userDetails  authenticated user; populated as part of the security chain with {@link
+   *                     JwtAuthenticationFilter}
    * @param quotedPostId unique identifier of the reposted post
    * @return the created post
    */
@@ -57,8 +59,8 @@ public class RepostController {
    * <p>Method used to create a quote i.e. a repost with message content.
    *
    * @param userDetails authenticated user; populated as part of the security chain with {@link
-   *     JwtAuthenticationFilter}
-   * @param input DTO containing the information of the quote
+   *                    JwtAuthenticationFilter}
+   * @param input       DTO containing the information of the quote
    * @return the created post
    */
   @MutationMapping

@@ -14,10 +14,10 @@ import com.xclone.post.dto.request.UpdatePostInput;
 import com.xclone.post.service.PostService;
 import com.xclone.reply.dto.ReplyCount;
 import com.xclone.reply.service.ReplyService;
-import com.xclone.repost.dto.RepostCount;
-import com.xclone.repost.service.RepostService;
 import com.xclone.security.jwt.JwtAuthenticationFilter;
 import com.xclone.security.user.CustomUserDetails;
+import com.xclone.share.dto.ShareCount;
+import com.xclone.share.service.ShareService;
 import com.xclone.user.dto.UserProfile;
 import com.xclone.user.dto.connection.UserConnection;
 import com.xclone.user.service.UserService;
@@ -45,19 +45,19 @@ public class PostController {
   private final UserService userService;
   private final LikeService likeService;
   private final ReplyService replyService;
-  private final RepostService repostService;
+  private final ShareService shareService;
 
   public PostController(
       PostService postService,
       UserService userService,
       LikeService likeService,
       ReplyService replyService,
-      RepostService repostService) {
+      ShareService shareService) {
     this.postService = postService;
     this.userService = userService;
     this.likeService = likeService;
     this.replyService = replyService;
-    this.repostService = repostService;
+    this.shareService = shareService;
   }
 
   /**
@@ -196,7 +196,7 @@ public class PostController {
    */
   @BatchMapping(typeName = "Post", field = "quotedPost")
   public Map<PostProfile, PostProfile> quotedPost(List<PostProfile> quotes) {
-    List<PostProfile> quotedPosts = repostService.getQuotedPosts(quotes);
+    List<PostProfile> quotedPosts = shareService.getQuotedPosts(quotes);
     Map<UUID, PostProfile> idToQuotedPostMap =
         quotedPosts.stream().collect(Collectors.toMap(PostProfile::id, Function.identity()));
 
@@ -223,7 +223,7 @@ public class PostController {
    */
   @SchemaMapping(typeName = "Post", field = "quotes")
   public PostConnection quotes(PostProfile post, @Argument Integer first, @Argument String after) {
-    return repostService.getQuotes(post.id(), first, after);
+    return shareService.getQuotes(post.id(), first, after);
   }
 
   /**
@@ -234,52 +234,53 @@ public class PostController {
    * @param after optional cursor for cursor-pagination
    * @return a paginated list of users sorted descendingly by repost creation date
    */
-  @SchemaMapping(typeName = "Post", field = "repostedBy")
-  public UserConnection repostedBy(
-      PostProfile post, @Argument Integer first, @Argument String after) {
-    return repostService.getRepostedUsers(post.id(), first, after);
+  @SchemaMapping(typeName = "Post", field = "reposts")
+  public UserConnection reposts(PostProfile post, @Argument Integer first, @Argument String after) {
+    return shareService.getRepostUsers(post.id(), first, after);
   }
 
   /**
-   * Fetches the count of reposts and quotes for each post.
+   * Fetches the count of shares for each post.
    *
-   * <p>Repost in this context covers both reposts and quotes.
+   * <p>Sharing a post can consist of a repost or a quote.
    *
    * @param posts list of post entities
-   * @return a map of each post and its summed repost and quote count.
+   * @return a map of each post and its summed repost and quote count
    */
-  @BatchMapping(typeName = "Post", field = "repostCount")
-  public Map<PostProfile, Integer> repostCount(List<PostProfile> posts) {
+  @BatchMapping(typeName = "Post", field = "shareCount")
+  public Map<PostProfile, Integer> shareCount(List<PostProfile> posts) {
     List<UUID> postIds = posts.stream().map(PostProfile::id).toList();
-    List<RepostCount> repostCounts = repostService.getRepostCounts(postIds);
-    Map<UUID, Integer> repostCountPerPost =
-        repostCounts.stream()
-            .collect(Collectors.toMap(RepostCount::quotedPostId, RepostCount::numberOfReposts));
+    List<ShareCount> shareCounts = shareService.getShareCounts(postIds);
+    Map<UUID, Integer> shareCountPerPost =
+        shareCounts.stream()
+            .collect(Collectors.toMap(ShareCount::quotedPostId, ShareCount::numberOfShares));
 
     return posts.stream()
         .collect(
             Collectors.toMap(
-                Function.identity(), post -> repostCountPerPost.getOrDefault(post.id(), 0)));
+                Function.identity(), post -> shareCountPerPost.getOrDefault(post.id(), 0)));
   }
 
   /**
-   * Fetches if the authenticated user has reposted or quoted each queried post.
+   * Fetches if the authenticated user has shared each queried post.
+   *
+   * <p>Sharing a post can consist of a repost or a quote.
    *
    * @param posts list of post entities
-   * @return each post with {@code repostedByMe=true} if the user has reposted or quoted the post
+   * @return each post with {@code sharededByMe=true} if the user has reposted or quoted the post
    */
-  @BatchMapping(typeName = "Post", field = "repostedBy")
-  public Map<PostProfile, Boolean> repostedByMe(List<PostProfile> posts) {
+  @BatchMapping(typeName = "Post", field = "sharedByMe")
+  public Map<PostProfile, Boolean> sharedByMe(List<PostProfile> posts) {
     CustomUserDetails userDetails =
         (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     List<UUID> postIds = posts.stream().map(PostProfile::id).toList();
-    Set<UUID> postIdsThatUserReposted =
-        repostService.getPostIdsThatUserReposted(postIds, userDetails.getId());
+    Set<UUID> postIdsThatUserShared =
+        shareService.getPostIdsThatUserShared(postIds, userDetails.getId());
 
     return posts.stream()
         .collect(
             Collectors.toMap(
-                Function.identity(), post -> postIdsThatUserReposted.contains(post.id())));
+                Function.identity(), post -> postIdsThatUserShared.contains(post.id())));
   }
 
   /**

@@ -7,58 +7,62 @@ type User {
     """
     id: ID!
     """
-    Display name shown on the user's profile
+    Display name shown on the user's profile.
 
-    Size must be maximum of 50 characters
+    Size must be maximum of 50 characters.
     """
     displayName: String!
     """
-    Unique username used to identify the account
+    Unique username used to identify the account.
 
-    Size must be minimum of 4 and a maximum of 15 characters
-    handle must contain alphanumeric and underscores only, cannot be purely numeric
+    Size must be minimum of 4 and a maximum of 15 characters.
+    handle must contain alphanumeric and underscores only, cannot be purely numeric.
     """
     handle: String!
     """
-    Short user biography
+    Short user biography.
 
-    Size must be a maximum of 160 characters
+    Size must be a maximum of 160 characters.
     """
     bio: String
     """
-    Profile image URL
+    Profile image URL.
     """
     profileImage: String
     """
-    Datetime of account creation
+    Datetime of account creation.
     """
     createdAt: DateTime
     """
-    Datetime of last account update
+    Datetime of last account update.
     """
     updatedAt: DateTime
     """
-    Paginated list of posts authored by this user profile
+    Paginated list of posts authored by this user profile.
     """
     posts(first: Int = 10, after: String): PostConnection!
     """
-    Paginated list of users which follow this user profile
+    Paginated list of users which follow this user profile.
+
+    Sorted descendingly by follower creation date.
     """
     followers(first: Int = 10, after: String): UserConnection!
     """
-    Total number of account which follow this user
+    Total number of account which follow this user.
     """
     followerCount: Long!
     """
-    Paginated list of users which this user profile follows
+    Paginated list of users which this user profile follows.
+
+    Sorted descendingly by following creation date.
     """
     following(first: Int = 10, after: String): UserConnection!
     """
-    Total number of accounts this user is following
+    Total number of accounts this user is following.
     """
     followingCount: Long!
     """
-    {@code true} if the authenticated user follows the user
+    {@code true} if the authenticated user follows the user.
     """
     isFollowing: Boolean!
 }

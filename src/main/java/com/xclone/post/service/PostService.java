@@ -15,7 +15,7 @@ import com.xclone.post.dto.request.UpdatePostInput;
 import com.xclone.post.model.entity.Post;
 import com.xclone.post.repository.PostRepository;
 import com.xclone.reply.dto.request.CreateReplyInput;
-import com.xclone.repost.dto.request.CreateQuoteInput;
+import com.xclone.share.dto.request.CreateQuoteInput;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Optional;

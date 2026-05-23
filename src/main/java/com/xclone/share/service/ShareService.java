@@ -1,4 +1,4 @@
-package com.xclone.repost.service;
+package com.xclone.share.service;
 
 import com.xclone.common.connection.Cursor;
 import com.xclone.common.connection.PageInfo;
@@ -7,7 +7,7 @@ import com.xclone.post.dto.connection.PostConnection;
 import com.xclone.post.model.entity.Post;
 import com.xclone.post.repository.PostRepository;
 import com.xclone.post.service.PostService;
-import com.xclone.repost.dto.RepostCount;
+import com.xclone.share.dto.ShareCount;
 import com.xclone.user.dto.connection.UserConnection;
 import com.xclone.user.dto.connection.UserEdge;
 import java.util.HashSet;
@@ -19,12 +19,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 
-/** Service layer responsible for repost-related operations. */
+/**
+ * Service layer responsible for share-related operations.
+ */
 @Service
-public class RepostService {
+public class ShareService {
   private final PostRepository postRepository;
 
-  public RepostService(PostRepository postRepository) {
+  public ShareService(PostRepository postRepository) {
     this.postRepository = postRepository;
   }
 
@@ -50,8 +52,8 @@ public class RepostService {
    * Fetches a paginated list of posts which are direct quotes to the queried post.
    *
    * @param quotedPostId unique identifier of the parent post
-   * @param first desired number of results
-   * @param after optional cursor of where the previous pagination finished
+   * @param first        desired number of results
+   * @param after        optional cursor of where the previous pagination finished
    * @return a list of posts sorted by creation date
    */
   public PostConnection getQuotes(UUID quotedPostId, Integer first, String after) {
@@ -86,14 +88,14 @@ public class RepostService {
   }
 
   /**
-   * Fetches a paginated list of posts which are direct quotes to the queried post.
+   * Fetches a paginated list of users who reposted the queried post.
    *
-   * @param quotedPostId unique identifier of the parent post
-   * @param first desired number of results
-   * @param after optional cursor of where the previous pagination finished
-   * @return a list of posts sorted by creation date
+   * @param quotedPostId unique identifier of the shared post
+   * @param first        desired number of results
+   * @param after        optional cursor of where the previous pagination finished
+   * @return a list of users sorted by the repost creation date
    */
-  public UserConnection getRepostedUsers(UUID quotedPostId, Integer first, String after) {
+  public UserConnection getRepostUsers(UUID quotedPostId, Integer first, String after) {
     Slice<Post> reposts;
     Pageable pageable = Pageable.ofSize(first);
 
@@ -108,11 +110,11 @@ public class RepostService {
     return toUserConnection(reposts);
   }
 
-  public List<RepostCount> getRepostCounts(List<UUID> postIds) {
-    return postRepository.getRepostCounts(postIds);
+  public List<ShareCount> getShareCounts(List<UUID> postIds) {
+    return postRepository.getShareCounts(postIds);
   }
 
-  public Set<UUID> getPostIdsThatUserReposted(List<UUID> postIds, UUID userId) {
-    return new HashSet<>(postRepository.getRepostedPostIds(postIds, userId));
+  public Set<UUID> getPostIdsThatUserShared(List<UUID> postIds, UUID userId) {
+    return new HashSet<>(postRepository.getSharedPostIds(postIds, userId));
   }
 }

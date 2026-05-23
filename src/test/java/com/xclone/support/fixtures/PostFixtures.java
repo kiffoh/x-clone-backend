@@ -42,4 +42,11 @@ public class PostFixtures {
     post.setQuotedPostId(quotedPostId);
     return post;
   }
+
+  public static Post createRepost(UUID quotedPostId, User author) {
+    Post post = new Post();
+    post.setAuthorId(author.getId());
+    post.setQuotedPostId(quotedPostId);
+    return post;
+  }
 }
