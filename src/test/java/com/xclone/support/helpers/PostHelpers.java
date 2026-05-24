@@ -8,6 +8,7 @@ import com.xclone.post.model.entity.Post;
 import com.xclone.post.repository.PostRepository;
 import com.xclone.support.fixtures.PostFixtures;
 import com.xclone.user.model.entity.User;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -28,8 +29,11 @@ public class PostHelpers {
       throw new IllegalArgumentException("messageContents and authors must be the same length");
     }
     List<Post> posts = new ArrayList<>();
+    Instant now = Instant.now();
     for (int i = 0; i < messageContents.size(); i++) {
-      Post post = PostFixtures.createPostWithContent(messageContents.get(i), authors.get(i));
+      Post post =
+          PostFixtures.createPostWithContent(
+              messageContents.get(i), authors.get(i), now.plusSeconds(i));
       Post savedPost = postRepository.save(post);
       posts.add(savedPost);
     }
@@ -54,11 +58,13 @@ public class PostHelpers {
           "messageContents, authors and postIndexes must be the same length");
     }
     List<Post> posts = new ArrayList<>();
+    Instant now = Instant.now();
     for (int i = 0; i < messageContents.size(); i++) {
       UUID parentId =
           (parentIndexes.get(i) == null) ? null : posts.get(parentIndexes.get(i)).getId();
       Post post =
-          PostFixtures.createReplyWithContent(messageContents.get(i), authors.get(i), parentId);
+          PostFixtures.createReplyWithContent(
+              messageContents.get(i), authors.get(i), parentId, now.plusSeconds(i));
       Post savedPost = postRepository.save(post);
       posts.add(savedPost);
     }
@@ -75,8 +81,10 @@ public class PostHelpers {
           "messageContents, authors and postIndexes must be the same length");
     }
     List<Post> quotes = new ArrayList<>();
+    Instant now = Instant.now();
     for (int i = 0; i < messageContents.size(); i++) {
-      Post quote = createQuote(sharedPostId, authors.get(i), messageContents.get(i));
+      Post quote =
+          createQuote(sharedPostId, authors.get(i), messageContents.get(i), now.plusSeconds(i));
       Post savedPost = postRepository.save(quote);
       quotes.add(savedPost);
     }
@@ -86,8 +94,9 @@ public class PostHelpers {
   public static List<Post> seedReposts(
       UUID sharedPostId, List<User> authors, PostRepository postRepository) {
     List<Post> reposts = new ArrayList<>();
-    for (User author : authors) {
-      Post repost = createRepost(sharedPostId, author);
+    Instant now = Instant.now();
+    for (int i = 0; i < authors.size(); i++) {
+      Post repost = createRepost(sharedPostId, authors.get(i), now.plusSeconds(i));
       Post savedPost = postRepository.save(repost);
       reposts.add(savedPost);
     }
