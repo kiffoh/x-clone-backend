@@ -102,7 +102,7 @@ type Post {
     """
     {@code true} if the authenticated user has actively shared this post.
 
-    A share includes both a repost and a quote. Therefore {@code sharedByMe=true} for at least one active repost or share.
+    A share includes either a repost and a quote. Therefore {@code sharedByMe=true} for at least one active repost or quote.
     """
     sharedByMe: Boolean! # reposts + quotes
 

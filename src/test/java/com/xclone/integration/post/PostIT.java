@@ -2205,7 +2205,7 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                 ids -> {
                   assertThat(ids).hasSize(2);
 
-                  // quotes are returned with created date descendingly
+                  // reposts are returned with created date descendingly
                   assertThat(ids.getFirst()).isEqualTo(repostedBy.getLast().getId());
                   assertThat(ids.getLast()).isEqualTo(repostedBy.getFirst().getId());
                 });
@@ -2248,7 +2248,7 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                     ids -> {
                       assertThat(ids).hasSize(1);
 
-                      // quotes are returned with created date descendingly
+                      // reposts are returned with created date descendingly
                       assertThat(ids.getFirst()).isEqualTo(repostedBy.getLast().getId());
                     })
                 .path("getPost.reposts.pageInfo.hasNextPage")
@@ -2285,7 +2285,7 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                 ids -> {
                   assertThat(ids).hasSize(1);
 
-                  // quotes are returned with created date descendingly
+                  // reposts are returned with created date descendingly
                   assertThat(ids.getFirst()).isEqualTo(repostedBy.getFirst().getId());
                 })
             .path("getPost.reposts.pageInfo.hasNextPage")
@@ -2294,7 +2294,7 @@ public class PostIT extends BaseGraphQLIntegrationTest {
       }
 
       @Test
-      void hasDeletedReposts_returnsPostConnection() {
+      void hasDeletedReposts_returnsUserConnection() {
         setPostStatusDeleted(reposts.getLast(), postRepository);
         // Repost chain:
         // repost 0
