@@ -56,13 +56,7 @@ type Post {
     Paginated list of posts which directly replied to this post.
     """
     replies(first: Int = 10, after: String): PostConnection!
-
     # Repost functionality
-    # Idea here was to separate between when somebody reposts with a comment (quote) vs a simple repost
-    # REPOST MODEL:
-    # - Pure repost: Creates Post with messageContent=null, quotedPost=originalPost
-    # - Quote: Creates Post with messageContent + quotedPost=originalPost
-    # - repostedBy returns Users who created either type
     """
     Unique UUID identifier of the quoted post.
 
@@ -92,19 +86,19 @@ type Post {
 
     Users sorted descendingly by repost creation date.
     """
-    reposts(first: Int = 10, after: String): UserConnection! # only reposts
+    reposts(first: Int = 10, after: String): UserConnection!
     """
     Amount of shares that this post has.
 
-    A share includes both a repost and a quote. Each quote and share from a user is counted separately.
+    A share includes either a repost or a quote. Each quote and repost from a user is counted separately.
     """
-    shareCount: Int! # Pure reposts + quotes combined
+    shareCount: Int!
     """
     {@code true} if the authenticated user has actively shared this post.
 
-    A share includes either a repost and a quote. Therefore {@code sharedByMe=true} for at least one active repost or quote.
+    A share includes either a repost or a quote. Therefore {@code sharedByMe=true} for at least one active repost or quote.
     """
-    sharedByMe: Boolean! # reposts + quotes
+    sharedByMe: Boolean!
 
     mentions: [User!] # Users tagged in post
 }
