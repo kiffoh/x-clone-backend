@@ -19,9 +19,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 
-/**
- * Service layer responsible for share-related operations.
- */
+/** Service layer responsible for share-related operations. */
 @Service
 public class ShareService {
   private final PostRepository postRepository;
@@ -52,8 +50,8 @@ public class ShareService {
    * Fetches a paginated list of posts which are direct quotes to the queried post.
    *
    * @param quotedPostId unique identifier of the parent post
-   * @param first        desired number of results
-   * @param after        optional cursor of where the previous pagination finished
+   * @param first desired number of results
+   * @param after optional cursor of where the previous pagination finished
    * @return a list of posts sorted by creation date
    */
   public PostConnection getQuotes(UUID quotedPostId, Integer first, String after) {
@@ -91,8 +89,8 @@ public class ShareService {
    * Fetches a paginated list of users who reposted the queried post.
    *
    * @param quotedPostId unique identifier of the shared post
-   * @param first        desired number of results
-   * @param after        optional cursor of where the previous pagination finished
+   * @param first desired number of results
+   * @param after optional cursor of where the previous pagination finished
    * @return a list of users sorted by the repost creation date
    */
   public UserConnection getRepostUsers(UUID quotedPostId, Integer first, String after) {
@@ -110,11 +108,31 @@ public class ShareService {
     return toUserConnection(reposts);
   }
 
+  /**
+   * Fetches the amount of shares each post has.
+   *
+   * <p>Triggers {@link PostRepository#findShareCounts(List)}.
+   *
+   * @param postIds unique identifiers of posts
+   * @return a list of {@link ShareCount} DTOs which contain the post id and its respective share
+   *     count.
+   */
   public List<ShareCount> getShareCounts(List<UUID> postIds) {
-    return postRepository.getShareCounts(postIds);
+    return postRepository.findShareCounts(postIds);
   }
 
-  public Set<UUID> getPostIdsThatUserShared(List<UUID> postIds, UUID userId) {
-    return new HashSet<>(postRepository.getSharedPostIds(postIds, userId));
+  /**
+   * Identifies which of the post ids the authenticated user has shared.
+   *
+   * <p>Triggers {@link PostRepository#findSharedIds(List, UUID)} and returns the output as a Set.
+   * The set removes duplicates for a case where a user might have reposted and quoted the same
+   * post.
+   *
+   * @param postIds unique identifiers of posts
+   * @param userId unique identifier of the authenticated user
+   * @return the post ids which the user has shared in a set
+   */
+  public Set<UUID> getSharedIdsInPosts(List<UUID> postIds, UUID userId) {
+    return new HashSet<>(postRepository.findSharedIds(postIds, userId));
   }
 }

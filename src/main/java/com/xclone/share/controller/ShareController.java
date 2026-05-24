@@ -16,9 +16,7 @@ import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 
-/**
- * GraphQL controller for share-related operations.
- */
+/** GraphQL controller for share-related operations. */
 @Controller
 public class ShareController {
   private final PostService postService;
@@ -33,8 +31,8 @@ public class ShareController {
    *
    * <p>Method used to create a simple repost i.e. a post with no message content.
    *
-   * @param userDetails  authenticated user; populated as part of the security chain with {@link
-   *                     JwtAuthenticationFilter}
+   * @param userDetails authenticated user; populated as part of the security chain with {@link
+   *     JwtAuthenticationFilter}
    * @param quotedPostId unique identifier of the reposted post
    * @return the created post
    */
@@ -59,8 +57,8 @@ public class ShareController {
    * <p>Method used to create a quote i.e. a repost with message content.
    *
    * @param userDetails authenticated user; populated as part of the security chain with {@link
-   *                    JwtAuthenticationFilter}
-   * @param input       DTO containing the information of the quote
+   *     JwtAuthenticationFilter}
+   * @param input DTO containing the information of the quote
    * @return the created post
    */
   @MutationMapping

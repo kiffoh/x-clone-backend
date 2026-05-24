@@ -267,7 +267,7 @@ public class PostController {
    * <p>Sharing a post can consist of a repost or a quote.
    *
    * @param posts list of post entities
-   * @return each post with {@code sharededByMe=true} if the user has reposted or quoted the post
+   * @return each post with {@code sharedByMe=true} if the user has reposted or quoted the post
    */
   @BatchMapping(typeName = "Post", field = "sharedByMe")
   public Map<PostProfile, Boolean> sharedByMe(List<PostProfile> posts) {
@@ -275,7 +275,7 @@ public class PostController {
         (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     List<UUID> postIds = posts.stream().map(PostProfile::id).toList();
     Set<UUID> postIdsThatUserShared =
-        shareService.getPostIdsThatUserShared(postIds, userDetails.getId());
+        shareService.getSharedIdsInPosts(postIds, userDetails.getId());
 
     return posts.stream()
         .collect(

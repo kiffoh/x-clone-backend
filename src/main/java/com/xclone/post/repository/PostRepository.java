@@ -172,6 +172,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
   @Query(
       "select p from Post p join fetch p.author a where p.quotedPostId = :quotedPostId"
           + " and p.messageContent is null and p.status = com.xclone.common.enums.Status.ACTIVE"
+          + " and a.status = com.xclone.user.model.enums.UserStatus.ACTIVE"
           + " order by p.createdAt desc, p.id asc")
   Slice<Post> findFirstPageOfPureReposts(
       @Param("quotedPostId") UUID quotedPostId, Pageable pageable);
@@ -225,10 +226,10 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
       "select new com.xclone.share.dto.ShareCount(p.quotedPostId, count(p)) from Post p"
           + " where p.quotedPostId in :quotedPostIds "
           + "and p.status = com.xclone.common.enums.Status.ACTIVE group by p.quotedPostId")
-  List<ShareCount> getShareCounts(@Param("quotedPostIds") List<UUID> quotedPostIds);
+  List<ShareCount> findShareCounts(@Param("quotedPostIds") List<UUID> quotedPostIds);
 
   @Query(
       "select p.quotedPostId from Post p where p.authorId = :userId and p.quotedPostId in :postIds"
           + " and p.status = com.xclone.common.enums.Status.ACTIVE")
-  List<UUID> getSharedPostIds(@Param("postIds") List<UUID> postIds, @Param("userId") UUID userId);
+  List<UUID> findSharedIds(@Param("postIds") List<UUID> postIds, @Param("userId") UUID userId);
 }

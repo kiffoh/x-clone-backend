@@ -80,16 +80,30 @@ type Post {
     """
     Paginated list of posts which directly quoted to this post.
 
+    A quote is a share with message content.
+
     Sorted descendingly by quote creation date.
     """
     quotes(first: Int = 10, after: String): PostConnection!
     """
     Paginated list of users which reposted this post.
 
+    A repost is a share with no message content.
+
     Users sorted descendingly by repost creation date.
     """
     reposts(first: Int = 10, after: String): UserConnection! # only reposts
+    """
+    Amount of shares that this post has.
+
+    A share includes both a repost and a quote. Each quote and share from a user is counted separately.
+    """
     shareCount: Int! # Pure reposts + quotes combined
+    """
+    {@code true} if the authenticated user has actively shared this post.
+
+    A share includes both a repost and a quote. Therefore {@code sharedByMe=true} for at least one active repost or share.
+    """
     sharedByMe: Boolean! # reposts + quotes
 
     mentions: [User!] # Users tagged in post

@@ -29,6 +29,7 @@ import com.xclone.user.model.entity.User;
 import com.xclone.user.model.enums.UserStatus;
 import com.xclone.validation.ValidationConstants;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -1810,7 +1811,7 @@ public class PostIT extends BaseGraphQLIntegrationTest {
   }
 
   @Nested
-  class quoteTests {
+  class shareTests {
     @Nested
     class quotesTests {
       Post quotedPost;
@@ -2463,12 +2464,27 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                           posts.get(2).getId(),
                           posts.get(1).getId());
                 })
-            .path("feed.edges[3].node.shareCount")
-            .entity(Integer.class)
-            .isEqualTo(1)
-            .path("feed.edges[4].node.shareCount")
-            .entity(Integer.class)
-            .isEqualTo(4);
+            .path("feed.edges[*].node.shareCount")
+            .entityList(Integer.class)
+            .satisfies(
+                shareCounts -> {
+                  // Share chain (not by authenticated user):
+                  // user 2 repost
+                  //             \
+                  //               post 1 -> null
+                  //             /
+                  // user 2 quote
+                  //
+                  // user 1 repost - post 2 -> null
+                  assertThat(shareCounts).hasSize(5);
+
+                  // feed shows most recent posts first
+                  assertThat(shareCounts.get(0)).isEqualTo(0);
+                  assertThat(shareCounts.get(1)).isEqualTo(0);
+                  assertThat(shareCounts.get(2)).isEqualTo(0);
+                  assertThat(shareCounts.get(3)).isEqualTo(1);
+                  assertThat(shareCounts.get(4)).isEqualTo(4);
+                });
 
         // clean up
         postRepository.delete(user1Repost);
@@ -2546,6 +2562,12 @@ public class PostIT extends BaseGraphQLIntegrationTest {
         Post quotedPost = posts.get(1);
         List<User> repostedBy = List.of(authenticatedUser, users.get(2));
         reposts = PostHelpers.seedReposts(quotedPost.getId(), repostedBy, postRepository);
+        // Share chain:
+        //      user 2 repost
+        //                   \
+        //                    post 1 -> null
+        //                  /
+        // auth. user repost
 
         authenticatedTester
             .document(
@@ -2575,12 +2597,25 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                       .containsExactly(
                           reposts.get(1).getId(), posts.get(2).getId(), posts.get(1).getId());
                 })
-            .path("feed.edges[1].node.sharedByMe")
-            .entity(Boolean.class)
-            .isEqualTo(false)
-            .path("feed.edges[2].node.sharedByMe")
-            .entity(Boolean.class)
-            .isEqualTo(true);
+            .path("feed.edges[*].node.sharedByMe")
+            .entityList(Boolean.class)
+            .satisfies(
+                sharedByMe -> {
+                  // Share chain:
+                  //      user 2 repost
+                  //                   \
+                  //                    post 1 -> null
+                  //                  /
+                  // auth. user repost
+
+                  // Feed excludes auth. users posts
+                  assertThat(sharedByMe).hasSize(3);
+
+                  // feed shows most recent posts first
+                  assertFalse(sharedByMe.get(0)); // user 2 repost
+                  assertFalse(sharedByMe.get(1)); // post 2
+                  assertTrue(sharedByMe.get(2)); // post 1
+                });
       }
 
       @Test
@@ -2590,11 +2625,22 @@ public class PostIT extends BaseGraphQLIntegrationTest {
         // user 2 + authenticated user reposts post 1
         Post quotedPost = posts.get(1);
         List<User> repostedBy = List.of(authenticatedUser, users.get(2));
-        reposts = PostHelpers.seedReposts(quotedPost.getId(), repostedBy, postRepository);
+        List<Post> repostsOfQuotedPost =
+            PostHelpers.seedReposts(quotedPost.getId(), repostedBy, postRepository);
         // authenticated user reposts post 2
-        reposts.addAll(
+        List<Post> post2repost =
             PostHelpers.seedReposts(
-                posts.get(2).getId(), List.of(authenticatedUser), postRepository));
+                posts.get(2).getId(), List.of(authenticatedUser), postRepository);
+        reposts = new ArrayList<>(repostsOfQuotedPost);
+        reposts.addAll(post2repost);
+        // Share chain:
+        //      user 2 repost
+        //                   \
+        //                    post 1 -> null
+        //                  /
+        // auth. user repost
+        //
+        // auth. user repost - post 2 -> null
 
         authenticatedTester
             .document(
@@ -2624,12 +2670,27 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                       .containsExactly(
                           reposts.get(1).getId(), posts.get(2).getId(), posts.get(1).getId());
                 })
-            .path("feed.edges[1].node.sharedByMe")
-            .entity(Boolean.class)
-            .isEqualTo(true)
-            .path("feed.edges[2].node.sharedByMe")
-            .entity(Boolean.class)
-            .isEqualTo(true);
+            .path("feed.edges[*].node.sharedByMe")
+            .entityList(Boolean.class)
+            .satisfies(
+                sharedByMe -> {
+                  // Share chain:
+                  //      user 2 repost
+                  //                   \
+                  //                    post 1 -> null
+                  //                  /
+                  // auth. user repost
+                  //
+                  // auth. user repost - post 2 -> null
+
+                  // Feed excludes auth. users posts
+                  assertThat(sharedByMe).hasSize(3);
+
+                  // feed shows most recent posts first
+                  assertFalse(sharedByMe.get(0)); // user 2 repost
+                  assertTrue(sharedByMe.get(1)); // post 2
+                  assertTrue(sharedByMe.get(2)); // post 1
+                });
       }
     }
   }
