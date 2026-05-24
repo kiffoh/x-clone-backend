@@ -29,6 +29,7 @@ import com.xclone.user.model.entity.User;
 import com.xclone.user.model.enums.UserStatus;
 import com.xclone.validation.ValidationConstants;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -371,10 +372,10 @@ public class PostIT extends BaseGraphQLIntegrationTest {
     @Test
     void getFeed_quotesAppearInFeed_returnsPostConnection() {
       // Initialise a new quote in feed for post 1 by user 2
-      Post quotedPost = posts.get(1);
+      Post sharedPost = posts.get(1);
       Post quote =
           seedQuotes(
-                  quotedPost.getId(),
+                  sharedPost.getId(),
                   List.of(users.get(2)),
                   List.of(messageContents.getFirst()),
                   postRepository)
@@ -389,21 +390,21 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                     feed {
                       edges {
                         node {
-                          quotedPostId
+                          sharedPostId
                         }
                       }
                     }
                   }
                   """)
           .execute()
-          .path("feed.edges[*].node.quotedPostId")
+          .path("feed.edges[*].node.sharedPostId")
           .entityList(UUID.class)
           .satisfies(
               ids -> {
                 assertThat(ids).hasSize(3);
 
                 // feed is returned in created at descendingly
-                assertThat(ids).containsExactly(quotedPost.getId(), null, null);
+                assertThat(ids).containsExactly(sharedPost.getId(), null, null);
               });
 
       // clean up
@@ -1533,7 +1534,7 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                           edges {
                             node {
                               id
-                              quotedPostId
+                              sharedPostId
                               replyCount
                               parent {
                                 id
@@ -1810,18 +1811,18 @@ public class PostIT extends BaseGraphQLIntegrationTest {
   }
 
   @Nested
-  class quoteTests {
+  class shareTests {
     @Nested
     class quotesTests {
-      Post quotedPost;
+      Post sharedPost;
       List<Post> quotes;
 
       @BeforeEach
       void setup() {
-        quotedPost = posts.get(1);
+        sharedPost = posts.get(1);
         quotes =
             seedQuotes(
-                quotedPost.getId(),
+                sharedPost.getId(),
                 List.of(authenticatedUser, users.get(2)),
                 createPostContents(2),
                 postRepository);
@@ -1887,7 +1888,7 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                       }
                     }
                     """)
-            .variable("postId", quotedPost.getId())
+            .variable("postId", sharedPost.getId())
             .execute()
             .path("getPost.quotes.edges[*].node.id")
             .entityList(UUID.class)
@@ -1930,7 +1931,7 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                           }
                         }
                         """)
-                .variable("postId", quotedPost.getId())
+                .variable("postId", sharedPost.getId())
                 .execute()
                 .path("getPost.quotes.edges[*].node.id")
                 .entityList(UUID.class)
@@ -1966,7 +1967,7 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                       }
                     }
                     """)
-            .variable("postId", quotedPost.getId())
+            .variable("postId", sharedPost.getId())
             .variable("cursor", endCursor)
             .execute()
             .path("getPost.quotes.edges[*].node.id")
@@ -2011,7 +2012,7 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                       }
                     }
                     """)
-            .variable("postId", quotedPost.getId())
+            .variable("postId", sharedPost.getId())
             .execute()
             .path("getPost.quotes.edges[*].node.id")
             .entityList(UUID.class)
@@ -2027,16 +2028,16 @@ public class PostIT extends BaseGraphQLIntegrationTest {
     }
 
     @Nested
-    class quotedPostTests {
-      Post quotedPost;
+    class sharedPostTests {
+      Post sharedPost;
       Post quote;
 
       @BeforeEach
       void setup() {
-        quotedPost = posts.get(1);
+        sharedPost = posts.get(1);
         quote =
             seedQuotes(
-                    quotedPost.getId(),
+                    sharedPost.getId(),
                     List.of(authenticatedUser),
                     List.of(messageContents.getFirst()),
                     postRepository)
@@ -2049,16 +2050,16 @@ public class PostIT extends BaseGraphQLIntegrationTest {
       }
 
       @Test
-      void validQuote_returnsQuotedPost() {
+      void validQuote_returnsSharedPost() {
         // Quote chain:
         // post 0 -> post 1 -> null
         authenticatedTester
             .document(
                 """
-                    query GetQuotedPost($quoteId: ID!) {
+                    query GetSharedPost($quoteId: ID!) {
                       getPost(postId: $quoteId) {
-                        quotedPostId
-                        quotedPost {
+                        sharedPostId
+                        sharedPost {
                           id
                         }
                       }
@@ -2066,25 +2067,25 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                     """)
             .variable("quoteId", quote.getId())
             .execute()
-            .path("getPost.quotedPostId")
+            .path("getPost.sharedPostId")
             .entity(UUID.class)
-            .path("getPost.quotedPost.id")
+            .path("getPost.sharedPost.id")
             .entity(UUID.class)
-            .isEqualTo(quotedPost.getId());
+            .isEqualTo(sharedPost.getId());
       }
 
       @Test
-      void quotedPostIsDeleted_returnsNull() {
-        setPostStatusDeleted(quotedPost, postRepository);
+      void sharedPostIsDeleted_returnsNull() {
+        setPostStatusDeleted(sharedPost, postRepository);
         // Quote chain:
         // post 0 X post 1 -> null
         authenticatedTester
             .document(
                 """
-                    query GetQuotedPost($quoteId: ID!) {
+                    query GetSharedPost($quoteId: ID!) {
                       getPost(postId: $quoteId) {
-                        quotedPostId
-                        quotedPost {
+                        sharedPostId
+                        sharedPost {
                           id
                         }
                       }
@@ -2092,9 +2093,9 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                     """)
             .variable("quoteId", quote.getId())
             .execute()
-            .path("getPost.quotedPostId")
+            .path("getPost.sharedPostId")
             .hasValue()
-            .path("getPost.quotedPost")
+            .path("getPost.sharedPost")
             .valueIsNull();
       }
 
@@ -2105,10 +2106,10 @@ public class PostIT extends BaseGraphQLIntegrationTest {
         authenticatedTester
             .document(
                 """
-                    query GetQuotedPost($quoteId: ID!) {
+                    query GetSharedPost($quoteId: ID!) {
                       getPost(postId: $quoteId) {
-                        quotedPostId
-                        quotedPost {
+                        sharedPostId
+                        sharedPost {
                           id
                         }
                       }
@@ -2116,10 +2117,579 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                     """)
             .variable("quoteId", posts.get(2).getId())
             .execute()
-            .path("getPost.quotedPostId")
+            .path("getPost.sharedPostId")
             .valueIsNull()
-            .path("getPost.quotedPost")
+            .path("getPost.sharedPost")
             .valueIsNull();
+      }
+    }
+
+    @Nested
+    class reposts {
+      Post sharedPost;
+      List<Post> reposts;
+      List<User> repostedBy;
+
+      @BeforeEach
+      void setup() {
+        sharedPost = posts.get(1);
+        repostedBy = List.of(authenticatedUser, users.get(2));
+        reposts = PostHelpers.seedReposts(sharedPost.getId(), repostedBy, postRepository);
+      }
+
+      @AfterEach
+      void deleteReposts() {
+        postRepository.deleteAll(reposts);
+      }
+
+      @Test
+      void noReposts_returnsEmptyUserConnection() {
+        // Repost chain:
+        // repost 0
+        //         \
+        //           post 1 -> null
+        //         /
+        // repost 1
+
+        authenticatedTester
+            .document(
+                """
+                    query GetReposts($postId: ID!) {
+                      getPost(postId: $postId) {
+                        reposts {
+                          edges {
+                            node {
+                              id
+                            }
+                          }
+                        }
+                      }
+                    }
+                    """)
+            .variable("postId", posts.getFirst().getId())
+            .execute()
+            .path("getPost.reposts.edges[*].node.id")
+            .entityList(UUID.class)
+            .hasSize(0);
+      }
+
+      @Test
+      void hasReposts_NoCursor_returnsUserConnection() {
+        // Repost chain:
+        // repost 0
+        //         \
+        //           post 1 -> null
+        //         /
+        // repost 1
+
+        authenticatedTester
+            .document(
+                """
+                    query GetReposts($postId: ID!) {
+                      getPost(postId: $postId) {
+                        reposts {
+                          edges {
+                            node {
+                              id
+                            }
+                          }
+                        }
+                      }
+                    }
+                    """)
+            .variable("postId", sharedPost.getId())
+            .execute()
+            .path("getPost.reposts.edges[*].node.id")
+            .entityList(UUID.class)
+            .satisfies(
+                ids -> {
+                  assertThat(ids).hasSize(2);
+
+                  // reposts are returned with created date descendingly
+                  assertThat(ids.getFirst()).isEqualTo(repostedBy.getLast().getId());
+                  assertThat(ids.getLast()).isEqualTo(repostedBy.getFirst().getId());
+                });
+      }
+
+      @Test
+      void hasReposts_WithValidCursor_returnsUserConnection() {
+        // Repost chain:
+        // repost 0
+        //         \
+        //           post 1 -> null
+        //         /
+        // repost 1
+
+        String endCursor =
+            authenticatedTester
+                .document(
+                    """
+                        query GetReposts($postId: ID!) {
+                          getPost(postId: $postId) {
+                            reposts(first: 1) {
+                              edges {
+                                node {
+                                  id
+                                }
+                              }
+                              pageInfo {
+                                hasNextPage
+                                endCursor
+                              }
+                            }
+                          }
+                        }
+                        """)
+                .variable("postId", sharedPost.getId())
+                .execute()
+                .path("getPost.reposts.edges[*].node.id")
+                .entityList(UUID.class)
+                .satisfies(
+                    ids -> {
+                      assertThat(ids).hasSize(1);
+
+                      // reposts are returned with created date descendingly
+                      assertThat(ids.getFirst()).isEqualTo(repostedBy.getLast().getId());
+                    })
+                .path("getPost.reposts.pageInfo.hasNextPage")
+                .entity(Boolean.class)
+                .isEqualTo(true)
+                .path("getPost.reposts.pageInfo.endCursor")
+                .entity(String.class)
+                .get();
+
+        authenticatedTester
+            .document(
+                """
+                    query GetReposts($postId: ID!, $cursor: String) {
+                      getPost(postId: $postId) {
+                        reposts(first: 1, after: $cursor) {
+                          edges {
+                            node {
+                              id
+                            }
+                          }
+                          pageInfo {
+                            hasNextPage
+                          }
+                        }
+                      }
+                    }
+                    """)
+            .variable("postId", sharedPost.getId())
+            .variable("cursor", endCursor)
+            .execute()
+            .path("getPost.reposts.edges[*].node.id")
+            .entityList(UUID.class)
+            .satisfies(
+                ids -> {
+                  assertThat(ids).hasSize(1);
+
+                  // reposts are returned with created date descendingly
+                  assertThat(ids.getFirst()).isEqualTo(repostedBy.getFirst().getId());
+                })
+            .path("getPost.reposts.pageInfo.hasNextPage")
+            .entity(Boolean.class)
+            .isEqualTo(false);
+      }
+
+      @Test
+      void hasDeletedReposts_returnsUserConnection() {
+        setPostStatusDeleted(reposts.getLast(), postRepository);
+        // Repost chain:
+        // repost 0
+        //         \
+        //           post 1 -> null
+        //         /
+        // repost 1
+
+        authenticatedTester
+            .document(
+                """
+                    query GetReposts($postId: ID!) {
+                      getPost(postId: $postId) {
+                        reposts {
+                          edges {
+                            node {
+                              id
+                            }
+                          }
+                          pageInfo {
+                            hasNextPage
+                          }
+                        }
+                      }
+                    }
+                    """)
+            .variable("postId", sharedPost.getId())
+            .execute()
+            .path("getPost.reposts.edges[*].node.id")
+            .entityList(UUID.class)
+            .satisfies(
+                ids -> {
+                  assertThat(ids).hasSize(1);
+                  assertThat(ids.getFirst()).isEqualTo(repostedBy.getFirst().getId());
+                })
+            .path("getPost.reposts.pageInfo.hasNextPage")
+            .entity(Boolean.class)
+            .isEqualTo(false);
+      }
+    }
+
+    @Nested
+    class shareCount {
+      Post sharedPost;
+      List<Post> quotes;
+      List<Post> reposts;
+
+      @BeforeEach
+      void setup() {
+        // Seeds 2 reposts and 2 quotes from authenticated user and user 2
+        sharedPost = posts.get(1);
+        quotes =
+            seedQuotes(
+                sharedPost.getId(),
+                List.of(authenticatedUser, users.get(2)),
+                createPostContents(2),
+                postRepository);
+        reposts =
+            PostHelpers.seedReposts(
+                sharedPost.getId(), List.of(authenticatedUser, users.get(2)), postRepository);
+      }
+
+      @AfterEach
+      void cleanup() {
+        postRepository.deleteAll(quotes);
+        postRepository.deleteAll(reposts);
+      }
+
+      @Test
+      void fetchingIndividualPost_noShares_postHasShareCount() {
+        authenticatedTester
+            .document(
+                """
+                    query GetPost($postId: ID!){
+                      getPost(postId: $postId) {
+                        shareCount
+                      }
+                    }
+                    """)
+            .variable("postId", posts.getFirst().getId())
+            .execute()
+            .path("getPost.shareCount")
+            .entity(Integer.class)
+            .isEqualTo(0);
+      }
+
+      @Test
+      void fetchingIndividualPost_hasShares_postHasShareCount() {
+        authenticatedTester
+            .document(
+                """
+                    query GetPost($postId: ID!){
+                      getPost(postId: $postId) {
+                        shareCount
+                      }
+                    }
+                    """)
+            .variable("postId", posts.get(1).getId())
+            .execute()
+            .path("getPost.shareCount")
+            .entity(Integer.class)
+            .isEqualTo(4);
+      }
+
+      @Test
+      void fetchingIndividualPost_hasDeletedShares_postHasShareCount() {
+        setPostStatusDeleted(reposts.getFirst(), postRepository);
+        setPostStatusDeleted(quotes.getLast(), postRepository);
+
+        authenticatedTester
+            .document(
+                """
+                    query GetPost($postId: ID!){
+                      getPost(postId: $postId) {
+                        shareCount
+                      }
+                    }
+                    """)
+            .variable("postId", posts.get(1).getId())
+            .execute()
+            .path("getPost.shareCount")
+            .entity(Integer.class)
+            .isEqualTo(2);
+      }
+
+      @Test
+      void fetchingFeed_eachPostHasShareCount() {
+        // user 0 follows user 1 + user 2 post initialisation
+        FollowHelpers.seedFollow(followRepository, authenticatedUser, users.get(2));
+        // user 1 reposts post 2 (user 2)
+        Post user1Repost =
+            PostHelpers.seedReposts(posts.get(2).getId(), List.of(users.get(1)), postRepository)
+                .getFirst();
+        Post user2Repost = reposts.get(1);
+        Post user2Quote = quotes.get(1);
+
+        authenticatedTester
+            .document(
+                """
+                    {
+                      feed {
+                        edges {
+                          node {
+                            id
+                            shareCount
+                          }
+                        }
+                      }
+                    }
+                    """)
+            .execute()
+            .path("feed.edges[*].node.id")
+            .entityList(UUID.class)
+            .satisfies(
+                ids -> {
+                  // Posts are sorted descendingly by created date
+                  // Feed excludes authenticated user posts
+                  // - quote from user 1
+                  // - repost from user 1 and user 2
+                  // - posts at index 1 and 2 in posts
+                  assertThat(ids).hasSize(5);
+                  assertThat(ids)
+                      .containsExactly(
+                          user1Repost.getId(),
+                          user2Repost.getId(),
+                          user2Quote.getId(),
+                          posts.get(2).getId(),
+                          posts.get(1).getId());
+                })
+            .path("feed.edges[*].node.shareCount")
+            .entityList(Integer.class)
+            .satisfies(
+                shareCounts -> {
+                  // Share chain (not by authenticated user):
+                  // user 2 repost
+                  //             \
+                  //               post 1 -> null
+                  //             /
+                  // user 2 quote
+                  //
+                  // user 1 repost - post 2 -> null
+                  assertThat(shareCounts).hasSize(5);
+
+                  // feed shows most recent posts first
+                  assertThat(shareCounts.get(0)).isEqualTo(0);
+                  assertThat(shareCounts.get(1)).isEqualTo(0);
+                  assertThat(shareCounts.get(2)).isEqualTo(0);
+                  assertThat(shareCounts.get(3)).isEqualTo(1);
+                  assertThat(shareCounts.get(4)).isEqualTo(4);
+                });
+
+        // clean up
+        postRepository.delete(user1Repost);
+      }
+    }
+
+    @Nested
+    class sharedByMe {
+      List<Post> reposts;
+
+      @AfterEach
+      void deleteReposts() {
+        postRepository.deleteAll(reposts);
+      }
+
+      @Test
+      void fetchingIndividualPost_noShares_sharedByMeFalse() {
+        // user 2 reposts post 1
+        Post sharedPost = posts.get(1);
+        List<User> repostedBy = List.of(users.get(2));
+        reposts = PostHelpers.seedReposts(sharedPost.getId(), repostedBy, postRepository);
+
+        authenticatedTester
+            .document(
+                """
+                    query GetPost($postId: ID!){
+                      getPost(postId: $postId) {
+                        sharedByMe
+                        shareCount
+                      }
+                    }
+                    """)
+            .variable("postId", sharedPost.getId())
+            .execute()
+            .path("getPost.shareCount")
+            .entity(Integer.class)
+            .isEqualTo(1)
+            .path("getPost.sharedByMe")
+            .entity(Boolean.class)
+            .isEqualTo(false);
+      }
+
+      @Test
+      void fetchingIndividualPost_isSharedByMe_sharedByMeTrue() {
+        // user 2 + authenticated user reposts post 1
+        Post sharedPost = posts.get(1);
+        List<User> repostedBy = List.of(authenticatedUser, users.get(2));
+        reposts = PostHelpers.seedReposts(sharedPost.getId(), repostedBy, postRepository);
+
+        authenticatedTester
+            .document(
+                """
+                    query GetPost($postId: ID!){
+                      getPost(postId: $postId) {
+                        sharedByMe
+                        shareCount
+                      }
+                    }
+                    """)
+            .variable("postId", sharedPost.getId())
+            .execute()
+            .path("getPost.shareCount")
+            .entity(Integer.class)
+            .isEqualTo(2)
+            .path("getPost.sharedByMe")
+            .entity(Boolean.class)
+            .isEqualTo(true);
+      }
+
+      @Test
+      void fetchingFeed_onePostSharedByMe() {
+        // authenticated user follows user 1 + user 2 post initialisation
+        FollowHelpers.seedFollow(followRepository, authenticatedUser, users.get(2));
+        // user 2 + authenticated user reposts post 1
+        Post sharedPost = posts.get(1);
+        List<User> repostedBy = List.of(authenticatedUser, users.get(2));
+        reposts = PostHelpers.seedReposts(sharedPost.getId(), repostedBy, postRepository);
+        // Share chain:
+        //      user 2 repost
+        //                   \
+        //                    post 1 -> null
+        //                  /
+        // auth. user repost
+
+        authenticatedTester
+            .document(
+                """
+                    {
+                      feed {
+                        edges {
+                          node {
+                            id
+                            sharedByMe
+                          }
+                        }
+                      }
+                    }
+                    """)
+            .execute()
+            .path("feed.edges[*].node.id")
+            .entityList(UUID.class)
+            .satisfies(
+                ids -> {
+                  // Posts are sorted descendingly by created date
+                  // Feed excludes authenticated user posts
+                  // - user 2 repost of post 1
+                  // - posts at index 1 and 2 in posts
+                  assertThat(ids).hasSize(3);
+                  assertThat(ids)
+                      .containsExactly(
+                          reposts.get(1).getId(), posts.get(2).getId(), posts.get(1).getId());
+                })
+            .path("feed.edges[*].node.sharedByMe")
+            .entityList(Boolean.class)
+            .satisfies(
+                sharedByMe -> {
+                  // Share chain:
+                  //      user 2 repost
+                  //                   \
+                  //                    post 1 -> null
+                  //                  /
+                  // auth. user repost
+
+                  // Feed excludes auth. users posts
+                  assertThat(sharedByMe).hasSize(3);
+
+                  // feed shows most recent posts first
+                  assertFalse(sharedByMe.get(0)); // user 2 repost
+                  assertFalse(sharedByMe.get(1)); // post 2
+                  assertTrue(sharedByMe.get(2)); // post 1
+                });
+      }
+
+      @Test
+      void fetchingFeed_everyPostSharedByMe() {
+        // authenticated user follows user 1 + user 2 post initialisation
+        FollowHelpers.seedFollow(followRepository, authenticatedUser, users.get(2));
+        // user 2 + authenticated user reposts post 1
+        List<Post> post1Reposts =
+            PostHelpers.seedReposts(
+                posts.get(1).getId(), List.of(authenticatedUser, users.get(2)), postRepository);
+        // authenticated user reposts post 2
+        List<Post> post2repost =
+            PostHelpers.seedReposts(
+                posts.get(2).getId(), List.of(authenticatedUser), postRepository);
+        reposts = new ArrayList<>(post1Reposts);
+        reposts.addAll(post2repost);
+        // Share chain:
+        //      user 2 repost
+        //                   \
+        //                    post 1 -> null
+        //                  /
+        // auth. user repost
+        //
+        // auth. user repost - post 2 -> null
+
+        authenticatedTester
+            .document(
+                """
+                    {
+                      feed {
+                        edges {
+                          node {
+                            id
+                            sharedByMe
+                          }
+                        }
+                      }
+                    }
+                    """)
+            .execute()
+            .path("feed.edges[*].node.id")
+            .entityList(UUID.class)
+            .satisfies(
+                ids -> {
+                  // Posts are sorted descendingly by created date
+                  // Feed excludes authenticated user posts
+                  // - user 2 repost of post 1
+                  // - posts at index 1 and 2 in posts
+                  assertThat(ids).hasSize(3);
+                  assertThat(ids)
+                      .containsExactly(
+                          reposts.get(1).getId(), posts.get(2).getId(), posts.get(1).getId());
+                })
+            .path("feed.edges[*].node.sharedByMe")
+            .entityList(Boolean.class)
+            .satisfies(
+                sharedByMe -> {
+                  // Share chain:
+                  //      user 2 repost
+                  //                   \
+                  //                    post 1 -> null
+                  //                  /
+                  // auth. user repost
+                  //
+                  // auth. user repost - post 2 -> null
+
+                  // Feed excludes auth. users posts
+                  assertThat(sharedByMe).hasSize(3);
+
+                  // feed shows most recent posts first
+                  assertFalse(sharedByMe.get(0)); // user 2 repost
+                  assertTrue(sharedByMe.get(1)); // post 2
+                  assertTrue(sharedByMe.get(2)); // post 1
+                });
       }
     }
   }

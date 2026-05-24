@@ -5,6 +5,7 @@ import com.xclone.like.repository.LikeRepository;
 import com.xclone.post.model.entity.Post;
 import com.xclone.support.fixtures.LikeFixtures;
 import com.xclone.user.model.entity.User;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -26,8 +27,9 @@ public class LikeHelpers {
       throw new IllegalArgumentException("posts and users must be the same length");
     }
     List<Like> likes = new ArrayList<>();
+    Instant now = Instant.now();
     for (int i = 0; i < posts.size(); i++) {
-      Like like = LikeFixtures.createLike(posts.get(i), users.get(i));
+      Like like = LikeFixtures.createLike(posts.get(i), users.get(i), now.plusSeconds(i));
       Like savedLike = likeRepository.save(like);
       likes.add(savedLike);
     }
@@ -42,7 +44,7 @@ public class LikeHelpers {
    * authenticatedTester}.
    *
    * @param authenticatedTester graphql tester with a valid access token attached in the
-   *     authorization headers
+   *     authorisation headers
    * @param postId unique identifier of the post to like
    * @param numberOfLikes amount of likes to assert the queried post has
    */

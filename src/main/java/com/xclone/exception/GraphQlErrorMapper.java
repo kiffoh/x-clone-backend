@@ -135,6 +135,6 @@ public class GraphQlErrorMapper {
    */
   public static List<FieldError> fromDuplicateRepost(DuplicateRepostException ex) {
     log.debug("Duplicate repost attempted", ex);
-    return List.of(new FieldError("quotedPostId", "Repost already exists"));
+    return List.of(new FieldError("sharedPostId", "Repost already exists"));
   }
 }

@@ -1,12 +1,14 @@
 package com.xclone.support.helpers;
 
 import static com.xclone.support.fixtures.PostFixtures.createQuote;
+import static com.xclone.support.fixtures.PostFixtures.createRepost;
 
 import com.xclone.common.enums.Status;
 import com.xclone.post.model.entity.Post;
 import com.xclone.post.repository.PostRepository;
 import com.xclone.support.fixtures.PostFixtures;
 import com.xclone.user.model.entity.User;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -27,18 +29,21 @@ public class PostHelpers {
       throw new IllegalArgumentException("messageContents and authors must be the same length");
     }
     List<Post> posts = new ArrayList<>();
+    Instant now = Instant.now();
     for (int i = 0; i < messageContents.size(); i++) {
-      Post post = PostFixtures.createPostWithContent(messageContents.get(i), authors.get(i));
+      Post post =
+          PostFixtures.createPostWithContent(
+              messageContents.get(i), authors.get(i), now.plusSeconds(i));
       Post savedPost = postRepository.save(post);
       posts.add(savedPost);
     }
     return posts;
   }
 
-  public static Post seedRepost(UUID quotedPostId, UUID authorId, PostRepository postRepository) {
+  public static Post seedRepost(UUID sharedPostId, UUID authorId, PostRepository postRepository) {
     Post newRepost = new Post();
     newRepost.setAuthorId(authorId);
-    newRepost.setQuotedPostId(quotedPostId);
+    newRepost.setSharedPostId(sharedPostId);
     return postRepository.save(newRepost);
   }
 
@@ -53,11 +58,13 @@ public class PostHelpers {
           "messageContents, authors and postIndexes must be the same length");
     }
     List<Post> posts = new ArrayList<>();
+    Instant now = Instant.now();
     for (int i = 0; i < messageContents.size(); i++) {
       UUID parentId =
           (parentIndexes.get(i) == null) ? null : posts.get(parentIndexes.get(i)).getId();
       Post post =
-          PostFixtures.createReplyWithContent(messageContents.get(i), authors.get(i), parentId);
+          PostFixtures.createReplyWithContent(
+              messageContents.get(i), authors.get(i), parentId, now.plusSeconds(i));
       Post savedPost = postRepository.save(post);
       posts.add(savedPost);
     }
@@ -65,7 +72,7 @@ public class PostHelpers {
   }
 
   public static List<Post> seedQuotes(
-      UUID quotedPostId,
+      UUID sharedPostId,
       List<User> authors,
       List<String> messageContents,
       PostRepository postRepository) {
@@ -74,12 +81,26 @@ public class PostHelpers {
           "messageContents, authors and postIndexes must be the same length");
     }
     List<Post> quotes = new ArrayList<>();
+    Instant now = Instant.now();
     for (int i = 0; i < messageContents.size(); i++) {
-      Post quote = createQuote(quotedPostId, authors.get(i), messageContents.get(i));
+      Post quote =
+          createQuote(sharedPostId, authors.get(i), messageContents.get(i), now.plusSeconds(i));
       Post savedPost = postRepository.save(quote);
       quotes.add(savedPost);
     }
     return quotes;
+  }
+
+  public static List<Post> seedReposts(
+      UUID sharedPostId, List<User> authors, PostRepository postRepository) {
+    List<Post> reposts = new ArrayList<>();
+    Instant now = Instant.now();
+    for (int i = 0; i < authors.size(); i++) {
+      Post repost = createRepost(sharedPostId, authors.get(i), now.plusSeconds(i));
+      Post savedPost = postRepository.save(repost);
+      reposts.add(savedPost);
+    }
+    return reposts;
   }
 
   public static void setPostStatusDeleted(Post post, PostRepository postRepository) {

@@ -9,6 +9,7 @@ import com.xclone.support.fixtures.UserFixtures;
 import com.xclone.support.helpers.LikeHelpers;
 import com.xclone.support.helpers.PostHelpers;
 import com.xclone.user.model.entity.User;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -179,7 +180,7 @@ public class LikeIT extends BaseGraphQLIntegrationTest {
       // - user at index-1 authors post at index-1
 
       // authenticated user likes post 1 (authored by user 1)
-      likeRepository.save(LikeFixtures.createLike(posts.get(1), authenticatedUser));
+      likeRepository.save(LikeFixtures.createLike(posts.get(1), authenticatedUser, Instant.now()));
     }
 
     @Test

@@ -27,7 +27,7 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
   List<User> users;
 
   List<Post> posts;
-  Post quotedPost;
+  Post sharedPost;
 
   @BeforeEach
   void setup() {
@@ -40,7 +40,7 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
     authenticatedTester =
         authenticatedTester.mutate().headers(headers -> headers.setBearerAuth(accessToken)).build();
     posts = seedPosts(List.of("original post"), List.of(users.get(1)), postRepository);
-    quotedPost = posts.getFirst();
+    sharedPost = posts.getFirst();
   }
 
   @Nested
@@ -51,8 +51,8 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
           authenticatedTester
               .document(
                   """
-                      mutation CreateRepost($quotedPostId: ID!) {
-                        createRepost(quotedPostId: $quotedPostId) {
+                      mutation CreateRepost($sharedPostId: ID!) {
+                        createRepost(sharedPostId: $sharedPostId) {
                               code
                               success
                               post {
@@ -60,14 +60,14 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
                                 author {
                                   id
                                 }
-                                quotedPost {
+                                sharedPost {
                                   id
                                 }
                               }
                             }
                           }
                       """)
-              .variable("quotedPostId", quotedPost.getId())
+              .variable("sharedPostId", sharedPost.getId())
               .execute()
               .path("createRepost")
               .matchesJson(
@@ -80,13 +80,13 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
                               "author": {
                                 "id": "%s"
                               },
-                              "quotedPost": {
+                              "sharedPost": {
                                 "id": "%s"
                               }
                             }
                           }
                           """,
-                      authenticatedUser.getId(), quotedPost.getId()))
+                      authenticatedUser.getId(), sharedPost.getId()))
               .path("createRepost.post.id")
               .entity(UUID.class)
               .get();
@@ -100,15 +100,15 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
 
     @Test
     void validInput_existingDeletedRepost_returnsPostResponse() {
-      // Create a repost with the same quotedPostId and authorId
-      Post repost = seedRepost(quotedPost.getId(), authenticatedUser.getId(), postRepository);
+      // Create a repost with the same sharedPostId and authorId
+      Post repost = seedRepost(sharedPost.getId(), authenticatedUser.getId(), postRepository);
       setPostStatusDeleted(repost, postRepository);
 
       authenticatedTester
           .document(
               """
-                  mutation CreateRepost($quotedPostId: ID!) {
-                    createRepost(quotedPostId: $quotedPostId) {
+                  mutation CreateRepost($sharedPostId: ID!) {
+                    createRepost(sharedPostId: $sharedPostId) {
                       code
                       success
                       post {
@@ -116,14 +116,14 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
                         author {
                           id
                         }
-                        quotedPost {
+                        sharedPost {
                           id
                         }
                       }
                     }
                   }
                   """)
-          .variable("quotedPostId", quotedPost.getId())
+          .variable("sharedPostId", sharedPost.getId())
           .execute()
           .path("createRepost")
           .matchesJson(
@@ -137,13 +137,13 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
                           "author": {
                             "id": "%s"
                           },
-                          "quotedPost": {
+                          "sharedPost": {
                             "id": "%s"
                           }
                         }
                       }
                       """,
-                  repost.getId(), authenticatedUser.getId(), quotedPost.getId()));
+                  repost.getId(), authenticatedUser.getId(), sharedPost.getId()));
 
       // original post + repost
       assertThat(postRepository.findAll()).hasSize(2);
@@ -154,14 +154,14 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
 
     @Test
     void invalidInput_existingActiveRepost_returnsDuplicateRepost() {
-      // Create a repost with the same quotedPostId and authorId
-      Post repost = seedRepost(quotedPost.getId(), authenticatedUser.getId(), postRepository);
+      // Create a repost with the same sharedPostId and authorId
+      Post repost = seedRepost(sharedPost.getId(), authenticatedUser.getId(), postRepository);
 
       authenticatedTester
           .document(
               """
-                  mutation CreateRepost($quotedPostId: ID!) {
-                    createRepost(quotedPostId: $quotedPostId) {
+                  mutation CreateRepost($sharedPostId: ID!) {
+                    createRepost(sharedPostId: $sharedPostId) {
                       code
                       success
                       post {
@@ -174,7 +174,7 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
                     }
                   }
                   """)
-          .variable("quotedPostId", quotedPost.getId())
+          .variable("sharedPostId", sharedPost.getId())
           .execute()
           .path("createRepost")
           .matchesJson(
@@ -184,7 +184,7 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
                     "success": false,
                     "post": null,
                     "errors": [{
-                      "field": "quotedPostId",
+                      "field": "sharedPostId",
                       "message": "Repost already exists"
                     }]
                   }
@@ -202,15 +202,15 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
       authenticatedTester
           .document(
               """
-                  mutation CreateRepost($quotedPostId: ID!) {
-                    createRepost(quotedPostId: $quotedPostId) {
+                  mutation CreateRepost($sharedPostId: ID!) {
+                    createRepost(sharedPostId: $sharedPostId) {
                       code
                       success
                       post {
                         author {
                           id
                         }
-                        quotedPost {
+                        sharedPost {
                           id
                         }
                       }
@@ -221,7 +221,7 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
                     }
                   }
                   """)
-          .variable("quotedPostId", UUID.randomUUID())
+          .variable("sharedPostId", UUID.randomUUID())
           .execute()
           .path("createRepost")
           .matchesJson(
@@ -231,7 +231,7 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
                     "success": false,
                     "post": null,
                     "errors": [{
-                      "field": "quotedPostId",
+                      "field": "sharedPostId",
                       "message": "Original post cannot be found"
                     }]
                   }
@@ -246,15 +246,15 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
       authenticatedTester
           .document(
               """
-                  mutation CreateRepost($quotedPostId: ID!) {
-                    createRepost(quotedPostId: $quotedPostId) {
+                  mutation CreateRepost($sharedPostId: ID!) {
+                    createRepost(sharedPostId: $sharedPostId) {
                       code
                       success
                       post {
                         author {
                           id
                         }
-                        quotedPost {
+                        sharedPost {
                           id
                         }
                       }
@@ -265,7 +265,7 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
                     }
                   }
                   """)
-          .variable("quotedPostId", null)
+          .variable("sharedPostId", null)
           .execute()
           .errors()
           .satisfy(
@@ -276,8 +276,8 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
                     .anySatisfy(
                         error -> {
                           assertThat(error.getMessage())
-                              .contains("quotedPostId")
-                              .contains("'quotedPostId' has an invalid value");
+                              .contains("sharedPostId")
+                              .contains("'sharedPostId' has an invalid value");
                           assertThat(error.getExtensions())
                               .containsEntry("classification", "ValidationError");
                         });
@@ -293,7 +293,7 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
     @Test
     void validInput_noExistingQuote_returnsPostResponse() {
       Map<String, Object> createQuoteInput = new HashMap<>();
-      createQuoteInput.put("quotedPostId", quotedPost.getId());
+      createQuoteInput.put("sharedPostId", sharedPost.getId());
       createQuoteInput.put("messageContent", "this is a valid quote");
 
       UUID newPostId =
@@ -309,7 +309,7 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
                                 author {
                                   id
                                 }
-                                quotedPost {
+                                sharedPost {
                                   id
                                 }
                               }
@@ -329,13 +329,13 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
                               "author": {
                                 "id": "%s"
                               },
-                              "quotedPost": {
+                              "sharedPost": {
                                 "id": "%s"
                               }
                             }
                           }
                           """,
-                      authenticatedUser.getId(), quotedPost.getId()))
+                      authenticatedUser.getId(), sharedPost.getId()))
               .path("createQuote.post.id")
               .entity(UUID.class)
               .get();
@@ -350,7 +350,7 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
     @Test
     void invalidInput_postIdDoesNotExist_returnsPostNotFound() {
       Map<String, Object> createQuoteInput = new HashMap<>();
-      createQuoteInput.put("quotedPostId", UUID.randomUUID());
+      createQuoteInput.put("sharedPostId", UUID.randomUUID());
       createQuoteInput.put("messageContent", "this is the message");
 
       authenticatedTester
@@ -365,7 +365,7 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
                             author {
                               id
                             }
-                            quotedPost {
+                            sharedPost {
                               id
                             }
                           }
@@ -386,8 +386,8 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
                     "success": false,
                     "post": null,
                     "errors": [{
-                      "field": "quotedPostId",
-                      "message": "Quoted post cannot be found"
+                      "field": "sharedPostId",
+                      "message": "Shared post cannot be found"
                     }]
                   }
                   """);
@@ -410,7 +410,7 @@ public class RepostIT extends BaseGraphQLIntegrationTest {
                             author {
                               id
                             }
-                            quotedPost {
+                            sharedPost {
                               id
                             }
                           }

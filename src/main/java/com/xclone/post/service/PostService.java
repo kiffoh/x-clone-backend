@@ -15,7 +15,7 @@ import com.xclone.post.dto.request.UpdatePostInput;
 import com.xclone.post.model.entity.Post;
 import com.xclone.post.repository.PostRepository;
 import com.xclone.reply.dto.request.CreateReplyInput;
-import com.xclone.repost.dto.request.CreateQuoteInput;
+import com.xclone.share.dto.request.CreateQuoteInput;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Optional;
@@ -168,21 +168,21 @@ public class PostService {
    *
    * <p>A repost can only be created if the original post is active.
    *
-   * @param quotedPostId unique identifier of the quoted post
+   * @param sharedPostId unique identifier of the shared post
    * @param authorId unique uuid of the authenticated user
    * @return the created repost
-   * @throws PostNotFoundException if the quoted post cannot be found with {@link
+   * @throws PostNotFoundException if the shared post cannot be found with {@link
    *     PostRepository#findActivePostById(UUID)}
    * @throws DuplicateRepostException if there is an existing active repost with a matching {@code
-   *     quotedPostId} and {@code authorId}
+   *     sharedPostId} and {@code authorId}
    */
   @Transactional
-  public PostProfile createRepost(UUID quotedPostId, UUID authorId) {
-    Optional<Post> quotedPost = postRepository.findActivePostById(quotedPostId);
-    if (quotedPost.isEmpty()) {
+  public PostProfile createRepost(UUID sharedPostId, UUID authorId) {
+    Optional<Post> sharedPost = postRepository.findActivePostById(sharedPostId);
+    if (sharedPost.isEmpty()) {
       throw new PostNotFoundException("Original post cannot be found");
     }
-    Optional<Post> repost = postRepository.findRepost(quotedPostId, authorId);
+    Optional<Post> repost = postRepository.findRepost(sharedPostId, authorId);
     if (repost.isPresent()) {
       if (repost.get().getStatus() == Status.DELETED) {
         // Existing repost needs to be reactivated
@@ -192,13 +192,13 @@ public class PostService {
       // Existing repost found; status is active
       throw new DuplicateRepostException(
           String.format(
-              "Repost already exists for quotedPostId: %s and authorId: %s",
-              quotedPostId, authorId));
+              "Repost already exists for sharedPostId: %s and authorId: %s",
+              sharedPostId, authorId));
     }
     // No existing repost found; create new
     Post newRepost = new Post();
     newRepost.setAuthorId(authorId);
-    newRepost.setQuotedPostId(quotedPostId);
+    newRepost.setSharedPostId(sharedPostId);
     Post savedPost = postRepository.save(newRepost);
     return savedPost.toPostProfile();
   }
@@ -212,20 +212,20 @@ public class PostService {
    * @param input DTO with post details to be created
    * @param authorId unique uuid of the authenticated user
    * @return the created quote
-   * @throws PostNotFoundException if the quoted post cannot be found with {@link
+   * @throws PostNotFoundException if the shared post cannot be found with {@link
    *     PostRepository#findActivePostById(UUID)}
    */
   @Transactional
   public PostProfile createQuote(@Valid CreateQuoteInput input, UUID authorId) {
-    Optional<Post> quotedPost = postRepository.findActivePostById(input.quotedPostId());
-    if (quotedPost.isEmpty()) {
-      throw new PostNotFoundException("Quoted post cannot be found");
+    Optional<Post> sharedPost = postRepository.findActivePostById(input.sharedPostId());
+    if (sharedPost.isEmpty()) {
+      throw new PostNotFoundException("Shared post cannot be found");
     }
 
     Post quote = new Post();
     quote.setAuthorId(authorId);
     quote.setMessageContent(input.messageContent());
-    quote.setQuotedPostId(input.quotedPostId());
+    quote.setSharedPostId(input.sharedPostId());
     Post savedPost = postRepository.save(quote);
     return savedPost.toPostProfile();
   }
