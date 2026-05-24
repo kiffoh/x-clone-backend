@@ -49,61 +49,61 @@ public class ShareService {
   /**
    * Fetches a paginated list of posts which are direct quotes to the queried post.
    *
-   * @param quotedPostId unique identifier of the parent post
+   * @param sharedPostId unique identifier of the shared post
    * @param first desired number of results
    * @param after optional cursor of where the previous pagination finished
    * @return a list of posts sorted by creation date
    */
-  public PostConnection getQuotes(UUID quotedPostId, Integer first, String after) {
+  public PostConnection getQuotes(UUID sharedPostId, Integer first, String after) {
     Slice<Post> quotes;
     Pageable pageable = Pageable.ofSize(first);
 
     if (after == null) {
-      quotes = postRepository.findFirstPageOfQuotes(quotedPostId, pageable);
+      quotes = postRepository.findFirstPageOfQuotes(sharedPostId, pageable);
     } else {
       Cursor cursor = Cursor.toCursor(after);
       quotes =
           postRepository.findNextPageOfQuotes(
-              quotedPostId, cursor.createdAt(), cursor.id(), pageable);
+              sharedPostId, cursor.createdAt(), cursor.id(), pageable);
     }
     return PostService.toPostConnection(quotes);
   }
 
   /**
-   * Gets the quoted post for each quote entity.
+   * Gets the shared post for each quote entity.
    *
-   * @param quotes list of posts which may be quote entities
-   * @return list of quoted posts for each quote entity
+   * @param quotes list of posts which may be share entities
+   * @return list of original posts for each share entity
    */
-  public List<PostProfile> getQuotedPosts(List<PostProfile> quotes) {
-    List<UUID> quotedPostIds =
-        quotes.stream().map(PostProfile::quotedPostId).filter(Objects::nonNull).toList();
-    if (quotedPostIds.isEmpty()) {
+  public List<PostProfile> getSharedPosts(List<PostProfile> quotes) {
+    List<UUID> sharedPostIds =
+        quotes.stream().map(PostProfile::sharedPostId).filter(Objects::nonNull).toList();
+    if (sharedPostIds.isEmpty()) {
       return List.of();
     }
-    List<Post> quotedPosts = postRepository.findQuotedPosts(quotedPostIds);
-    return quotedPosts.stream().map(Post::toPostProfile).toList();
+    List<Post> sharedPosts = postRepository.findSharedPosts(sharedPostIds);
+    return sharedPosts.stream().map(Post::toPostProfile).toList();
   }
 
   /**
    * Fetches a paginated list of users who reposted the queried post.
    *
-   * @param quotedPostId unique identifier of the shared post
+   * @param sharedPostId unique identifier of the shared post
    * @param first desired number of results
    * @param after optional cursor of where the previous pagination finished
    * @return a list of users sorted by the repost creation date
    */
-  public UserConnection getRepostUsers(UUID quotedPostId, Integer first, String after) {
+  public UserConnection getRepostUsers(UUID sharedPostId, Integer first, String after) {
     Slice<Post> reposts;
     Pageable pageable = Pageable.ofSize(first);
 
     if (after == null) {
-      reposts = postRepository.findFirstPageOfPureReposts(quotedPostId, pageable);
+      reposts = postRepository.findFirstPageOfPureReposts(sharedPostId, pageable);
     } else {
       Cursor cursor = Cursor.toCursor(after);
       reposts =
           postRepository.findNextPageOfPureReposts(
-              quotedPostId, cursor.createdAt(), cursor.id(), pageable);
+              sharedPostId, cursor.createdAt(), cursor.id(), pageable);
     }
     return toUserConnection(reposts);
   }

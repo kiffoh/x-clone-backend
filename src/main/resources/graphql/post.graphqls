@@ -58,19 +58,19 @@ type Post {
     replies(first: Int = 10, after: String): PostConnection!
     # Repost functionality
     """
-    Unique UUID identifier of the quoted post.
+    Unique UUID identifier of the shared post.
 
-    Null for posts which are not quotes.
+    Null for posts which are not shares.
 
-    If quotedPostId is non-null and quotedPost is null; the quoted post has been deleted.
+    If sharedPostId is non-null and sharedPost is null; the shared post has been deleted.
     """
-    quotedPostId: ID
+    sharedPostId: ID
     """
-    Post that this post quoted.
+    Post that this post shared.
 
-    Null for posts which are not quotes (e.g. original posts in a post chain).
+    Null for posts which are not shares (e.g. original posts in a post chain).
     """
-    quotedPost: Post
+    sharedPost: Post
     """
     Paginated list of posts which directly quoted to this post.
 
@@ -158,15 +158,15 @@ extend type Mutation {
     """
     createReply(input: CreateReplyInput!): PostResponse!
     """
-    Create a repost; a repost has a messageContent of null and a quotedPost pointing to the original post.
+    Create a repost; a repost has a messageContent of null with the a shared post pointing to the original post.
 
     A user cannot have more than one active repost at one time.
 
     Authentication: Required. The authenticated user is the author.
     """
-    createRepost(quotedPostId: ID!): PostResponse!
+    createRepost(sharedPostId: ID!): PostResponse!
     """
-    Create a quote; a quotes has a messageContent and a quotedPost pointing to the original post.
+    Create a quote; a quotes has a messageContent with the a shared post pointing to the original post.
 
     Authentication: Required. The authenticated user is the author.
     """
@@ -233,7 +233,7 @@ input CreateReplyInput {
 Information required to create a quote.
 """
 input CreateQuoteInput {
-    quotedPostId: ID!
+    sharedPostId: ID!
     messageContent: String!
     mentionedUserIds: [ID!]
 }

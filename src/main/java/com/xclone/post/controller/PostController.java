@@ -187,36 +187,38 @@ public class PostController {
   }
 
   /**
-   * Fetches the quoted post for the quote entity.
+   * Fetches the shared post if the post entity is a post which has shared another.
    *
-   * <p>The quoted post is null for the original post in the post chain.
+   * <p>The shared post is null for the original post in the post chain.
    *
-   * @param quotes list of quote posts
-   * @return each quote mapped to the original post or null
+   * @param posts list of posts entities
+   * @return each share mapped to the original post or null
    */
-  @BatchMapping(typeName = "Post", field = "quotedPost")
-  public Map<PostProfile, PostProfile> quotedPost(List<PostProfile> quotes) {
-    List<PostProfile> quotedPosts = shareService.getQuotedPosts(quotes);
-    Map<UUID, PostProfile> idToQuotedPostMap =
-        quotedPosts.stream().collect(Collectors.toMap(PostProfile::id, Function.identity()));
+  @BatchMapping(typeName = "Post", field = "sharedPost")
+  public Map<PostProfile, PostProfile> sharedPost(List<PostProfile> posts) {
+    List<PostProfile> sharedPosts = shareService.getSharedPosts(posts);
+    Map<UUID, PostProfile> idToSharedPostMap =
+        sharedPosts.stream().collect(Collectors.toMap(PostProfile::id, Function.identity()));
 
-    Map<PostProfile, PostProfile> quoteToQuotedPostMap = new HashMap<>();
-    quotes.stream()
-        .filter(quote -> quote.quotedPostId() != null)
+    Map<PostProfile, PostProfile> shareToSharedPostMap = new HashMap<>();
+    posts.stream()
+        .filter(share -> share.sharedPostId() != null)
         .forEach(
-            quote -> {
-              PostProfile quotedPost = idToQuotedPostMap.get(quote.quotedPostId());
-              if (quotedPost != null) {
-                quoteToQuotedPostMap.put(quote, quotedPost);
+            share -> {
+              PostProfile sharedPost = idToSharedPostMap.get(share.sharedPostId());
+              if (sharedPost != null) {
+                shareToSharedPostMap.put(share, sharedPost);
               }
             });
-    return quoteToQuotedPostMap;
+    return shareToSharedPostMap;
   }
 
   /**
    * Fetches the direct quotes for the queried post.
    *
-   * @param post quoted post
+   * <p>A quote is a post which has shared another post with text content.
+   *
+   * @param post shared post
    * @param first optional number of quotes; defaults to 10 in graphql schema
    * @param after optional cursor for cursor-pagination
    * @return a paginated list of quotes sorted descendingly by creation date
@@ -229,7 +231,7 @@ public class PostController {
   /**
    * Fetches the users which reposted the queried post.
    *
-   * @param post quoted post
+   * @param post shared post
    * @param first optional number of reposts; defaults to 10 in graphql schema
    * @param after optional cursor for cursor-pagination
    * @return a paginated list of users sorted descendingly by repost creation date
@@ -253,7 +255,7 @@ public class PostController {
     List<ShareCount> shareCounts = shareService.getShareCounts(postIds);
     Map<UUID, Integer> shareCountPerPost =
         shareCounts.stream()
-            .collect(Collectors.toMap(ShareCount::quotedPostId, ShareCount::numberOfShares));
+            .collect(Collectors.toMap(ShareCount::sharedPostId, ShareCount::numberOfShares));
 
     return posts.stream()
         .collect(

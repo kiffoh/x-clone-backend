@@ -800,7 +800,7 @@ public class ValidationIT extends BaseAuthIntegrationTest {
       String longMessage = "this message will be over 280 characters".repeat(20);
       Map<String, Object> createQuoteInput = new HashMap<>();
       createQuoteInput.put("messageContent", longMessage);
-      createQuoteInput.put("quotedPostId", posts.getFirst().getId().toString());
+      createQuoteInput.put("sharedPostId", posts.getFirst().getId().toString());
 
       PostResponse response =
           authenticatedTester
@@ -815,7 +815,7 @@ public class ValidationIT extends BaseAuthIntegrationTest {
                             author {
                               id
                             }
-                            quotedPost {
+                            sharedPost {
                               id
                             }
                           }
@@ -845,7 +845,7 @@ public class ValidationIT extends BaseAuthIntegrationTest {
     void invalidMessageContent_empty_returns400() {
       Map<String, Object> createQuoteInput = new HashMap<>();
       createQuoteInput.put("messageContent", "");
-      createQuoteInput.put("quotedPostId", posts.getFirst().getId().toString());
+      createQuoteInput.put("sharedPostId", posts.getFirst().getId().toString());
 
       PostResponse response =
           authenticatedTester
@@ -860,7 +860,7 @@ public class ValidationIT extends BaseAuthIntegrationTest {
                             author {
                               id
                             }
-                            quotedPost {
+                            sharedPost {
                               id
                             }
                           }
@@ -889,7 +889,7 @@ public class ValidationIT extends BaseAuthIntegrationTest {
     void nullMessageContent_returns400() {
       Map<String, Object> createQuoteInput = new HashMap<>();
       createQuoteInput.put("messageContent", null);
-      createQuoteInput.put("quotedPostId", posts.getFirst().getId().toString());
+      createQuoteInput.put("sharedPostId", posts.getFirst().getId().toString());
 
       authenticatedTester
           .document(
@@ -903,7 +903,7 @@ public class ValidationIT extends BaseAuthIntegrationTest {
                         author {
                           id
                         }
-                        quotedPost {
+                        sharedPost {
                           id
                         }
                       }
@@ -922,10 +922,10 @@ public class ValidationIT extends BaseAuthIntegrationTest {
     }
 
     @Test
-    void nullQuotedPostId_returns400() {
+    void nullSharedPostId_returns400() {
       Map<String, Object> createQuoteInput = new HashMap<>();
       createQuoteInput.put("messageContent", "original message");
-      createQuoteInput.put("quotedPostId", null);
+      createQuoteInput.put("sharedPostId", null);
 
       authenticatedTester
           .document(
@@ -939,7 +939,7 @@ public class ValidationIT extends BaseAuthIntegrationTest {
                         author {
                           id
                         }
-                        quotedPost {
+                        sharedPost {
                           id
                         }
                       }
@@ -954,7 +954,7 @@ public class ValidationIT extends BaseAuthIntegrationTest {
           .execute()
           .errors()
           .filter(error -> "BAD_REQUEST".equals(error.getExtensions().get("classification")))
-          .expect(error -> error.getMessage().contains("Field 'quotedPostId' has coerced Null"));
+          .expect(error -> error.getMessage().contains("Field 'sharedPostId' has coerced Null"));
     }
   }
 }

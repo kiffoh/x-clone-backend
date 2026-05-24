@@ -36,10 +36,10 @@ public class PostHelpers {
     return posts;
   }
 
-  public static Post seedRepost(UUID quotedPostId, UUID authorId, PostRepository postRepository) {
+  public static Post seedRepost(UUID sharedPostId, UUID authorId, PostRepository postRepository) {
     Post newRepost = new Post();
     newRepost.setAuthorId(authorId);
-    newRepost.setQuotedPostId(quotedPostId);
+    newRepost.setSharedPostId(sharedPostId);
     return postRepository.save(newRepost);
   }
 
@@ -66,7 +66,7 @@ public class PostHelpers {
   }
 
   public static List<Post> seedQuotes(
-      UUID quotedPostId,
+      UUID sharedPostId,
       List<User> authors,
       List<String> messageContents,
       PostRepository postRepository) {
@@ -76,7 +76,7 @@ public class PostHelpers {
     }
     List<Post> quotes = new ArrayList<>();
     for (int i = 0; i < messageContents.size(); i++) {
-      Post quote = createQuote(quotedPostId, authors.get(i), messageContents.get(i));
+      Post quote = createQuote(sharedPostId, authors.get(i), messageContents.get(i));
       Post savedPost = postRepository.save(quote);
       quotes.add(savedPost);
     }
@@ -84,10 +84,10 @@ public class PostHelpers {
   }
 
   public static List<Post> seedReposts(
-      UUID quotedPostId, List<User> authors, PostRepository postRepository) {
+      UUID sharedPostId, List<User> authors, PostRepository postRepository) {
     List<Post> reposts = new ArrayList<>();
     for (User author : authors) {
-      Post repost = createRepost(quotedPostId, author);
+      Post repost = createRepost(sharedPostId, author);
       Post savedPost = postRepository.save(repost);
       reposts.add(savedPost);
     }

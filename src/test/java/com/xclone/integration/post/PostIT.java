@@ -372,10 +372,10 @@ public class PostIT extends BaseGraphQLIntegrationTest {
     @Test
     void getFeed_quotesAppearInFeed_returnsPostConnection() {
       // Initialise a new quote in feed for post 1 by user 2
-      Post quotedPost = posts.get(1);
+      Post sharedPost = posts.get(1);
       Post quote =
           seedQuotes(
-                  quotedPost.getId(),
+                  sharedPost.getId(),
                   List.of(users.get(2)),
                   List.of(messageContents.getFirst()),
                   postRepository)
@@ -390,21 +390,21 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                     feed {
                       edges {
                         node {
-                          quotedPostId
+                          sharedPostId
                         }
                       }
                     }
                   }
                   """)
           .execute()
-          .path("feed.edges[*].node.quotedPostId")
+          .path("feed.edges[*].node.sharedPostId")
           .entityList(UUID.class)
           .satisfies(
               ids -> {
                 assertThat(ids).hasSize(3);
 
                 // feed is returned in created at descendingly
-                assertThat(ids).containsExactly(quotedPost.getId(), null, null);
+                assertThat(ids).containsExactly(sharedPost.getId(), null, null);
               });
 
       // clean up
@@ -1534,7 +1534,7 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                           edges {
                             node {
                               id
-                              quotedPostId
+                              sharedPostId
                               replyCount
                               parent {
                                 id
@@ -1814,15 +1814,15 @@ public class PostIT extends BaseGraphQLIntegrationTest {
   class shareTests {
     @Nested
     class quotesTests {
-      Post quotedPost;
+      Post sharedPost;
       List<Post> quotes;
 
       @BeforeEach
       void setup() {
-        quotedPost = posts.get(1);
+        sharedPost = posts.get(1);
         quotes =
             seedQuotes(
-                quotedPost.getId(),
+                sharedPost.getId(),
                 List.of(authenticatedUser, users.get(2)),
                 createPostContents(2),
                 postRepository);
@@ -1888,7 +1888,7 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                       }
                     }
                     """)
-            .variable("postId", quotedPost.getId())
+            .variable("postId", sharedPost.getId())
             .execute()
             .path("getPost.quotes.edges[*].node.id")
             .entityList(UUID.class)
@@ -1931,7 +1931,7 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                           }
                         }
                         """)
-                .variable("postId", quotedPost.getId())
+                .variable("postId", sharedPost.getId())
                 .execute()
                 .path("getPost.quotes.edges[*].node.id")
                 .entityList(UUID.class)
@@ -1967,7 +1967,7 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                       }
                     }
                     """)
-            .variable("postId", quotedPost.getId())
+            .variable("postId", sharedPost.getId())
             .variable("cursor", endCursor)
             .execute()
             .path("getPost.quotes.edges[*].node.id")
@@ -2012,7 +2012,7 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                       }
                     }
                     """)
-            .variable("postId", quotedPost.getId())
+            .variable("postId", sharedPost.getId())
             .execute()
             .path("getPost.quotes.edges[*].node.id")
             .entityList(UUID.class)
@@ -2028,16 +2028,16 @@ public class PostIT extends BaseGraphQLIntegrationTest {
     }
 
     @Nested
-    class quotedPostTests {
-      Post quotedPost;
+    class sharedPostTests {
+      Post sharedPost;
       Post quote;
 
       @BeforeEach
       void setup() {
-        quotedPost = posts.get(1);
+        sharedPost = posts.get(1);
         quote =
             seedQuotes(
-                    quotedPost.getId(),
+                    sharedPost.getId(),
                     List.of(authenticatedUser),
                     List.of(messageContents.getFirst()),
                     postRepository)
@@ -2050,16 +2050,16 @@ public class PostIT extends BaseGraphQLIntegrationTest {
       }
 
       @Test
-      void validQuote_returnsQuotedPost() {
+      void validQuote_returnsSharedPost() {
         // Quote chain:
         // post 0 -> post 1 -> null
         authenticatedTester
             .document(
                 """
-                    query GetQuotedPost($quoteId: ID!) {
+                    query GetSharedPost($quoteId: ID!) {
                       getPost(postId: $quoteId) {
-                        quotedPostId
-                        quotedPost {
+                        sharedPostId
+                        sharedPost {
                           id
                         }
                       }
@@ -2067,25 +2067,25 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                     """)
             .variable("quoteId", quote.getId())
             .execute()
-            .path("getPost.quotedPostId")
+            .path("getPost.sharedPostId")
             .entity(UUID.class)
-            .path("getPost.quotedPost.id")
+            .path("getPost.sharedPost.id")
             .entity(UUID.class)
-            .isEqualTo(quotedPost.getId());
+            .isEqualTo(sharedPost.getId());
       }
 
       @Test
-      void quotedPostIsDeleted_returnsNull() {
-        setPostStatusDeleted(quotedPost, postRepository);
+      void sharedPostIsDeleted_returnsNull() {
+        setPostStatusDeleted(sharedPost, postRepository);
         // Quote chain:
         // post 0 X post 1 -> null
         authenticatedTester
             .document(
                 """
-                    query GetQuotedPost($quoteId: ID!) {
+                    query GetSharedPost($quoteId: ID!) {
                       getPost(postId: $quoteId) {
-                        quotedPostId
-                        quotedPost {
+                        sharedPostId
+                        sharedPost {
                           id
                         }
                       }
@@ -2093,9 +2093,9 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                     """)
             .variable("quoteId", quote.getId())
             .execute()
-            .path("getPost.quotedPostId")
+            .path("getPost.sharedPostId")
             .hasValue()
-            .path("getPost.quotedPost")
+            .path("getPost.sharedPost")
             .valueIsNull();
       }
 
@@ -2106,10 +2106,10 @@ public class PostIT extends BaseGraphQLIntegrationTest {
         authenticatedTester
             .document(
                 """
-                    query GetQuotedPost($quoteId: ID!) {
+                    query GetSharedPost($quoteId: ID!) {
                       getPost(postId: $quoteId) {
-                        quotedPostId
-                        quotedPost {
+                        sharedPostId
+                        sharedPost {
                           id
                         }
                       }
@@ -2117,24 +2117,24 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                     """)
             .variable("quoteId", posts.get(2).getId())
             .execute()
-            .path("getPost.quotedPostId")
+            .path("getPost.sharedPostId")
             .valueIsNull()
-            .path("getPost.quotedPost")
+            .path("getPost.sharedPost")
             .valueIsNull();
       }
     }
 
     @Nested
     class reposts {
-      Post quotedPost;
+      Post sharedPost;
       List<Post> reposts;
       List<User> repostedBy;
 
       @BeforeEach
       void setup() {
-        quotedPost = posts.get(1);
+        sharedPost = posts.get(1);
         repostedBy = List.of(authenticatedUser, users.get(2));
-        reposts = PostHelpers.seedReposts(quotedPost.getId(), repostedBy, postRepository);
+        reposts = PostHelpers.seedReposts(sharedPost.getId(), repostedBy, postRepository);
       }
 
       @AfterEach
@@ -2197,7 +2197,7 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                       }
                     }
                     """)
-            .variable("postId", quotedPost.getId())
+            .variable("postId", sharedPost.getId())
             .execute()
             .path("getPost.reposts.edges[*].node.id")
             .entityList(UUID.class)
@@ -2240,7 +2240,7 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                           }
                         }
                         """)
-                .variable("postId", quotedPost.getId())
+                .variable("postId", sharedPost.getId())
                 .execute()
                 .path("getPost.reposts.edges[*].node.id")
                 .entityList(UUID.class)
@@ -2276,7 +2276,7 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                       }
                     }
                     """)
-            .variable("postId", quotedPost.getId())
+            .variable("postId", sharedPost.getId())
             .variable("cursor", endCursor)
             .execute()
             .path("getPost.reposts.edges[*].node.id")
@@ -2321,7 +2321,7 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                       }
                     }
                     """)
-            .variable("postId", quotedPost.getId())
+            .variable("postId", sharedPost.getId())
             .execute()
             .path("getPost.reposts.edges[*].node.id")
             .entityList(UUID.class)
@@ -2338,23 +2338,23 @@ public class PostIT extends BaseGraphQLIntegrationTest {
 
     @Nested
     class shareCount {
-      Post quotedPost;
+      Post sharedPost;
       List<Post> quotes;
       List<Post> reposts;
 
       @BeforeEach
       void setup() {
         // Seeds 2 reposts and 2 quotes from authenticated user and user 2
-        quotedPost = posts.get(1);
+        sharedPost = posts.get(1);
         quotes =
             seedQuotes(
-                quotedPost.getId(),
+                sharedPost.getId(),
                 List.of(authenticatedUser, users.get(2)),
                 createPostContents(2),
                 postRepository);
         reposts =
             PostHelpers.seedReposts(
-                quotedPost.getId(), List.of(authenticatedUser, users.get(2)), postRepository);
+                sharedPost.getId(), List.of(authenticatedUser, users.get(2)), postRepository);
       }
 
       @AfterEach
@@ -2503,9 +2503,9 @@ public class PostIT extends BaseGraphQLIntegrationTest {
       @Test
       void fetchingIndividualPost_noShares_sharedByMeFalse() {
         // user 2 reposts post 1
-        Post quotedPost = posts.get(1);
+        Post sharedPost = posts.get(1);
         List<User> repostedBy = List.of(users.get(2));
-        reposts = PostHelpers.seedReposts(quotedPost.getId(), repostedBy, postRepository);
+        reposts = PostHelpers.seedReposts(sharedPost.getId(), repostedBy, postRepository);
 
         authenticatedTester
             .document(
@@ -2517,7 +2517,7 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                       }
                     }
                     """)
-            .variable("postId", quotedPost.getId())
+            .variable("postId", sharedPost.getId())
             .execute()
             .path("getPost.shareCount")
             .entity(Integer.class)
@@ -2530,9 +2530,9 @@ public class PostIT extends BaseGraphQLIntegrationTest {
       @Test
       void fetchingIndividualPost_isSharedByMe_sharedByMeTrue() {
         // user 2 + authenticated user reposts post 1
-        Post quotedPost = posts.get(1);
+        Post sharedPost = posts.get(1);
         List<User> repostedBy = List.of(authenticatedUser, users.get(2));
-        reposts = PostHelpers.seedReposts(quotedPost.getId(), repostedBy, postRepository);
+        reposts = PostHelpers.seedReposts(sharedPost.getId(), repostedBy, postRepository);
 
         authenticatedTester
             .document(
@@ -2544,7 +2544,7 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                       }
                     }
                     """)
-            .variable("postId", quotedPost.getId())
+            .variable("postId", sharedPost.getId())
             .execute()
             .path("getPost.shareCount")
             .entity(Integer.class)
@@ -2559,9 +2559,9 @@ public class PostIT extends BaseGraphQLIntegrationTest {
         // authenticated user follows user 1 + user 2 post initialisation
         FollowHelpers.seedFollow(followRepository, authenticatedUser, users.get(2));
         // user 2 + authenticated user reposts post 1
-        Post quotedPost = posts.get(1);
+        Post sharedPost = posts.get(1);
         List<User> repostedBy = List.of(authenticatedUser, users.get(2));
-        reposts = PostHelpers.seedReposts(quotedPost.getId(), repostedBy, postRepository);
+        reposts = PostHelpers.seedReposts(sharedPost.getId(), repostedBy, postRepository);
         // Share chain:
         //      user 2 repost
         //                   \
@@ -2623,15 +2623,14 @@ public class PostIT extends BaseGraphQLIntegrationTest {
         // authenticated user follows user 1 + user 2 post initialisation
         FollowHelpers.seedFollow(followRepository, authenticatedUser, users.get(2));
         // user 2 + authenticated user reposts post 1
-        Post quotedPost = posts.get(1);
-        List<User> repostedBy = List.of(authenticatedUser, users.get(2));
-        List<Post> repostsOfQuotedPost =
-            PostHelpers.seedReposts(quotedPost.getId(), repostedBy, postRepository);
+        List<Post> post1Reposts =
+            PostHelpers.seedReposts(
+                posts.get(1).getId(), List.of(authenticatedUser, users.get(2)), postRepository);
         // authenticated user reposts post 2
         List<Post> post2repost =
             PostHelpers.seedReposts(
                 posts.get(2).getId(), List.of(authenticatedUser), postRepository);
-        reposts = new ArrayList<>(repostsOfQuotedPost);
+        reposts = new ArrayList<>(post1Reposts);
         reposts.addAll(post2repost);
         // Share chain:
         //      user 2 repost

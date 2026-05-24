@@ -35,18 +35,18 @@ public class PostFixtures {
     return post;
   }
 
-  public static Post createQuote(UUID quotedPostId, User author, String messageContent) {
+  public static Post createQuote(UUID sharedPostId, User author, String messageContent) {
     Post post = new Post();
     post.setMessageContent(messageContent);
     post.setAuthorId(author.getId());
-    post.setQuotedPostId(quotedPostId);
+    post.setSharedPostId(sharedPostId);
     return post;
   }
 
-  public static Post createRepost(UUID quotedPostId, User author) {
+  public static Post createRepost(UUID sharedPostId, User author) {
     Post post = new Post();
     post.setAuthorId(author.getId());
-    post.setQuotedPostId(quotedPostId);
+    post.setSharedPostId(sharedPostId);
     return post;
   }
 }

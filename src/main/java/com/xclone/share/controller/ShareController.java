@@ -33,20 +33,20 @@ public class ShareController {
    *
    * @param userDetails authenticated user; populated as part of the security chain with {@link
    *     JwtAuthenticationFilter}
-   * @param quotedPostId unique identifier of the reposted post
+   * @param sharedPostId unique identifier of the reposted post
    * @return the created post
    */
   @MutationMapping
   public PostResponse createRepost(
-      @AuthenticationPrincipal CustomUserDetails userDetails, @Argument UUID quotedPostId) {
+      @AuthenticationPrincipal CustomUserDetails userDetails, @Argument UUID sharedPostId) {
     try {
-      PostProfile repost = postService.createRepost(quotedPostId, userDetails.getId());
+      PostProfile repost = postService.createRepost(sharedPostId, userDetails.getId());
       return new PostResponse("200", true, repost, null);
     } catch (DuplicateRepostException ex) {
       return new PostResponse("400", false, null, GraphQlErrorMapper.fromDuplicateRepost(ex));
     } catch (PostNotFoundException ex) {
       return new PostResponse(
-          "404", false, null, GraphQlErrorMapper.fromPostNotFound("quotedPostId", ex));
+          "404", false, null, GraphQlErrorMapper.fromPostNotFound("sharedPostId", ex));
     }
   }
 
@@ -71,7 +71,7 @@ public class ShareController {
       return new PostResponse("400", false, null, GraphQlErrorMapper.fromConstraintViolations(ex));
     } catch (PostNotFoundException ex) {
       return new PostResponse(
-          "404", false, null, GraphQlErrorMapper.fromPostNotFound("quotedPostId", ex));
+          "404", false, null, GraphQlErrorMapper.fromPostNotFound("sharedPostId", ex));
     }
   }
 }

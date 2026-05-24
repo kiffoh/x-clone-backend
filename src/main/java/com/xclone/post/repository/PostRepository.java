@@ -112,15 +112,15 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
    *
    * <p>Method is agnostic of post status to allow for repost activation.
    *
-   * @param quotedPostId unique identifier of the quoted post
+   * @param sharedPostId unique identifier of the shared post
    * @param authorId unique identifier of the post author
    * @return post entity or null
    */
   @Query(
-      "select p from Post p where p.quotedPostId = :quotedPostId and p.authorId = :authorId "
+      "select p from Post p where p.sharedPostId = :sharedPostId and p.authorId = :authorId "
           + "and p.messageContent is null")
   Optional<Post> findRepost(
-      @Param("quotedPostId") UUID quotedPostId, @Param("authorId") UUID authorId);
+      @Param("sharedPostId") UUID sharedPostId, @Param("authorId") UUID authorId);
 
   @Query(
       "select p from Post p where p.parentId = :parentId"
@@ -141,51 +141,51 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
       Pageable pageable);
 
   /**
-   * Fetches the original posts for each quote.
+   * Fetches the shared posts for each quote or repost entity.
    *
-   * @param quotedPostIds list of ids for each quote entity
-   * @return list of quoted posts
+   * @param sharedPostIds list of unique identities containing the shared post ids
+   * @return list of posts
    */
   @Query(
-      "select p from Post p where p.id in :quotedPostIds "
+      "select p from Post p where p.id in :sharedPostIds "
           + " and p.status = com.xclone.common.enums.Status.ACTIVE")
-  List<Post> findQuotedPosts(@Param("quotedPostIds") List<UUID> quotedPostIds);
+  List<Post> findSharedPosts(@Param("sharedPostIds") List<UUID> sharedPostIds);
 
   @Query(
-      "select p from Post p where p.quotedPostId = :quotedPostId and p.messageContent is not null"
+      "select p from Post p where p.sharedPostId = :sharedPostId and p.messageContent is not null"
           + " and p.status = com.xclone.common.enums.Status.ACTIVE"
           + " order by p.createdAt desc, p.id asc")
-  Slice<Post> findFirstPageOfQuotes(@Param("quotedPostId") UUID quotedPostId, Pageable pageable);
+  Slice<Post> findFirstPageOfQuotes(@Param("sharedPostId") UUID sharedPostId, Pageable pageable);
 
   @Query(
-      "select p from Post p where p.quotedPostId = :quotedPostId and p.messageContent is not null"
+      "select p from Post p where p.sharedPostId = :sharedPostId and p.messageContent is not null"
           + " and p.status = com.xclone.common.enums.Status.ACTIVE"
           + " and ((p.createdAt < :cursorCreatedAt)"
           + " or (p.createdAt = :cursorCreatedAt and p.id > :cursorId))"
           + " order by p.createdAt desc, p.id asc")
   Slice<Post> findNextPageOfQuotes(
-      @Param("quotedPostId") UUID quotedPostId,
+      @Param("sharedPostId") UUID sharedPostId,
       @Param("cursorCreatedAt") Instant cursorCreatedAt,
       @Param("cursorId") UUID cursorId,
       Pageable pageable);
 
   @Query(
-      "select p from Post p join fetch p.author a where p.quotedPostId = :quotedPostId"
+      "select p from Post p join fetch p.author a where p.sharedPostId = :sharedPostId"
           + " and p.messageContent is null and p.status = com.xclone.common.enums.Status.ACTIVE"
           + " and a.status = com.xclone.user.model.enums.UserStatus.ACTIVE"
           + " order by p.createdAt desc, p.id asc")
   Slice<Post> findFirstPageOfPureReposts(
-      @Param("quotedPostId") UUID quotedPostId, Pageable pageable);
+      @Param("sharedPostId") UUID sharedPostId, Pageable pageable);
 
   @Query(
-      "select p from Post p join fetch p.author a where p.quotedPostId = :quotedPostId"
+      "select p from Post p join fetch p.author a where p.sharedPostId = :sharedPostId"
           + " and p.messageContent is null and p.status = com.xclone.common.enums.Status.ACTIVE"
           + " and a.status = com.xclone.user.model.enums.UserStatus.ACTIVE"
           + " and ((p.createdAt < :cursorCreatedAt)"
           + " or (p.createdAt = :cursorCreatedAt and p.id > :cursorId))"
           + " order by p.createdAt desc, p.id asc")
   Slice<Post> findNextPageOfPureReposts(
-      @Param("quotedPostId") UUID quotedPostId,
+      @Param("sharedPostId") UUID sharedPostId,
       @Param("cursorCreatedAt") Instant cursorCreatedAt,
       @Param("cursorId") UUID cursorId,
       Pageable pageable);
@@ -223,13 +223,13 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
       @Param("parentId") UUID parentId, @Param("postCreatedAt") Instant postCreatedAt);
 
   @Query(
-      "select new com.xclone.share.dto.ShareCount(p.quotedPostId, count(p)) from Post p"
-          + " where p.quotedPostId in :quotedPostIds "
-          + "and p.status = com.xclone.common.enums.Status.ACTIVE group by p.quotedPostId")
-  List<ShareCount> findShareCounts(@Param("quotedPostIds") List<UUID> quotedPostIds);
+      "select new com.xclone.share.dto.ShareCount(p.sharedPostId, count(p)) from Post p"
+          + " where p.sharedPostId in :sharedPostIds "
+          + "and p.status = com.xclone.common.enums.Status.ACTIVE group by p.sharedPostId")
+  List<ShareCount> findShareCounts(@Param("sharedPostIds") List<UUID> sharedPostIds);
 
   @Query(
-      "select p.quotedPostId from Post p where p.authorId = :userId and p.quotedPostId in :postIds"
+      "select p.sharedPostId from Post p where p.authorId = :userId and p.sharedPostId in :postIds"
           + " and p.status = com.xclone.common.enums.Status.ACTIVE")
   List<UUID> findSharedIds(@Param("postIds") List<UUID> postIds, @Param("userId") UUID userId);
 }

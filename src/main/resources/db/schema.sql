@@ -39,11 +39,11 @@ CREATE TABLE posts (
     status post_status NOT NULL DEFAULT 'ACTIVE',
 
     parent_id UUID, -- For direct replies
-    quoted_post_id UUID, -- For reposts and quotes
+    shared_post_id UUID, -- For reposts and quotes
 
     FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE,-- Implement soft delete by never deleting users
     FOREIGN KEY (parent_id) REFERENCES posts(id) ON DELETE SET NULL,
-    FOREIGN KEY (quoted_post_id) REFERENCES posts(id) ON DELETE SET NULL
+    FOREIGN KEY (shared_post_id) REFERENCES posts(id) ON DELETE SET NULL
 );
 
 CREATE TABLE likes (
@@ -102,8 +102,8 @@ CREATE INDEX idx_follows_following ON follows(following_id);
 
 CREATE INDEX idx_posts_author ON posts(author_id);
 CREATE INDEX idx_posts_parent ON posts(parent_id);
-CREATE INDEX idx_posts_quoted_post ON posts(quoted_post_id);
-CREATE UNIQUE INDEX one_repost_per_user ON posts(quoted_post_id, author_id) WHERE message_content IS NULL AND status = 'ACTIVE';
+CREATE INDEX idx_posts_shared_post ON posts(shared_post_id);
+CREATE UNIQUE INDEX one_repost_per_user ON posts(shared_post_id, author_id) WHERE message_content IS NULL AND status = 'ACTIVE';
 CREATE INDEX idx_posts_created_at ON posts(created_at);
 CREATE INDEX idx_posts_status ON posts(status);
 -- Why do we want an index on status?

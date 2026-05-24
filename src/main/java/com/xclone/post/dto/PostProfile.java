@@ -12,7 +12,7 @@ import java.util.UUID;
  * @param id unique identifier of the post
  * @param authorId unique identifier of the author
  * @param parentId optional unique identifier of the parent post
- * @param quotedPostId optional unique identifier of the quoted post
+ * @param sharedPostId optional unique identifier of the shared post
  * @param messageContent optional text content of a post
  * @param createdAt datetime of post entity creation
  * @param updatedAt datetime of last update of post entity
@@ -22,6 +22,6 @@ public record PostProfile(
     UUID authorId,
     String messageContent,
     UUID parentId,
-    UUID quotedPostId,
+    UUID sharedPostId,
     OffsetDateTime createdAt,
     OffsetDateTime updatedAt) {}

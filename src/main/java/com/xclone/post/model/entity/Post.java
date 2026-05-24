@@ -77,16 +77,16 @@ public class Post {
   @ManyToOne(fetch = FetchType.LAZY)
   private Post parent;
 
-  @Column(name = "quoted_post_id")
-  private UUID quotedPostId;
+  @Column(name = "shared_post_id")
+  private UUID sharedPostId;
 
   @JoinColumn(
-      name = "quoted_post_id",
+      name = "shared_post_id",
       insertable = false,
       updatable = false,
-      foreignKey = @ForeignKey(name = PostConstraintName.QUOTED_POST_FK))
+      foreignKey = @ForeignKey(name = PostConstraintName.SHARED_POST_FK))
   @ManyToOne(fetch = FetchType.LAZY)
-  private Post quotedPost;
+  private Post sharedPost;
 
   /**
    * Projects this entity to a {@link PostProfile} for use in GraphQL responses. Timestamps are
@@ -100,7 +100,7 @@ public class Post {
         authorId,
         messageContent,
         parentId,
-        quotedPostId,
+        sharedPostId,
         createdAt.atOffset(ZoneOffset.UTC),
         updatedAt.atOffset(ZoneOffset.UTC));
   }
