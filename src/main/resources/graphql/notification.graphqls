@@ -42,7 +42,7 @@ extend type Mutation {
 type NotificationResponse implements MutationResponse {
     code: String!
     success: Boolean!
-    notifications: Notification
+    notification: Notification
     errors: [Error!]
 }
 

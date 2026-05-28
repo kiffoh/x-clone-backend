@@ -38,7 +38,7 @@ public class NotificationController {
    * @param notifications list of notification entities
    * @return a map of each notification and all the actors which have interacted with it
    */
-  @BatchMapping(typeName = "Notifications", field = "actors")
+  @BatchMapping(typeName = "Notification", field = "actors")
   public Map<NotificationProfile, List<UserProfile>> actors(
       List<NotificationProfile> notifications) {
     List<UUID> notificationIds = notifications.stream().map(NotificationProfile::id).toList();
@@ -49,7 +49,7 @@ public class NotificationController {
         .collect(
             Collectors.toMap(
                 Function.identity(),
-                notification -> notificationIdToActors.get(notification.id())));
+                notification -> notificationIdToActors.getOrDefault(notification.id(), List.of())));
   }
 
   /**
@@ -58,7 +58,7 @@ public class NotificationController {
    * @param notifications list of notification entities
    * @return a map of each notification and the amount of actors which have interacted with it
    */
-  @BatchMapping(typeName = "Notifications", field = "actorCount")
+  @BatchMapping(typeName = "Notification", field = "actorCount")
   public Map<NotificationProfile, Integer> actorCount(List<NotificationProfile> notifications) {
     List<UUID> notificationIds = notifications.stream().map(NotificationProfile::id).toList();
     List<ActorCount> actorCounts = notificationService.getActorCounts(notificationIds);

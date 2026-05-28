@@ -68,7 +68,7 @@ CREATE TABLE post_mentions (
 );
 -- Check for no self mention in application code
 
-CREATE TYPE notification_type AS ENUM ('LIKE', 'COMMENT', 'REPOST', 'QUOTE', 'FOLLOW', 'MENTION');
+CREATE TYPE notification_type AS ENUM ('LIKE', 'REPLY', 'REPOST', 'QUOTE', 'FOLLOW', 'MENTION');
 
 CREATE TABLE notifications (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

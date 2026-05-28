@@ -21,6 +21,6 @@ public record NotificationProfile(
     UUID id,
     Post post,
     NotificationType type,
-    Boolean read,
+    boolean read,
     OffsetDateTime createdAt,
     OffsetDateTime updatedAt) {}

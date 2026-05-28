@@ -20,6 +20,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
@@ -90,6 +91,11 @@ public class Notification {
    */
   public NotificationProfile toNotificationProfile() {
     return new NotificationProfile(
-        id, post, type, read, OffsetDateTime.from(createdAt), OffsetDateTime.from(updatedAt));
+        id,
+        post,
+        type,
+        read,
+        createdAt.atOffset(ZoneOffset.UTC),
+        updatedAt.atOffset(ZoneOffset.UTC));
   }
 }

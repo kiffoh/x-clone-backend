@@ -53,25 +53,6 @@ public class NotificationService {
     return toNotificationConnection(notifications);
   }
 
-  private NotificationConnection toNotificationConnection(Slice<Notification> notifications) {
-    List<NotificationEdge> edges =
-        notifications.stream()
-            .map(
-                notification -> {
-                  Cursor cursor = new Cursor(notification.getUpdatedAt(), notification.getId());
-                  return new NotificationEdge(
-                      notification.toNotificationProfile(), cursor.encode());
-                })
-            .toList();
-    PageInfo pageInfo =
-        new PageInfo(
-            notifications.hasNext(),
-            notifications.hasPrevious(),
-            edges.getFirst().cursor(),
-            edges.getLast().cursor());
-    return new NotificationConnection(edges, pageInfo);
-  }
-
   /**
    * Fetches the actors which interacted with each notification.
    *
@@ -121,5 +102,24 @@ public class NotificationService {
     notification.setRead(true);
 
     return notification.toNotificationProfile();
+  }
+
+  private NotificationConnection toNotificationConnection(Slice<Notification> notifications) {
+    List<NotificationEdge> edges =
+        notifications.stream()
+            .map(
+                notification -> {
+                  Cursor cursor = new Cursor(notification.getUpdatedAt(), notification.getId());
+                  return new NotificationEdge(
+                      notification.toNotificationProfile(), cursor.encode());
+                })
+            .toList();
+    PageInfo pageInfo =
+        new PageInfo(
+            notifications.hasNext(),
+            notifications.hasPrevious(),
+            edges.isEmpty() ? null : edges.getFirst().cursor(),
+            edges.isEmpty() ? null : edges.getLast().cursor());
+    return new NotificationConnection(edges, pageInfo);
   }
 }
