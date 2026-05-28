@@ -2,7 +2,6 @@ package com.xclone.notification.dto;
 
 import com.xclone.notification.model.entity.Notification;
 import com.xclone.notification.model.enums.NotificationType;
-import com.xclone.post.model.entity.Post;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -11,7 +10,7 @@ import java.util.UUID;
  * Notification} type in the GraphQL schema.
  *
  * @param id unique identifier of the notification
- * @param post optional post entity which specific notification types act upon
+ * @param postId optional post identifier which specific notification types act upon
  * @param type enum corresponding to the notification type
  * @param read {@code true} if the recipient user has read the notification
  * @param createdAt datetime of the creation of the notification
@@ -19,7 +18,7 @@ import java.util.UUID;
  */
 public record NotificationProfile(
     UUID id,
-    Post post,
+    UUID postId,
     NotificationType type,
     boolean read,
     OffsetDateTime createdAt,

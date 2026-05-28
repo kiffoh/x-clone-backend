@@ -56,12 +56,14 @@ public class NotificationService {
   /**
    * Fetches the actors which interacted with each notification.
    *
+   * <p>Limits the actors fetched to the most recent 3.
+   *
    * @param notificationIds list of unique identifiers of notification entities
    * @return a map of each notification id and all the actors which have interacted with it
    */
   public Map<UUID, List<UserProfile>> getNotificationActors(List<UUID> notificationIds) {
     List<NotificationActor> notificationActors =
-        notificationRepository.findNotificationActors(notificationIds);
+        notificationRepository.findNotificationActors(notificationIds, Pageable.ofSize(3));
     Map<UUID, List<UserProfile>> notificationIdToActors = new HashMap<>();
     notificationActors.forEach(
         notificationActor ->

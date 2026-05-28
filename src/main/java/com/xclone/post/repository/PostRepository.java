@@ -107,6 +107,11 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
           + " and p.status = com.xclone.common.enums.Status.ACTIVE")
   Optional<Post> findActivePostById(@Param("postId") UUID postId);
 
+  @Query(
+      "select p from Post p where p.id in :postIds"
+          + " and p.status = com.xclone.common.enums.Status.ACTIVE")
+  List<Post> findActivePostsById(@Param("postIds") List<UUID> postIds);
+
   /**
    * Fetches a repost.
    *

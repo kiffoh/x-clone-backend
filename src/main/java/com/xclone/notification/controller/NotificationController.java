@@ -7,12 +7,16 @@ import com.xclone.notification.dto.ActorCount;
 import com.xclone.notification.dto.NotificationProfile;
 import com.xclone.notification.dto.connection.NotificationConnection;
 import com.xclone.notification.dto.mutation.NotificationResponse;
+import com.xclone.notification.model.enums.NotificationType;
 import com.xclone.notification.service.NotificationService;
+import com.xclone.post.dto.PostProfile;
+import com.xclone.post.service.PostService;
 import com.xclone.security.jwt.JwtAuthenticationFilter;
 import com.xclone.security.user.CustomUserDetails;
 import com.xclone.user.dto.UserProfile;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -27,9 +31,37 @@ import org.springframework.stereotype.Controller;
 @Controller
 public class NotificationController {
   private final NotificationService notificationService;
+  private final PostService postService;
 
-  public NotificationController(NotificationService notificationService) {
+  public NotificationController(NotificationService notificationService, PostService postService) {
     this.notificationService = notificationService;
+    this.postService = postService;
+  }
+
+  /**
+   * Fetches the post relevant to each notification.
+   *
+   * <p>For a notification with {@link NotificationType#FOLLOW}, the post will be null.
+   *
+   * @param notifications list of notification entities
+   * @return a map of each notification and the post which the notification acted upon
+   */
+  @BatchMapping(typeName = "Notification", field = "post")
+  public Map<NotificationProfile, PostProfile> post(List<NotificationProfile> notifications) {
+    List<UUID> postIds =
+        notifications.stream()
+            .map(NotificationProfile::postId)
+            // If NotificationType == FOLLOW then postId (and consequently post) is null
+            .filter(Objects::nonNull)
+            .toList();
+    List<PostProfile> posts = postService.getActivePostsFromIds(postIds);
+    Map<UUID, PostProfile> postIdToPostMap =
+        posts.stream().collect(Collectors.toMap(PostProfile::id, Function.identity()));
+
+    return notifications.stream()
+        .collect(
+            Collectors.toMap(
+                Function.identity(), notification -> postIdToPostMap.get(notification.postId())));
   }
 
   /**

@@ -3,7 +3,6 @@ package com.xclone.notification.model.entity;
 import com.xclone.notification.dto.NotificationProfile;
 import com.xclone.notification.model.NotificationConstraintName;
 import com.xclone.notification.model.enums.NotificationType;
-import com.xclone.post.model.entity.Post;
 import com.xclone.user.model.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -60,14 +59,6 @@ public class Notification {
   @Column(name = "post_id")
   private UUID postId;
 
-  @JoinColumn(
-      name = "post_id",
-      updatable = false,
-      insertable = false,
-      foreignKey = @ForeignKey(name = NotificationConstraintName.POST_ID_FK))
-  @ManyToOne(fetch = FetchType.LAZY)
-  private Post post;
-
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   private NotificationType type;
@@ -92,7 +83,7 @@ public class Notification {
   public NotificationProfile toNotificationProfile() {
     return new NotificationProfile(
         id,
-        post,
+        postId,
         type,
         read,
         createdAt.atOffset(ZoneOffset.UTC),

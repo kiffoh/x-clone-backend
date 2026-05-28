@@ -37,7 +37,7 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
       "select na from NotificationActor na join fetch na.actor"
           + " where na.notificationId in :notificationIds")
   List<NotificationActor> findNotificationActors(
-      @Param("notificationIds") List<UUID> notificationIds);
+      @Param("notificationIds") List<UUID> notificationIds, Pageable pageable);
 
   @Query(
       "select new com.xclone.notification.dto.ActorCount(na.notificationId, count(na))"

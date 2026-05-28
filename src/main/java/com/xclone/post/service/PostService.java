@@ -86,6 +86,19 @@ public class PostService {
     return post.map(Post::toPostProfile).orElse(null);
   }
 
+  /**
+   * Fetches the {@link PostProfile} for a valid and active posts.
+   *
+   * <p>Returns null if a post is not active/does not exist.
+   *
+   * @param postIds unique identifier of the posts
+   * @return a list of {@link PostProfile} entities
+   */
+  public List<PostProfile> getActivePostsFromIds(List<UUID> postIds) {
+    List<Post> posts = postRepository.findActivePostsById(postIds);
+    return posts.stream().map(Post::toPostProfile).toList();
+  }
+
   // First implementation is just posts from followed users
   // Later iterations will use more information to get better posts
 
