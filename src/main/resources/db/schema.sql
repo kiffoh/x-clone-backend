@@ -17,11 +17,11 @@ CREATE TABLE users (
 );
 
 CREATE TABLE follows (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     follower_id UUID NOT NULL,
     following_id UUID NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
-    PRIMARY KEY (follower_id, following_id),
     FOREIGN KEY (follower_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (following_id) REFERENCES users(id) ON DELETE CASCADE,
 
@@ -58,11 +58,11 @@ CREATE TABLE likes (
 -- Check for no self like in application code
 
 CREATE TABLE post_mentions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     post_id UUID NOT NULL,
     mentioned_user_id UUID NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
-    PRIMARY KEY (mentioned_user_id, post_id),
     FOREIGN KEY (post_id) REFERENCES posts(id) On DELETE CASCADE,
     FOREIGN KEY (mentioned_user_id) REFERENCES users(id) ON DELETE CASCADE
 );
@@ -84,11 +84,11 @@ CREATE TABLE notifications (
 );
 
 CREATE TABLE notification_actors (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     notification_id UUID NOT NULL,
     actor_user_id UUID NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
-    PRIMARY KEY (actor_user_id, notification_id),
     FOREIGN KEY (notification_id) REFERENCES notifications(id) ON DELETE CASCADE,
     FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE CASCADE
 );

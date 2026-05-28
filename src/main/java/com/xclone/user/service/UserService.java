@@ -108,7 +108,7 @@ public class UserService {
       Cursor cursor = Cursor.toCursor(after);
       users =
           userRepository.findAllByHandleContainingNextPage(
-              query, cursor.id(), cursor.createdAt(), pageable);
+              query, cursor.id(), cursor.timestamp(), pageable);
     }
     return toUserConnection(users);
   }
@@ -203,7 +203,7 @@ public class UserService {
       Cursor cursor = Cursor.toCursor(after);
       users =
           userRepository.findAllByIdNotInNext(
-              userIdsToExclude, cursor.id(), cursor.createdAt(), pageable);
+              userIdsToExclude, cursor.id(), cursor.timestamp(), pageable);
     }
     return toUserConnection(users);
   }

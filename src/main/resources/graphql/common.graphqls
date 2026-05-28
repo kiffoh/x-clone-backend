@@ -49,17 +49,21 @@ type UserEdge {
     cursor: String!
 }
 
+"""
+A paginated list of connected notifications
+"""
 type NotificationConnection {
     edges: [NotificationEdge!]!
     pageInfo: PageInfo!
     totalCount: Int
 }
-
+"""
+A paginated edge wrapping a Notification node with its cursor position
+"""
 type NotificationEdge {
     node: Notification!
     cursor: String!
 }
-
 # Mutation responses
 """
 Base interface for responses to a GraphQl mutation operation

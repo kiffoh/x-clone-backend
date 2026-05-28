@@ -83,7 +83,7 @@ public class FollowService {
       Cursor cursor = Cursor.toCursor(after);
       followers =
           followRepository.findNextPageOfFollowers(
-              followingId, cursor.id(), cursor.createdAt(), pageable);
+              followingId, cursor.id(), cursor.timestamp(), pageable);
     }
     return toUserConnection(followers, FollowSide.FOLLOWER);
   }
@@ -112,7 +112,7 @@ public class FollowService {
       Cursor cursor = Cursor.toCursor(after);
       followings =
           followRepository.findNextPageOfFollowing(
-              followerId, cursor.id(), cursor.createdAt(), pageable);
+              followerId, cursor.id(), cursor.timestamp(), pageable);
     }
     return toUserConnection(followings, FollowSide.FOLLOWING);
   }

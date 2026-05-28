@@ -21,26 +21,26 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
   @Query(
       "select u from User u where u.handle LIKE %:query% and "
-          + "((u.createdAt < :cursorCreatedAt) "
-          + "or (u.createdAt = :cursorCreatedAt and u.id > :cursorId))"
+          + "((u.createdAt < :cursorTimestamp) "
+          + "or (u.createdAt = :cursorTimestamp and u.id > :cursorId))"
           + " order by u.createdAt desc, u.id asc")
   Slice<User> findAllByHandleContainingNextPage(
       @Param("query") String query,
       @Param("cursorId") UUID cursorId,
-      @Param("cursorCreatedAt") Instant cursorCreatedAt,
+      @Param("cursorTimestamp") Instant cursorTimestamp,
       Pageable pageable);
 
   Slice<User> findAllByIdNotIn(List<UUID> userIds, Pageable pageable);
 
   @Query(
       "select u from User u where u.id NOT IN :userIds and "
-          + "((u.createdAt < :cursorCreatedAt) "
-          + "or (u.createdAt = :cursorCreatedAt and u.id > :cursorId))"
+          + "((u.createdAt < :cursorTimestamp) "
+          + "or (u.createdAt = :cursorTimestamp and u.id > :cursorId))"
           + " order by u.createdAt desc, u.id asc")
   Slice<User> findAllByIdNotInNext(
       @Param("userIds") List<UUID> userIds,
       @Param("cursorId") UUID cursorId,
-      @Param("cursorCreatedAt") Instant cursorCreatedAt,
+      @Param("cursorTimestamp") Instant cursorTimestamp,
       Pageable pageable);
 
   boolean existsByHandle(String handle);

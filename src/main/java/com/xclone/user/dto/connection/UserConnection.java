@@ -5,9 +5,9 @@ import com.xclone.common.connection.PageInfo;
 import java.util.List;
 
 /**
- * Response DTO representing interconnecting User models.
+ * Response DTO representing interconnecting User entities.
  *
- * @param edges list of unique user models
+ * @param edges list of unique user edges
  * @param pageInfo metadata about the statefulness of edges
  */
 public record UserConnection(List<UserEdge> edges, PageInfo pageInfo)

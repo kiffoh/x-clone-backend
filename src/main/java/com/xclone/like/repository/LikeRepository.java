@@ -38,12 +38,12 @@ public interface LikeRepository extends JpaRepository<Like, UUID> {
       "select l from Like l join fetch l.user u"
           + " where u.status = com.xclone.user.model.enums.UserStatus.ACTIVE"
           + " and l.postId = :postId"
-          + " and ((l.createdAt < :cursorCreatedAt)"
-          + " or (l.createdAt = :cursorCreatedAt and l.id > :cursorId))"
+          + " and ((l.createdAt < :cursorTimestamp)"
+          + " or (l.createdAt = :cursorTimestamp and l.id > :cursorId))"
           + " order by l.createdAt desc, l.id asc")
   Slice<Like> findNextPageOfUsersThatLikedPost(
       @Param("postId") UUID postId,
-      @Param("cursorCreatedAt") Instant cursorCreatedAt,
+      @Param("cursorTimestamp") Instant cursorTimestamp,
       @Param("cursorId") UUID cursorId,
       Pageable pageable);
 

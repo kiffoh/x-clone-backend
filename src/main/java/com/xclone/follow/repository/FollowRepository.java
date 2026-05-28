@@ -32,13 +32,13 @@ public interface FollowRepository extends JpaRepository<Follow, UUID> {
   @Query(
       "select f from Follow f where f.follower.id = :followerId "
           + " and f.following.status = com.xclone.user.model.enums.UserStatus.ACTIVE"
-          + " and ((f.createdAt < :cursorCreatedAt) "
-          + "or (f.createdAt = :cursorCreatedAt and f.id > :cursorId))"
+          + " and ((f.createdAt < :cursorTimestamp) "
+          + "or (f.createdAt = :cursorTimestamp and f.id > :cursorId))"
           + " order by f.createdAt desc, f.id asc")
   Slice<Follow> findNextPageOfFollowing(
       @Param("followerId") UUID followerId,
       @Param("cursorId") UUID cursorId,
-      @Param("cursorCreatedAt") Instant cursorCreatedAt,
+      @Param("cursorTimestamp") Instant cursorTimestamp,
       Pageable pageable);
 
   @Query("select f.following.id from Follow f where f.follower.id = :followerId")
@@ -55,13 +55,13 @@ public interface FollowRepository extends JpaRepository<Follow, UUID> {
   @Query(
       "select f from Follow f where f.following.id = :followingId"
           + " and f.follower.status = com.xclone.user.model.enums.UserStatus.ACTIVE"
-          + " and ((f.createdAt < :cursorCreatedAt) "
-          + "or (f.createdAt = :cursorCreatedAt and f.id > :cursorId))"
+          + " and ((f.createdAt < :cursorTimestamp) "
+          + "or (f.createdAt = :cursorTimestamp and f.id > :cursorId))"
           + " order by f.createdAt desc, f.id asc")
   Slice<Follow> findNextPageOfFollowers(
       @Param("followingId") UUID followingId,
       @Param("cursorId") UUID cursorId,
-      @Param("cursorCreatedAt") Instant cursorCreatedAt,
+      @Param("cursorTimestamp") Instant cursorTimestamp,
       Pageable pageable);
 
   void deleteByFollowerIdAndFollowingId(UUID followerId, UUID followingId);

@@ -117,7 +117,7 @@ public class PostService {
       Cursor cursor = Cursor.toCursor(after);
       feed =
           postRepository.findNextPageOfFeed(
-              userId, followingIds, cursor.id(), cursor.createdAt(), pageable);
+              userId, followingIds, cursor.id(), cursor.timestamp(), pageable);
     }
     return toPostConnection(feed);
   }
@@ -300,7 +300,7 @@ public class PostService {
       Cursor cursor = Cursor.toCursor(after);
       posts =
           postRepository.findNextPageOfUsersPosts(
-              authorId, cursor.id(), cursor.createdAt(), pageable);
+              authorId, cursor.id(), cursor.timestamp(), pageable);
     }
 
     return toPostConnection(posts);

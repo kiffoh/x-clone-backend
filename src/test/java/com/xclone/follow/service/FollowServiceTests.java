@@ -56,10 +56,10 @@ public class FollowServiceTests {
     @Test
     void afterIsNotNull_UserConnection() {
       UUID cursorId = UUID.randomUUID();
-      Instant cursorCreatedAt = Instant.now();
-      Cursor cursor = new Cursor(cursorCreatedAt, cursorId);
+      Instant cursorTimestamp = Instant.now();
+      Cursor cursor = new Cursor(cursorTimestamp, cursorId);
       when(followRepository.findNextPageOfFollowers(
-              eq(followingId), eq(cursorId), eq(cursorCreatedAt), any(Pageable.class)))
+              eq(followingId), eq(cursorId), eq(cursorTimestamp), any(Pageable.class)))
           .thenReturn(mockFollows);
 
       UserConnection result = followService.getFollowers(followingId, first, cursor.encode());
@@ -67,7 +67,7 @@ public class FollowServiceTests {
       assertNotNull(result);
       verify(followRepository)
           .findNextPageOfFollowers(
-              eq(followingId), eq(cursorId), eq(cursorCreatedAt), any(Pageable.class));
+              eq(followingId), eq(cursorId), eq(cursorTimestamp), any(Pageable.class));
     }
   }
 }

@@ -86,7 +86,7 @@ public class LikeService {
 
       likes =
           likeRepository.findNextPageOfUsersThatLikedPost(
-              post.id(), cursor.createdAt(), cursor.id(), pageable);
+              post.id(), cursor.timestamp(), cursor.id(), pageable);
     }
     return toUserConnection(likes);
   }
