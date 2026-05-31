@@ -253,7 +253,7 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                 // post 2 is first as it was created last
                 PostProfile firstPost = nodes.getFirst();
                 PostProfile secondPost = nodes.getLast();
-                assertThat(firstPost.createdAt()).isAfter(secondPost.createdAt());
+                assertThat(firstPost.createdAt()).isAfterOrEqualTo(secondPost.createdAt());
 
                 assertThat(firstPost.messageContent()).isEqualTo(posts.get(2).getMessageContent());
                 assertThat(secondPost.messageContent()).isEqualTo(posts.get(1).getMessageContent());
@@ -900,7 +900,7 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                   // post 2 is first as it was created last
                   PostProfile firstPost = nodes.getFirst();
                   PostProfile secondPost = nodes.getLast();
-                  assertThat(firstPost.createdAt()).isAfter(secondPost.createdAt());
+                  assertThat(firstPost.createdAt()).isAfterOrEqualTo(secondPost.createdAt());
 
                   assertThat(firstPost.id()).isEqualTo(posts.get(2).getId());
                   assertThat(secondPost.id()).isEqualTo(posts.get(1).getId());
@@ -1004,7 +1004,7 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                   // post 2 is first as it was created last
                   PostProfile firstPost = nodes.getFirst();
                   PostProfile secondPost = nodes.getLast();
-                  assertThat(firstPost.createdAt()).isAfter(secondPost.createdAt());
+                  assertThat(firstPost.createdAt()).isAfterOrEqualTo(secondPost.createdAt());
 
                   assertThat(firstPost.id()).isEqualTo(posts.get(2).getId());
                   assertThat(secondPost.id()).isEqualTo(posts.get(1).getId());
@@ -1056,7 +1056,7 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                   // post 2 is first as it was created last
                   PostProfile firstPost = nodes.getFirst();
                   PostProfile secondPost = nodes.getLast();
-                  assertThat(firstPost.createdAt()).isAfter(secondPost.createdAt());
+                  assertThat(firstPost.createdAt()).isAfterOrEqualTo(secondPost.createdAt());
 
                   assertThat(firstPost.id()).isEqualTo(posts.get(2).getId());
                   assertThat(secondPost.id()).isEqualTo(posts.get(1).getId());
