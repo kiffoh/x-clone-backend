@@ -63,13 +63,19 @@ public class NotificationService {
    */
   public Map<UUID, List<UserProfile>> getNotificationActors(List<UUID> notificationIds) {
     List<NotificationActor> notificationActors =
-        notificationRepository.findNotificationActors(notificationIds, Pageable.ofSize(3));
+        notificationRepository.findNotificationActors(notificationIds);
     Map<UUID, List<UserProfile>> notificationIdToActors = new HashMap<>();
     notificationActors.forEach(
-        notificationActor ->
-            notificationIdToActors
-                .computeIfAbsent(notificationActor.getNotificationId(), k -> new ArrayList<>())
-                .add(notificationActor.getActor().toUserProfile()));
+        notificationActor -> {
+          List<UserProfile> users =
+              notificationIdToActors.computeIfAbsent(
+                  notificationActor.getNotificationId(), k -> new ArrayList<>());
+
+          if (users.size() < 3) {
+            users.add(notificationActor.getActor().toUserProfile());
+          }
+        });
+
     return notificationIdToActors;
   }
 

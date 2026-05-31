@@ -14,6 +14,7 @@ import com.xclone.post.service.PostService;
 import com.xclone.security.jwt.JwtAuthenticationFilter;
 import com.xclone.security.user.CustomUserDetails;
 import com.xclone.user.dto.UserProfile;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -58,10 +59,13 @@ public class NotificationController {
     Map<UUID, PostProfile> postIdToPostMap =
         posts.stream().collect(Collectors.toMap(PostProfile::id, Function.identity()));
 
-    return notifications.stream()
-        .collect(
-            Collectors.toMap(
-                Function.identity(), notification -> postIdToPostMap.get(notification.postId())));
+    Map<NotificationProfile, PostProfile> notificationPosts = new HashMap<>();
+    notifications.forEach(
+        notificationProfile -> {
+          notificationPosts.put(
+              notificationProfile, postIdToPostMap.get(notificationProfile.postId()));
+        });
+    return notificationPosts;
   }
 
   /**
