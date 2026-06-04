@@ -78,7 +78,7 @@ public class Notification {
    * Projects this entity to a {@link NotificationProfile} for use in GraphQL responses. Timestamps
    * are converted from {@link Instant} to {@link OffsetDateTime} at UTC.
    *
-   * @return immutable public-facing projection of this post
+   * @return immutable public-facing projection of this notification
    */
   public NotificationProfile toNotificationProfile() {
     return new NotificationProfile(

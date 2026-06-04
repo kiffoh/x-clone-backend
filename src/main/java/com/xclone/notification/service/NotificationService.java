@@ -8,6 +8,7 @@ import com.xclone.notification.dto.ActorCount;
 import com.xclone.notification.dto.NotificationProfile;
 import com.xclone.notification.dto.connection.NotificationConnection;
 import com.xclone.notification.dto.connection.NotificationEdge;
+import com.xclone.notification.model.NotificationConstants;
 import com.xclone.notification.model.entity.Notification;
 import com.xclone.notification.model.entity.NotificationActor;
 import com.xclone.notification.repository.NotificationRepository;
@@ -72,7 +73,7 @@ public class NotificationService {
               notificationIdToActors.computeIfAbsent(
                   notificationActor.getNotificationId(), k -> new ArrayList<>());
 
-          if (users.size() < 3) {
+          if (users.size() < NotificationConstants.ACTOR_PREVIEW_LIMIT) {
             users.add(notificationActor.getActor().toUserProfile());
           }
         });
@@ -105,7 +106,7 @@ public class NotificationService {
             .orElseThrow(() -> new NotificationNotFoundException("Notification does not exist"));
 
     if (!userId.equals(notification.getRecipientUserId())) {
-      throw new NotNotificationRecipientException("Only the recipient can read the post");
+      throw new NotNotificationRecipientException("Only the recipient can read the notification");
     }
 
     notification.setRead(true);
