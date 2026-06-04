@@ -4,7 +4,9 @@ import com.xclone.exception.custom.AccountNotActiveException;
 import com.xclone.exception.custom.DuplicateFollowException;
 import com.xclone.exception.custom.DuplicateHandleException;
 import com.xclone.exception.custom.DuplicateRepostException;
+import com.xclone.exception.custom.NotNotificationRecipientException;
 import com.xclone.exception.custom.NotPostAuthorException;
+import com.xclone.exception.custom.NotificationNotFoundException;
 import com.xclone.exception.custom.PostNotFoundException;
 import com.xclone.exception.custom.SelfFollowException;
 import com.xclone.exception.dto.FieldError;
@@ -124,6 +126,28 @@ public class GraphQlErrorMapper {
    * @return a list of {@link FieldError} instances
    */
   public static List<FieldError> fromPostNotFound(String field, PostNotFoundException ex) {
+    return List.of(new FieldError(field, ex.getMessage()));
+  }
+
+  /**
+   * Maps a {@link NotificationNotFoundException} to a list of {@link FieldError} DTOs.
+   *
+   * @param ex exception whose message is used as the field-level error message
+   * @return a list of {@link FieldError} instances
+   */
+  public static List<FieldError> fromNotificationNotFound(NotificationNotFoundException ex) {
+    return List.of(new FieldError("notificationId", ex.getMessage()));
+  }
+
+  /**
+   * Maps a {@link NotNotificationRecipientException} to a list of {@link FieldError} DTOs.
+   *
+   * @param field field responsible for triggering the exception
+   * @param ex exception whose message is used as the field-level error message
+   * @return a list of {@link FieldError} instances
+   */
+  public static List<FieldError> fromNotNotificationRecipient(
+      String field, NotNotificationRecipientException ex) {
     return List.of(new FieldError(field, ex.getMessage()));
   }
 

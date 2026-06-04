@@ -24,22 +24,25 @@ extend type Query {
 
     Returns notifications ordered by creation time (newest first).
     """
-    getNotifications(first: Int, after: String): NotificationResponse
+    getNotifications(first: Int = 10, after: String): NotificationConnection!
+}
 
+extend type Mutation {
     """
     Mark a notification as read.
+
     Returns the updated notification with read: true.
 
     Throws error if notification doesn't belong to authenticated user.
     """
-    readNotification(notificationId: ID!): Notification
+    readNotification(notificationId: ID!): NotificationResponse!
 }
+
 
 type NotificationResponse implements MutationResponse {
     code: String!
     success: Boolean!
-    message: String!
-    notifications: NotificationConnection
+    notification: Notification
     errors: [Error!]
 }
 

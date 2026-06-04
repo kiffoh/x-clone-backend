@@ -51,7 +51,7 @@ public class ReplyService {
     } else {
       Cursor cursor = Cursor.toCursor(after);
       replies =
-          postRepository.findNextPageOfReplies(postId, cursor.createdAt(), cursor.id(), pageable);
+          postRepository.findNextPageOfReplies(postId, cursor.timestamp(), cursor.id(), pageable);
     }
     return PostService.toPostConnection(replies);
   }

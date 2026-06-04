@@ -64,7 +64,7 @@ public class ShareService {
       Cursor cursor = Cursor.toCursor(after);
       quotes =
           postRepository.findNextPageOfQuotes(
-              sharedPostId, cursor.createdAt(), cursor.id(), pageable);
+              sharedPostId, cursor.timestamp(), cursor.id(), pageable);
     }
     return PostService.toPostConnection(quotes);
   }
@@ -103,7 +103,7 @@ public class ShareService {
       Cursor cursor = Cursor.toCursor(after);
       reposts =
           postRepository.findNextPageOfPureReposts(
-              sharedPostId, cursor.createdAt(), cursor.id(), pageable);
+              sharedPostId, cursor.timestamp(), cursor.id(), pageable);
     }
     return toUserConnection(reposts);
   }

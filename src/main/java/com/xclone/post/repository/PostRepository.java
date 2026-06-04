@@ -50,7 +50,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
    * @param userId excluded from results even if present in followingIds
    * @param followingIds IDs of users whose posts are included in the feed
    * @param cursorId id to query after
-   * @param cursorCreatedAt datetime to query after
+   * @param cursorTimestamp datetime to query after
    * @param pageable page size for the query
    */
   @Query(
@@ -60,14 +60,14 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
           + " and p.parentId is null"
           + " and p.authorId <> :userId"
           + " and p.authorId in :followingIds"
-          + " and ((p.createdAt < :cursorCreatedAt)"
-          + " or (p.createdAt = :cursorCreatedAt and p.id > :cursorId))"
+          + " and ((p.createdAt < :cursorTimestamp)"
+          + " or (p.createdAt = :cursorTimestamp and p.id > :cursorId))"
           + " order by p.createdAt desc, p.id asc")
   Slice<Post> findNextPageOfFeed(
       @Param("userId") UUID userId,
       @Param("followingIds") List<UUID> followingIds,
       @Param("cursorId") UUID cursorId,
-      @Param("cursorCreatedAt") Instant cursorCreatedAt,
+      @Param("cursorTimestamp") Instant cursorTimestamp,
       Pageable pageable);
 
   @Query(
@@ -79,13 +79,13 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
   @Query(
       "select p from Post p where p.authorId = :userId"
           + " and p.status = com.xclone.common.enums.Status.ACTIVE"
-          + " and ((p.createdAt < :cursorCreatedAt)"
-          + " or (p.createdAt = :cursorCreatedAt and p.id > :cursorId))"
+          + " and ((p.createdAt < :cursorTimestamp)"
+          + " or (p.createdAt = :cursorTimestamp and p.id > :cursorId))"
           + " order by p.createdAt desc, p.id asc")
   Slice<Post> findNextPageOfUsersPosts(
       @Param("userId") UUID userId,
       @Param("cursorId") UUID cursorId,
-      @Param("cursorCreatedAt") Instant cursorCreatedAt,
+      @Param("cursorTimestamp") Instant cursorTimestamp,
       Pageable pageable);
 
   @Modifying
@@ -106,6 +106,11 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
       "select p from Post p where p.id = :postId"
           + " and p.status = com.xclone.common.enums.Status.ACTIVE")
   Optional<Post> findActivePostById(@Param("postId") UUID postId);
+
+  @Query(
+      "select p from Post p where p.id in :postIds"
+          + " and p.status = com.xclone.common.enums.Status.ACTIVE")
+  List<Post> findActivePostsById(@Param("postIds") List<UUID> postIds);
 
   /**
    * Fetches a repost.
@@ -131,12 +136,12 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
   @Query(
       "select p from Post p where p.parentId = :parentId"
           + " and p.status = com.xclone.common.enums.Status.ACTIVE"
-          + " and ((p.createdAt < :cursorCreatedAt)"
-          + " or (p.createdAt = :cursorCreatedAt and p.id > :cursorId))"
+          + " and ((p.createdAt < :cursorTimestamp)"
+          + " or (p.createdAt = :cursorTimestamp and p.id > :cursorId))"
           + " order by p.createdAt desc, p.id asc")
   Slice<Post> findNextPageOfReplies(
       @Param("parentId") UUID postId,
-      @Param("cursorCreatedAt") Instant cursorCreatedAt,
+      @Param("cursorTimestamp") Instant cursorTimestamp,
       @Param("cursorId") UUID cursorId,
       Pageable pageable);
 
@@ -160,12 +165,12 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
   @Query(
       "select p from Post p where p.sharedPostId = :sharedPostId and p.messageContent is not null"
           + " and p.status = com.xclone.common.enums.Status.ACTIVE"
-          + " and ((p.createdAt < :cursorCreatedAt)"
-          + " or (p.createdAt = :cursorCreatedAt and p.id > :cursorId))"
+          + " and ((p.createdAt < :cursorTimestamp)"
+          + " or (p.createdAt = :cursorTimestamp and p.id > :cursorId))"
           + " order by p.createdAt desc, p.id asc")
   Slice<Post> findNextPageOfQuotes(
       @Param("sharedPostId") UUID sharedPostId,
-      @Param("cursorCreatedAt") Instant cursorCreatedAt,
+      @Param("cursorTimestamp") Instant cursorTimestamp,
       @Param("cursorId") UUID cursorId,
       Pageable pageable);
 
@@ -181,12 +186,12 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
       "select p from Post p join fetch p.author a where p.sharedPostId = :sharedPostId"
           + " and p.messageContent is null and p.status = com.xclone.common.enums.Status.ACTIVE"
           + " and a.status = com.xclone.user.model.enums.UserStatus.ACTIVE"
-          + " and ((p.createdAt < :cursorCreatedAt)"
-          + " or (p.createdAt = :cursorCreatedAt and p.id > :cursorId))"
+          + " and ((p.createdAt < :cursorTimestamp)"
+          + " or (p.createdAt = :cursorTimestamp and p.id > :cursorId))"
           + " order by p.createdAt desc, p.id asc")
   Slice<Post> findNextPageOfPureReposts(
       @Param("sharedPostId") UUID sharedPostId,
-      @Param("cursorCreatedAt") Instant cursorCreatedAt,
+      @Param("cursorTimestamp") Instant cursorTimestamp,
       @Param("cursorId") UUID cursorId,
       Pageable pageable);
 

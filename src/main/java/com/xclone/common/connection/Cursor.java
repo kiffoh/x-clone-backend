@@ -9,18 +9,18 @@ import java.util.UUID;
 /**
  * Represents a pagination cursor encoding a creation timestamp and entity id.
  *
- * @param createdAt timestamp that the entity was created
+ * @param timestamp timestamp part of the encoding
  * @param id unique identifier of the entity
  */
-public record Cursor(Instant createdAt, UUID id) {
+public record Cursor(Instant timestamp, UUID id) {
   /**
-   * Encodes this cursor as a base64 string in the format {@code createdAt_id}.
+   * Encodes this cursor as a base64 string in the format {@code timestamp_id}.
    *
    * @return a base64-encoded string representation of this cursor
    */
   public String encode() {
     return Base64.getEncoder()
-        .encodeToString((createdAt + "_" + id).getBytes(StandardCharsets.UTF_8));
+        .encodeToString((timestamp + "_" + id).getBytes(StandardCharsets.UTF_8));
   }
 
   /**

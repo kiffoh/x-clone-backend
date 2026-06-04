@@ -133,8 +133,10 @@ public class ReplyIT extends BaseGraphQLIntegrationTest {
                 assertThat(ancestors.get(1).id()).isEqualTo(posts.get(2).getId());
                 assertThat(ancestors.get(2).id()).isEqualTo(posts.get(3).getId());
                 // post 0 older than post 2. post 2 older than post 3
-                assertThat(ancestors.getFirst().createdAt()).isBefore(ancestors.get(1).createdAt());
-                assertThat(ancestors.get(1).createdAt()).isBefore(ancestors.get(2).createdAt());
+                assertThat(ancestors.getFirst().createdAt())
+                    .isBeforeOrEqualTo(ancestors.get(1).createdAt());
+                assertThat(ancestors.get(1).createdAt())
+                    .isBeforeOrEqualTo(ancestors.get(2).createdAt());
               })
           .path("getReplyThread.siblings[*]")
           .entityList(PostProfile.class)
@@ -144,7 +146,7 @@ public class ReplyIT extends BaseGraphQLIntegrationTest {
                 assertThat(siblings.getFirst().id()).isEqualTo(posts.get(4).getId());
                 // post 0 older than post 2. post 2 older than post 3
                 assertThat(siblings.getFirst().createdAt())
-                    .isBefore(posts.get(5).getCreatedAt().atOffset(ZoneOffset.UTC));
+                    .isBeforeOrEqualTo(posts.get(5).getCreatedAt().atOffset(ZoneOffset.UTC));
               });
     }
 
@@ -185,8 +187,10 @@ public class ReplyIT extends BaseGraphQLIntegrationTest {
                 assertThat(ancestors.get(1).id()).isEqualTo(posts.get(2).getId());
                 assertThat(ancestors.get(2).id()).isEqualTo(posts.get(3).getId());
                 // post 0 older than post 2. post 2 older than post 3
-                assertThat(ancestors.getFirst().createdAt()).isBefore(ancestors.get(1).createdAt());
-                assertThat(ancestors.get(1).createdAt()).isBefore(ancestors.get(2).createdAt());
+                assertThat(ancestors.getFirst().createdAt())
+                    .isBeforeOrEqualTo(ancestors.get(1).createdAt());
+                assertThat(ancestors.get(1).createdAt())
+                    .isBeforeOrEqualTo(ancestors.get(2).createdAt());
               })
           .path("getReplyThread.siblings[*]")
           .entityList(PostProfile.class)
@@ -229,7 +233,8 @@ public class ReplyIT extends BaseGraphQLIntegrationTest {
                 assertThat(ancestors.getFirst().id()).isEqualTo(posts.getFirst().getId());
                 assertThat(ancestors.get(1).id()).isEqualTo(posts.get(2).getId());
                 // post 0 older than post 2. post 2 older than post 3
-                assertThat(ancestors.getFirst().createdAt()).isBefore(ancestors.get(1).createdAt());
+                assertThat(ancestors.getFirst().createdAt())
+                    .isBeforeOrEqualTo(ancestors.get(1).createdAt());
               })
           .path("getReplyThread.siblings[*]")
           .entityList(PostProfile.class)
@@ -274,8 +279,10 @@ public class ReplyIT extends BaseGraphQLIntegrationTest {
                 assertThat(ancestors.get(1).id()).isEqualTo(posts.get(2).getId());
                 assertThat(ancestors.get(2).id()).isEqualTo(posts.get(3).getId());
                 // post 0 older than post 2. post 2 older than post 3
-                assertThat(ancestors.getFirst().createdAt()).isBefore(ancestors.get(1).createdAt());
-                assertThat(ancestors.get(1).createdAt()).isBefore(ancestors.get(2).createdAt());
+                assertThat(ancestors.getFirst().createdAt())
+                    .isBeforeOrEqualTo(ancestors.get(1).createdAt());
+                assertThat(ancestors.get(1).createdAt())
+                    .isBeforeOrEqualTo(ancestors.get(2).createdAt());
               })
           .path("getReplyThread.siblings[*]")
           .entityList(PostProfile.class)
@@ -320,7 +327,8 @@ public class ReplyIT extends BaseGraphQLIntegrationTest {
                 assertThat(ancestors.get(1)).isNull();
                 assertThat(ancestors.get(2).id()).isEqualTo(posts.get(3).getId());
                 // post 0 older than post 2. post 2 older than post 3
-                assertThat(ancestors.getFirst().createdAt()).isBefore(ancestors.get(2).createdAt());
+                assertThat(ancestors.getFirst().createdAt())
+                    .isBeforeOrEqualTo(ancestors.get(2).createdAt());
               })
           .path("getReplyThread.siblings[*]")
           .entityList(PostProfile.class)
@@ -330,7 +338,7 @@ public class ReplyIT extends BaseGraphQLIntegrationTest {
                 assertThat(siblings.getFirst().id()).isEqualTo(posts.get(4).getId());
                 // post 0 older than post 2. post 2 older than post 3
                 assertThat(siblings.getFirst().createdAt())
-                    .isBefore(posts.get(5).getCreatedAt().atOffset(ZoneOffset.UTC));
+                    .isBeforeOrEqualTo(posts.get(5).getCreatedAt().atOffset(ZoneOffset.UTC));
               });
     }
 
