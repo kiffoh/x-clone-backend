@@ -90,17 +90,17 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
             authenticatedTester
                 .document(
                     """
-                query GetNotifications {
-                  getNotifications(first: 1) {
-                    edges {
-                      node {
-                        type
-                        read
-                      }
-                    }
-                  }
-                }
-                """)
+                        query GetNotifications {
+                          getNotifications(first: 1) {
+                            edges {
+                              node {
+                                type
+                                read
+                              }
+                            }
+                          }
+                        }
+                        """)
                 .execute()
                 .path("getNotifications.edges[0].node")
                 .entity(NotificationProfile.class)
@@ -116,18 +116,18 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
             authenticatedTester
                 .document(
                     """
-                query GetNotifications {
-                  getNotifications(first: 1) {
-                    edges {
-                      cursor
-                    }
-                    pageInfo {
-                      hasNextPage
-                      endCursor
-                    }
-                  }
-                }
-                """)
+                        query GetNotifications {
+                          getNotifications(first: 1) {
+                            edges {
+                              cursor
+                            }
+                            pageInfo {
+                              hasNextPage
+                              endCursor
+                            }
+                          }
+                        }
+                        """)
                 .execute()
                 .path("getNotifications")
                 .entity(NotificationConnection.class)
@@ -146,20 +146,20 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
             authenticatedTester
                 .document(
                     """
-                query GetNotifications($cursor: String) {
-                  getNotifications(first: 1, after: $cursor ) {
-                    edges {
-                      node {
-                        type
-                        read
-                      }
-                    }
-                    pageInfo {
-                      hasNextPage
-                    }
-                  }
-                }
-                """)
+                        query GetNotifications($cursor: String) {
+                          getNotifications(first: 1, after: $cursor ) {
+                            edges {
+                              node {
+                                type
+                                read
+                              }
+                            }
+                            pageInfo {
+                              hasNextPage
+                            }
+                          }
+                        }
+                        """)
                 .variable("cursor", cursor)
                 .execute()
                 .path("getNotifications.pageInfo.hasNextPage")
@@ -188,17 +188,17 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
         authenticatedTester
             .document(
                 """
-                query GetNotifications {
-                  getNotifications(first: 1) {
-                    edges {
-                      node {
-                        type
-                        read
+                    query GetNotifications {
+                      getNotifications(first: 1) {
+                        edges {
+                          node {
+                            type
+                            read
+                          }
+                        }
                       }
                     }
-                  }
-                }
-                """)
+                    """)
             .execute()
             .path("getNotifications.edges[*]")
             .entityList(NotificationEdge.class)
@@ -213,19 +213,19 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
         authenticatedTester
             .document(
                 """
-                query GetNotifications {
-                  getNotifications(first: 1) {
-                    edges {
-                      node {
-                        post {
-                          id
+                    query GetNotifications {
+                      getNotifications(first: 1) {
+                        edges {
+                          node {
+                            post {
+                              id
+                            }
+                            type
+                          }
                         }
-                        type
                       }
                     }
-                  }
-                }
-                """)
+                    """)
             .execute()
             .path("getNotifications.edges[0].node.post.id")
             .entity(UUID.class)
@@ -250,19 +250,19 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
         authenticatedTester
             .document(
                 """
-                query GetNotifications {
-                  getNotifications(first: 1) {
-                    edges {
-                      node {
-                        post {
-                          id
+                    query GetNotifications {
+                      getNotifications(first: 1) {
+                        edges {
+                          node {
+                            post {
+                              id
+                            }
+                            type
+                          }
                         }
-                        type
                       }
                     }
-                  }
-                }
-                """)
+                    """)
             .execute()
             .path("getNotifications.edges[0].node.post")
             .valueIsNull()
@@ -279,19 +279,19 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
         authenticatedTester
             .document(
                 """
-                query GetNotifications {
-                  getNotifications(first: 2) {
-                    edges {
-                      node {
-                        actors {
-                          id
+                    query GetNotifications {
+                      getNotifications(first: 2) {
+                        edges {
+                          node {
+                            actors {
+                              id
+                            }
+                            actorCount
+                          }
                         }
-                        actorCount
                       }
                     }
-                  }
-                }
-                """)
+                    """)
             .execute()
             // Actor ordering is a per-notification assertion — target a single edge.
             .path("getNotifications.edges[0].node.actors[*].id")
@@ -323,19 +323,19 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
         authenticatedTester
             .document(
                 """
-                query GetNotifications {
-                  getNotifications(first: 1) {
-                    edges {
-                      node {
-                        actors {
-                          id
+                    query GetNotifications {
+                      getNotifications(first: 1) {
+                        edges {
+                          node {
+                            actors {
+                              id
+                            }
+                            actorCount
+                          }
                         }
-                        actorCount
                       }
                     }
-                  }
-                }
-                """)
+                    """)
             .execute()
             // Actor ordering is a per-notification assertion — target a single edge.
             .path("getNotifications.edges[0].node.actors[*].id")
@@ -364,21 +364,21 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
           authenticatedTester
               .document(
                   """
-              mutation ReadNotification($id: ID!) {
-                readNotification(notificationId: $id) {
-                  code
-                  success
-                  notification {
-                    id
-                    read
-                  }
-                  errors {
-                    field
-                    message
-                  }
-                }
-              }
-              """)
+                      mutation ReadNotification($id: ID!) {
+                        readNotification(notificationId: $id) {
+                          code
+                          success
+                          notification {
+                            id
+                            read
+                          }
+                          errors {
+                            field
+                            message
+                          }
+                        }
+                      }
+                      """)
               .variable("id", notifications.getFirst().getId())
               .execute()
               .path("readNotification")
@@ -397,14 +397,14 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
       authenticatedTester
           .document(
               """
-              mutation ReadNotification($id: ID!) {
-                readNotification(notificationId: $id) {
-                  notification {
-                    read
+                  mutation ReadNotification($id: ID!) {
+                    readNotification(notificationId: $id) {
+                      notification {
+                        read
+                      }
+                    }
                   }
-                }
-              }
-              """)
+                  """)
           .variable("id", notifications.getFirst().getId())
           .execute()
           .path("readNotification.notification.read")
@@ -415,21 +415,21 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
           authenticatedTester
               .document(
                   """
-              mutation ReadNotification($id: ID!) {
-                readNotification(notificationId: $id) {
-                  code
-                  success
-                  notification {
-                    id
-                    read
-                  }
-                  errors {
-                    field
-                    message
-                  }
-                }
-              }
-              """)
+                      mutation ReadNotification($id: ID!) {
+                        readNotification(notificationId: $id) {
+                          code
+                          success
+                          notification {
+                            id
+                            read
+                          }
+                          errors {
+                            field
+                            message
+                          }
+                        }
+                      }
+                      """)
               .variable("id", notifications.getFirst().getId())
               .execute()
               .path("readNotification")
@@ -449,21 +449,21 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
           authenticatedTester
               .document(
                   """
-              mutation ReadNotification($id: ID!) {
-                readNotification(notificationId: $id) {
-                  code
-                  success
-                  notification {
-                    id
-                    read
-                  }
-                  errors {
-                    field
-                    message
-                  }
-                }
-              }
-              """)
+                      mutation ReadNotification($id: ID!) {
+                        readNotification(notificationId: $id) {
+                          code
+                          success
+                          notification {
+                            id
+                            read
+                          }
+                          errors {
+                            field
+                            message
+                          }
+                        }
+                      }
+                      """)
               .variable("id", UUID.randomUUID())
               .execute()
               .path("readNotification")
@@ -492,21 +492,21 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
           authenticatedTester
               .document(
                   """
-              mutation ReadNotification($id: ID!) {
-                readNotification(notificationId: $id) {
-                  code
-                  success
-                  notification {
-                    id
-                    read
-                  }
-                  errors {
-                    field
-                    message
-                  }
-                }
-              }
-              """)
+                      mutation ReadNotification($id: ID!) {
+                        readNotification(notificationId: $id) {
+                          code
+                          success
+                          notification {
+                            id
+                            read
+                          }
+                          errors {
+                            field
+                            message
+                          }
+                        }
+                      }
+                      """)
               .variable("id", notifications.getFirst().getId())
               .execute()
               .path("readNotification")
@@ -518,7 +518,8 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
       assertNull(response.notification());
       assertThat(response.errors())
           .extracting(FieldError::field, FieldError::message)
-          .containsExactlyInAnyOrder(tuple("userId", "Only the recipient can read the post"));
+          .containsExactlyInAnyOrder(
+              tuple("userId", "Only the recipient can read the notification"));
     }
   }
 }
