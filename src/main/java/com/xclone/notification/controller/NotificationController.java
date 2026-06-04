@@ -14,7 +14,6 @@ import com.xclone.post.service.PostService;
 import com.xclone.security.jwt.JwtAuthenticationFilter;
 import com.xclone.security.user.CustomUserDetails;
 import com.xclone.user.dto.UserProfile;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -55,17 +54,16 @@ public class NotificationController {
             // If NotificationType == FOLLOW then postId (and consequently post) is null
             .filter(Objects::nonNull)
             .toList();
-    List<PostProfile> posts = postService.getActivePostsFromIds(postIds);
-    Map<UUID, PostProfile> postIdToPostMap =
-        posts.stream().collect(Collectors.toMap(PostProfile::id, Function.identity()));
 
-    Map<NotificationProfile, PostProfile> notificationPosts = new HashMap<>();
-    notifications.forEach(
-        notificationProfile -> {
-          notificationPosts.put(
-              notificationProfile, postIdToPostMap.get(notificationProfile.postId()));
-        });
-    return notificationPosts;
+    Map<UUID, PostProfile> postIdToPostMap =
+        postService.getActivePostsFromIds(postIds).stream()
+            .collect(Collectors.toMap(PostProfile::id, Function.identity()));
+
+    return notifications.stream()
+        .filter(notification -> postIdToPostMap.containsKey(notification.postId()))
+        .collect(
+            Collectors.toMap(
+                Function.identity(), notification -> postIdToPostMap.get(notification.postId())));
   }
 
   /**
@@ -79,7 +77,7 @@ public class NotificationController {
       List<NotificationProfile> notifications) {
     List<UUID> notificationIds = notifications.stream().map(NotificationProfile::id).toList();
     Map<UUID, List<UserProfile>> notificationIdToActors =
-        notificationService.getMostRecent3NotificationActors(notificationIds);
+        notificationService.getMostRecentNotificationActors(notificationIds);
 
     return notifications.stream()
         .collect(

@@ -59,9 +59,10 @@ public class NotificationService {
    * <p>Limits the actors fetched to the most recent 3.
    *
    * @param notificationIds list of unique identifiers of notification entities
-   * @return a map of each notification id and all the actors which have interacted with it
+   * @return a map of each notification id and the most recent 3 actors which have interacted with
+   *     it
    */
-  public Map<UUID, List<UserProfile>> getMostRecent3NotificationActors(List<UUID> notificationIds) {
+  public Map<UUID, List<UserProfile>> getMostRecentNotificationActors(List<UUID> notificationIds) {
     List<NotificationActor> notificationActors =
         notificationRepository.findNotificationActors(notificationIds);
     Map<UUID, List<UserProfile>> notificationIdToActors = new HashMap<>();
