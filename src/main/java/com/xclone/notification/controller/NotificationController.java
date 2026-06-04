@@ -69,17 +69,17 @@ public class NotificationController {
   }
 
   /**
-   * Fetches the actors which interacted with each notification.
+   * Fetches the 3 most recent actors which interacted with each notification.
    *
    * @param notifications list of notification entities
-   * @return a map of each notification and all the actors which have interacted with it
+   * @return a map of each notification and the 3 latest actors which have interacted with it
    */
   @BatchMapping(typeName = "Notification", field = "actors")
   public Map<NotificationProfile, List<UserProfile>> actors(
       List<NotificationProfile> notifications) {
     List<UUID> notificationIds = notifications.stream().map(NotificationProfile::id).toList();
     Map<UUID, List<UserProfile>> notificationIdToActors =
-        notificationService.getNotificationActors(notificationIds);
+        notificationService.getMostRecent3NotificationActors(notificationIds);
 
     return notifications.stream()
         .collect(
