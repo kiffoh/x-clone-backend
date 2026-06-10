@@ -7,4 +7,8 @@ import org.springframework.stereotype.Repository;
 
 /** JPA repository for {@link NotificationActor} entities. */
 @Repository
-public interface NotificationActorRepository extends JpaRepository<NotificationActor, UUID> {}
+public interface NotificationActorRepository extends JpaRepository<NotificationActor, UUID> {
+  void deleteByActorUserIdAndNotificationId(UUID authenticatedUserId, UUID id);
+
+  long countByNotificationId(UUID notificationId);
+}

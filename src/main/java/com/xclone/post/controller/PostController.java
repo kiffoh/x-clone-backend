@@ -6,11 +6,13 @@ import com.xclone.exception.custom.NotPostAuthorException;
 import com.xclone.exception.custom.PostNotFoundException;
 import com.xclone.like.dto.LikeCount;
 import com.xclone.like.service.LikeService;
+import com.xclone.notification.service.NotificationService;
 import com.xclone.post.dto.PostProfile;
 import com.xclone.post.dto.connection.PostConnection;
 import com.xclone.post.dto.mutation.PostResponse;
 import com.xclone.post.dto.request.CreatePostInput;
 import com.xclone.post.dto.request.UpdatePostInput;
+import com.xclone.post.model.enums.PostType;
 import com.xclone.post.service.PostService;
 import com.xclone.reply.dto.ReplyCount;
 import com.xclone.reply.service.ReplyService;
@@ -46,18 +48,21 @@ public class PostController {
   private final LikeService likeService;
   private final ReplyService replyService;
   private final ShareService shareService;
+  private final NotificationService notificationService;
 
   public PostController(
       PostService postService,
       UserService userService,
       LikeService likeService,
       ReplyService replyService,
-      ShareService shareService) {
+      ShareService shareService,
+      NotificationService notificationService) {
     this.postService = postService;
     this.userService = userService;
     this.likeService = likeService;
     this.replyService = replyService;
     this.shareService = shareService;
+    this.notificationService = notificationService;
   }
 
   /**
@@ -375,9 +380,18 @@ public class PostController {
    */
   @MutationMapping
   public DeleteResponse deletePost(
-      @AuthenticationPrincipal CustomUserDetails userDetails, @Argument UUID postId) {
+      @AuthenticationPrincipal CustomUserDetails userDetails,
+      @Argument UUID postId,
+      @Argument PostType postType) {
     try {
-      postService.deletePost(postId, userDetails.getId());
+      PostProfile deletedPost = postService.deletePost(postId, userDetails.getId());
+      if (postType != PostType.POST) {
+        notificationService.deleteNotificationActorAndCleanupNotification(
+            userDetails.getId(),
+            getRecipientUser(deletedPost, postType),
+            postType.toNotificationType(),
+            postId);
+      }
       return new DeleteResponse("200", true, null);
     } catch (NotPostAuthorException ex) {
       return new DeleteResponse(
@@ -386,5 +400,17 @@ public class PostController {
       return new DeleteResponse(
           "404", false, GraphQlErrorMapper.fromPostNotFound("deletePost", ex));
     }
+  }
+
+  private UUID getRecipientUser(PostProfile post, PostType type) {
+    UUID postId;
+    if (type == PostType.REPLY) {
+      postId = post.parentId();
+    } else {
+      // Must be a shared post type - QUOTE / REPOST
+      postId = post.sharedPostId();
+    }
+    PostProfile originalPost = getPost(postId);
+    return originalPost.authorId();
   }
 }

@@ -11,12 +11,16 @@ import com.xclone.notification.dto.connection.NotificationEdge;
 import com.xclone.notification.model.NotificationConstants;
 import com.xclone.notification.model.entity.Notification;
 import com.xclone.notification.model.entity.NotificationActor;
+import com.xclone.notification.model.enums.NotificationType;
+import com.xclone.notification.repository.NotificationActorRepository;
 import com.xclone.notification.repository.NotificationRepository;
 import com.xclone.user.dto.UserProfile;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -27,9 +31,13 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class NotificationService {
   private final NotificationRepository notificationRepository;
+  private final NotificationActorRepository notificationActorRepository;
 
-  public NotificationService(NotificationRepository notificationRepository) {
+  public NotificationService(
+      NotificationRepository notificationRepository,
+      NotificationActorRepository notificationActorRepository) {
     this.notificationRepository = notificationRepository;
+    this.notificationActorRepository = notificationActorRepository;
   }
 
   /**
@@ -112,6 +120,119 @@ public class NotificationService {
     notification.setRead(true);
 
     return notification.toNotificationProfile();
+  }
+
+  /**
+   * Creates or updates a notification depending on the {@link NotificationType}.
+   *
+   * <p>A {@link NotificationType#QUOTE}, {@link NotificationType#MENTION}, {@link
+   * NotificationType#REPLY} will always create a new notification.
+   *
+   * <p>A {@link NotificationType#LIKE} or {@link NotificationType#REPOST} will always update the
+   * existing notification.
+   *
+   * <p>A {@link NotificationType#FOLLOW} will update the existing notification if within the
+   * time-window defined in {@link NotificationConstants#TIME_BUCKET_SECONDS}; else, it will create
+   * a new notification.
+   *
+   * <p>{@link Transactional} view is used for updating an existing notification. A notification is
+   * updated when a new {@link NotificationActor} is created which references the {@code
+   * notification.id}. A notification update involves:
+   *
+   * <ul>
+   *   <li>{@code notification.updatedAt} set to the current timestamp.
+   *   <li>{@code notification.read} set to {@code false} to reset the notification read status .
+   * </ul>
+   *
+   * @return the updated/created notification in the public facing {@link NotificationProfile} view
+   */
+  @Transactional
+  public NotificationProfile upsertNotification(
+      UUID recipientId, UUID authenticatedUserId, UUID postId, NotificationType type) {
+    // find notification
+    // -> no notification -> create new notification -> create notification actor
+    // -> notification
+    //                  -> not within timebucket -> create new notification
+    //                  -> within timebucket -> update notification time -> create new notification
+    // actor
+    if (NotificationConstants.UPDATABLE_NOTIFICATION_TYPES.contains(type)) {
+      Notification existingNotification =
+          notificationRepository.findNotification(recipientId, postId, type).orElse(null);
+
+      if (existingNotification != null) {
+        NotificationType existingType = existingNotification.getType();
+        Instant now = Instant.now();
+        // Should it be from createdAt?
+        long lastUpdatedSince =
+            now.getEpochSecond() - existingNotification.getUpdatedAt().getEpochSecond();
+        // flags
+        boolean likeOrRepost =
+            NotificationConstants.NO_TIME_WINDOW_NOTIFICATION_TYPES.contains(existingType);
+        boolean followInsideTimeBucket =
+            (existingType == NotificationType.FOLLOW)
+                && (lastUpdatedSince < NotificationConstants.TIME_BUCKET_SECONDS);
+        if (likeOrRepost || followInsideTimeBucket) {
+          Notification updatedNotification =
+              createActorAndUpdateNotification(authenticatedUserId, existingNotification, now);
+          return updatedNotification.toNotificationProfile();
+        }
+      }
+    }
+
+    // If the user wants the actors will graphql do the schema mapping? Feels weird as I have just
+    // created them
+    Notification notification = createNotification(recipientId, type, postId);
+    createNotificationActor(notification.getId(), authenticatedUserId);
+    return notification.toNotificationProfile();
+  }
+
+  private Notification createNotification(UUID recipientId, NotificationType type, UUID postId) {
+    Notification notification = new Notification();
+    notification.setRecipientUserId(recipientId);
+    notification.setType(type);
+    if (postId != null) {
+      notification.setPostId(postId);
+    }
+    return notificationRepository.saveAndFlush(notification);
+  }
+
+  private void createNotificationActor(UUID notificationId, UUID authenticatedUserId) {
+    NotificationActor notificationActor = new NotificationActor();
+    notificationActor.setNotificationId(notificationId);
+    notificationActor.setActorUserId(authenticatedUserId);
+    notificationActorRepository.save(notificationActor);
+  }
+
+  private Notification createActorAndUpdateNotification(
+      UUID authenticatedUserId, Notification existingNotification, Instant now) {
+    createNotificationActor(existingNotification.getId(), authenticatedUserId);
+    existingNotification.setUpdatedAt(now);
+    existingNotification.setRead(false);
+    return notificationRepository.save(existingNotification);
+  }
+
+  @Transactional
+  public void deleteNotificationActorAndCleanupNotification(
+      UUID authenticatedUserId, UUID recipientId, NotificationType type, UUID postId) {
+    Optional<Notification> notification;
+    if (postId == null) {
+      notification =
+          notificationRepository.findFollowNotification(recipientId, authenticatedUserId);
+    } else {
+      notification = notificationRepository.findNotification(recipientId, postId, type);
+    }
+    if (notification.isEmpty()) {
+      // No notification to clean up so fails silently
+      return;
+    }
+    UUID notificationId = notification.get().getId();
+    notificationActorRepository.deleteByActorUserIdAndNotificationId(
+        authenticatedUserId, notificationId);
+    // Clean up notification if there are no actors remaining
+    long remaining = notificationActorRepository.countByNotificationId(notificationId);
+    if (remaining == 0) {
+      notificationRepository.deleteById(notificationId);
+    }
   }
 
   private NotificationConnection toNotificationConnection(Slice<Notification> notifications) {

@@ -3,6 +3,8 @@ package com.xclone.share.controller;
 import com.xclone.exception.GraphQlErrorMapper;
 import com.xclone.exception.custom.DuplicateRepostException;
 import com.xclone.exception.custom.PostNotFoundException;
+import com.xclone.notification.model.enums.NotificationType;
+import com.xclone.notification.service.NotificationService;
 import com.xclone.post.dto.PostProfile;
 import com.xclone.post.dto.mutation.PostResponse;
 import com.xclone.post.service.PostService;
@@ -20,9 +22,11 @@ import org.springframework.stereotype.Controller;
 @Controller
 public class ShareController {
   private final PostService postService;
+  private final NotificationService notificationService;
 
-  ShareController(PostService postService) {
+  ShareController(PostService postService, NotificationService notificationService) {
     this.postService = postService;
+    this.notificationService = notificationService;
   }
 
   /**
@@ -41,6 +45,9 @@ public class ShareController {
       @AuthenticationPrincipal CustomUserDetails userDetails, @Argument UUID sharedPostId) {
     try {
       PostProfile repost = postService.createRepost(sharedPostId, userDetails.getId());
+      PostProfile sharedPost = postService.getPost(sharedPostId);
+      notificationService.upsertNotification(
+          sharedPost.authorId(), userDetails.getId(), repost.id(), NotificationType.REPOST);
       return new PostResponse("200", true, repost, null);
     } catch (DuplicateRepostException ex) {
       return new PostResponse("400", false, null, GraphQlErrorMapper.fromDuplicateRepost(ex));
@@ -66,6 +73,9 @@ public class ShareController {
       @AuthenticationPrincipal CustomUserDetails userDetails, @Argument CreateQuoteInput input) {
     try {
       PostProfile quote = postService.createQuote(input, userDetails.getId());
+      PostProfile sharedPost = postService.getPost(input.sharedPostId());
+      notificationService.upsertNotification(
+          sharedPost.authorId(), userDetails.getId(), quote.id(), NotificationType.QUOTE);
       return new PostResponse("200", true, quote, null);
     } catch (ConstraintViolationException ex) {
       return new PostResponse("400", false, null, GraphQlErrorMapper.fromConstraintViolations(ex));
