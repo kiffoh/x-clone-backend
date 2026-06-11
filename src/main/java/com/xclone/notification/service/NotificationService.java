@@ -156,15 +156,20 @@ public class NotificationService {
     //                  -> within timebucket -> update notification time -> create new notification
     // actor
     if (NotificationConstants.UPDATABLE_NOTIFICATION_TYPES.contains(type)) {
-      Notification existingNotification =
-          notificationRepository.findNotification(recipientId, postId, type).orElse(null);
+      Optional<Notification> existingNotification;
+      if (postId == null) {
+        existingNotification =
+            notificationRepository.findNotificationWithoutPostId(recipientId, type);
+      } else {
+        existingNotification = notificationRepository.findNotification(recipientId, postId, type);
+      }
 
-      if (existingNotification != null) {
-        NotificationType existingType = existingNotification.getType();
+      if (existingNotification.isPresent()) {
+        NotificationType existingType = existingNotification.get().getType();
         Instant now = Instant.now();
         // Should it be from createdAt?
         long lastUpdatedSince =
-            now.getEpochSecond() - existingNotification.getUpdatedAt().getEpochSecond();
+            now.getEpochSecond() - existingNotification.get().getUpdatedAt().getEpochSecond();
         // flags
         boolean likeOrRepost =
             NotificationConstants.NO_TIME_WINDOW_NOTIFICATION_TYPES.contains(existingType);
@@ -173,7 +178,8 @@ public class NotificationService {
                 && (lastUpdatedSince < NotificationConstants.TIME_BUCKET_SECONDS);
         if (likeOrRepost || followInsideTimeBucket) {
           Notification updatedNotification =
-              createActorAndUpdateNotification(authenticatedUserId, existingNotification, now);
+              createActorAndUpdateNotification(
+                  authenticatedUserId, existingNotification.get(), now);
           return updatedNotification.toNotificationProfile();
         }
       }
@@ -227,7 +233,7 @@ public class NotificationService {
     if (type == NotificationType.FOLLOW) {
       // postId is only null for a follow
       notification =
-          notificationRepository.findFollowNotification(recipientId, authenticatedUserId);
+          notificationRepository.findSpecificFollowNotification(recipientId, authenticatedUserId);
     } else {
       notification = notificationRepository.findNotification(recipientId, postId, type);
     }

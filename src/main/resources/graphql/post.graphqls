@@ -188,7 +188,7 @@ extend type Mutation {
 
     Authentication: Required (the authenticated user can delete their own posts)
     """
-    deletePost(postId: ID!, postType: PostType!): DeleteResponse!
+    deletePost(postId: ID!): DeleteResponse!
     """
     Add a like to the post.
 
@@ -201,13 +201,6 @@ extend type Mutation {
     Authentication: Required
     """
     unlikePost(postId: ID!): PostResponse!
-}
-
-enum PostType {
-    POST
-    QUOTE
-    REPOST
-    REPLY
 }
 
 """

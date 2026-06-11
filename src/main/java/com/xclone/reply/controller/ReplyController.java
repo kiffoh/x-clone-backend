@@ -2,6 +2,8 @@ package com.xclone.reply.controller;
 
 import com.xclone.exception.GraphQlErrorMapper;
 import com.xclone.exception.custom.PostNotFoundException;
+import com.xclone.notification.model.enums.NotificationType;
+import com.xclone.notification.service.NotificationService;
 import com.xclone.post.dto.PostProfile;
 import com.xclone.post.dto.mutation.PostResponse;
 import com.xclone.post.service.PostService;
@@ -24,10 +26,13 @@ import org.springframework.stereotype.Controller;
 public class ReplyController {
   private final ReplyService replyService;
   private final PostService postService;
+  private final NotificationService notificationService;
 
-  ReplyController(ReplyService replyService, PostService postService) {
+  ReplyController(
+      ReplyService replyService, PostService postService, NotificationService notificationService) {
     this.replyService = replyService;
     this.postService = postService;
+    this.notificationService = notificationService;
   }
 
   /**
@@ -64,6 +69,12 @@ public class ReplyController {
       @AuthenticationPrincipal CustomUserDetails userDetails, @Argument CreateReplyInput input) {
     try {
       PostProfile reply = postService.createReply(input, userDetails.getId());
+      PostProfile parentPost = postService.getPost(input.parentId());
+      // Don't notify on self reply
+      if (!parentPost.authorId().equals(userDetails.getId())) {
+        notificationService.upsertNotification(
+            parentPost.authorId(), userDetails.getId(), parentPost.id(), NotificationType.REPLY);
+      }
       return new PostResponse("200", true, reply, null);
     } catch (ConstraintViolationException ex) {
       return new PostResponse("400", false, null, GraphQlErrorMapper.fromConstraintViolations(ex));

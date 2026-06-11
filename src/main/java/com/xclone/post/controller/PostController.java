@@ -380,11 +380,10 @@ public class PostController {
    */
   @MutationMapping
   public DeleteResponse deletePost(
-      @AuthenticationPrincipal CustomUserDetails userDetails,
-      @Argument UUID postId,
-      @Argument PostType postType) {
+      @AuthenticationPrincipal CustomUserDetails userDetails, @Argument UUID postId) {
     try {
       PostProfile deletedPost = postService.deletePost(postId, userDetails.getId());
+      PostType postType = discernPostType(deletedPost);
       if (postType != PostType.POST) {
         notificationService.deleteNotificationActorAndCleanupNotification(
             userDetails.getId(),
@@ -400,6 +399,19 @@ public class PostController {
       return new DeleteResponse(
           "404", false, GraphQlErrorMapper.fromPostNotFound("deletePost", ex));
     }
+  }
+
+  private PostType discernPostType(PostProfile post) {
+    if (post.parentId() != null) {
+      return PostType.REPLY;
+    }
+    if (post.sharedPostId() != null && post.messageContent() != null) {
+      return PostType.QUOTE;
+    }
+    if (post.sharedPostId() != null) {
+      return PostType.REPOST;
+    }
+    return PostType.POST;
   }
 
   private UUID getRecipientUser(PostProfile post, PostType type) {

@@ -46,8 +46,11 @@ public class ShareController {
     try {
       PostProfile repost = postService.createRepost(sharedPostId, userDetails.getId());
       PostProfile sharedPost = postService.getPost(sharedPostId);
-      notificationService.upsertNotification(
-          sharedPost.authorId(), userDetails.getId(), repost.id(), NotificationType.REPOST);
+      // Don't notify on self repost
+      if (!sharedPost.authorId().equals(userDetails.getId())) {
+        notificationService.upsertNotification(
+            sharedPost.authorId(), userDetails.getId(), sharedPost.id(), NotificationType.REPOST);
+      }
       return new PostResponse("200", true, repost, null);
     } catch (DuplicateRepostException ex) {
       return new PostResponse("400", false, null, GraphQlErrorMapper.fromDuplicateRepost(ex));
@@ -74,8 +77,11 @@ public class ShareController {
     try {
       PostProfile quote = postService.createQuote(input, userDetails.getId());
       PostProfile sharedPost = postService.getPost(input.sharedPostId());
-      notificationService.upsertNotification(
-          sharedPost.authorId(), userDetails.getId(), quote.id(), NotificationType.QUOTE);
+      // Don't notify on self quote
+      if (!sharedPost.authorId().equals(userDetails.getId())) {
+        notificationService.upsertNotification(
+            sharedPost.authorId(), userDetails.getId(), sharedPost.id(), NotificationType.QUOTE);
+      }
       return new PostResponse("200", true, quote, null);
     } catch (ConstraintViolationException ex) {
       return new PostResponse("400", false, null, GraphQlErrorMapper.fromConstraintViolations(ex));
