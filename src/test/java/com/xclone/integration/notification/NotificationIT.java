@@ -522,4 +522,95 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
               tuple("userId", "Only the recipient can read the notification"));
     }
   }
+
+  @Nested
+  class NotificationTriggers {
+
+    @Nested
+    class upsertNotification {
+
+      @Nested
+      class followNotification {
+        @Test
+        void follow_noOutstandingFollows_createsNewNotification_createsNewNotificationActor() {}
+
+        @Test
+        void follow_insideTimeBucket_updatesExistingNotification_createsNewNotificationActor() {}
+
+        @Test
+        void follow_outsideTimeBucket_createsNewNotification_createsNewNotificationActor() {}
+
+        @Test
+        void unfollow_removesFromExistingNotification_deletesOnlyNotificationActor() {
+          // Check that it removes from correct notification
+        }
+
+        @Test
+        void unfollow_removesFromExistingNotification_cleanupNotificationAndNotificationActor() {
+          // Check that it removes from correct notification
+        }
+      }
+
+      @Nested
+      class likeNotification {
+        @Test
+        void like_createsNewNotification_createsNewNotificationActor() {}
+
+        @Test
+        void like_updatesExistingNotification_createsNewNotificationActor() {}
+
+        @Test
+        void unlike_removesFromExistingNotification_deletesOnlyNotificationActor() {
+          // Check that it removes from correct notification
+        }
+
+        @Test
+        void unlike_removesFromExistingNotification_cleanupNotificationAndNotificationActor() {
+          // Check that it removes from correct notification
+        }
+      }
+
+      @Nested
+      class repostNotification {
+        @Test
+        void repost_createsNewNotification_createsNewNotificationActor() {}
+
+        @Test
+        void repost_updatesExistingNotification_createsNewNotificationActor() {}
+
+        @Test
+        void deleteRepost_removesFromExistingNotification_deletesOnlyNotificationActor() {
+          // Check that it removes from correct notification
+        }
+
+        @Test
+        void
+            deleteRepost_removesFromExistingNotification_cleanupNotificationAndNotificationActor() {
+          // Check that it removes from correct notification
+        }
+      }
+
+      @Nested
+      class quoteNotification {
+        @Test
+        void quote_createsDiscreteNotifications() {}
+
+        @Test
+        void deleteQuote_removesNotification() {
+          // Check that it removes from correct notification
+        }
+      }
+
+      @Nested
+      class replyNotification {
+        @Test
+        void reply_createsDiscreteNotifications() {}
+
+        @Test
+        void deleteReply_removesNotification() {
+          // Check that it removes from correct notification
+        }
+      }
+    }
+  }
 }
