@@ -211,11 +211,21 @@ public class NotificationService {
     return notificationRepository.save(existingNotification);
   }
 
+  /**
+   * Deletes the actor corresponding to the input parameters and consequently deletes the
+   * corresponding notification if there are no associated actors.
+   *
+   * @param authenticatedUserId unique identifier of the actor of the notification
+   * @param recipientId unique identifier of the recipient of the notification
+   * @param type type of notification (e.g. which domain it was triggered from)
+   * @param postId optional unique identifier of the post the notification is associated with
+   */
   @Transactional
   public void deleteNotificationActorAndCleanupNotification(
       UUID authenticatedUserId, UUID recipientId, NotificationType type, UUID postId) {
     Optional<Notification> notification;
-    if (postId == null) {
+    if (type == NotificationType.FOLLOW) {
+      // postId is only null for a follow
       notification =
           notificationRepository.findFollowNotification(recipientId, authenticatedUserId);
     } else {
