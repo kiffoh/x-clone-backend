@@ -62,10 +62,10 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
       @Param("recipientId") UUID recipientId, @Param("type") NotificationType type);
 
   @Query(
-      "select n from Notification n join NotificationActor na"
+      "select n from Notification n join NotificationActor na on n.id = na.notificationId"
           + " where n.recipientUserId = :recipientId and n.postId is null"
           + " and n.type = com.xclone.notification.model.enums.NotificationType.FOLLOW"
-          + " and na.userActorId = :actorId and n.id = na.notificationId")
+          + " and na.actorUserId = :actorId")
   Optional<Notification> findSpecificFollowNotification(
       @Param("recipientId") UUID recipientId, @Param("actorId") UUID actorId);
 }

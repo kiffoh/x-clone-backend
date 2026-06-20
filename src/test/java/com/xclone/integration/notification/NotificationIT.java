@@ -16,8 +16,11 @@ import com.xclone.notification.dto.connection.NotificationConnection;
 import com.xclone.notification.dto.connection.NotificationEdge;
 import com.xclone.notification.dto.mutation.NotificationResponse;
 import com.xclone.notification.model.entity.Notification;
+import com.xclone.notification.model.entity.NotificationActor;
 import com.xclone.notification.model.enums.NotificationType;
 import com.xclone.post.model.entity.Post;
+import com.xclone.reply.dto.request.CreateReplyInput;
+import com.xclone.share.dto.request.CreateQuoteInput;
 import com.xclone.support.fixtures.UserFixtures;
 import com.xclone.user.model.entity.User;
 import java.util.ArrayList;
@@ -27,6 +30,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springframework.graphql.test.tester.HttpGraphQlTester;
 
 public class NotificationIT extends BaseGraphQLIntegrationTest {
   List<String> handles = List.of("example1", "example2", "example3", "example4", "example5");
@@ -34,6 +38,7 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
 
   List<String> messageContents = List.of("one for sorrow", "two for joy", "three for a girl");
   List<Post> posts;
+
   Post likedPost;
   Post repostedPost;
   List<Notification> notifications;
@@ -52,6 +57,9 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
     // - authenticated user authors post at index-0, index-1 and index-2
     List<User> authenticatedUserRepeated = Collections.nCopies(3, authenticatedUser);
     posts = seedPosts(messageContents, authenticatedUserRepeated, postRepository);
+  }
+
+  void addNotifications() {
     notifications = new ArrayList<>();
     // user 1 and user 2 like authenticated users post (post 0)
     likedPost = posts.getFirst();
@@ -77,6 +85,10 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
 
   @Nested
   class NotificationTests {
+    @BeforeEach
+    void setupNotifications() {
+      addNotifications();
+    }
 
     /**
      * A malformed cursor is tested in {@link ValidationIT.malformedCursorTests} so it has been
@@ -358,6 +370,11 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
 
   @Nested
   class ReadNotificationTests {
+    @BeforeEach
+    void setupNotifications() {
+      addNotifications();
+    }
+
     @Test
     void readNotification_validId_notificationNotRead_returnsNotificationResponse() {
       NotificationResponse response =
@@ -525,6 +542,43 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
 
   @Nested
   class NotificationTriggers {
+    UUID originalPostId;
+    UUID originalPostAuthorId;
+    HttpGraphQlTester user0AuthenticatedTester;
+    HttpGraphQlTester user2AuthenticatedTester;
+
+    @BeforeEach
+    void setup() {
+      posts =
+          seedPosts(
+              messageContents,
+              List.of(users.getFirst(), users.get(1), users.get(2)),
+              postRepository);
+      postsIdsToDeleteFirst = new ArrayList<>();
+      originalPostId = posts.get(1).getId();
+      originalPostAuthorId = posts.get(1).getAuthorId();
+      user0AuthenticatedTester = authenticatedTester;
+      // Sets the accessToken to match that of user-2
+      String user2AccessToken = authHelpers.getUserAccessToken(users.get(2).getId().toString());
+      user2AuthenticatedTester =
+          authenticatedTester
+              .mutate()
+              .headers(headers -> headers.setBearerAuth(user2AccessToken))
+              .build();
+    }
+
+    //    UUID createPostReturnId(HttpGraphQlTester authenticatedTester, String document,
+    //                            Map<String, Object> variable) {
+    //      return authenticatedTester.document(document)
+    //          .variable(variable.get, originalPostId)
+    //          .execute()
+    //          .path("createRepost.success")
+    //          .entity(Boolean.class)
+    //          .isEqualTo(true)
+    //          .path("createRepost.post.id")
+    //          .entity(UUID.class)
+    //          .get();
+    //    }
 
     @Nested
     class upsertNotification {
@@ -572,11 +626,104 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
 
       @Nested
       class repostNotification {
-        @Test
-        void repost_createsNewNotification_createsNewNotificationActor() {}
 
-        @Test
-        void repost_updatesExistingNotification_createsNewNotificationActor() {}
+        //        @Test
+        //        void repost_createsNewNotification_createsNewNotificationActor() {
+        //          UUID repostId = user0AuthenticatedTester.document("""
+        //                  mutation CreateRepost($sharedPostId: ID!) {
+        //                    createRepost(sharedPostId: $sharedPostId) {
+        //                      success
+        //                      post {
+        //                        id
+        //                      }
+        //                    }
+        //                  }
+        //                  """)
+        //              .variable("$sharedPostId", originalPostId)
+        //              .execute()
+        //              .path("createRepost.success")
+        //              .entity(Boolean.class)
+        //              .isEqualTo(true)
+        //              .path("createRepost.post.id")
+        //              .entity(UUID.class)
+        //              .get();
+        //          postsIdsToDeleteFirst.add(repostId);
+        //
+        //          List<Notification> notifications = notificationRepository.findAll();
+        //          List<NotificationActor> notificationActors =
+        // notificationActorRepository.findAll();
+        //
+        //          assertThat(notifications).hasSize(1);
+        //          assertThat(notificationActors).hasSize(1);
+        //
+        //          Notification notification = notifications.getFirst();
+        //          assertThat(notification.getPostId()).isEqualTo(originalPostId);
+        //          assertThat(notification.getRecipientUserId()).isEqualTo(originalPostAuthorId);
+        //          assertFalse(notification.isRead());
+        //
+        //          NotificationActor actor = notificationActors.getFirst();
+        //          assertThat(actor.getActorUserId()).isEqualTo(authenticatedUser.getId());
+        //          assertThat(actor.getNotificationId()).isEqualTo(notification.getId());
+        //        }
+        //
+        //        @Test
+        //        void repost_updatesExistingNotification_createsNewNotificationActor() {
+        //          UUID firstRepostId = user0AuthenticatedTester.document("""
+        //                  mutation CreateRepost($sharedPostId: ID!) {
+        //                    createRepost(sharedPostId: $sharedPostId) {
+        //                      success
+        //                      post {
+        //                        id
+        //                      }
+        //                    }
+        //                  }
+        //                  """)
+        //              .variable("$sharedPostId", originalPostId)
+        //              .execute()
+        //              .path("createRepost.success")
+        //              .entity(Boolean.class)
+        //              .isEqualTo(true)
+        //              .path("createRepost.post.id")
+        //              .entity(UUID.class)
+        //              .get();
+        //          postsIdsToDeleteFirst.add(firstRepostId);
+        //
+        //          UUID secondRepostId = user2AuthenticatedTester.document("""
+        //                  mutation CreateRepost($sharedPostId: ID!) {
+        //                    createRepost(sharedPostId: $sharedPostId) {
+        //                      success
+        //                      post {
+        //                        id
+        //                      }
+        //                    }
+        //                  }
+        //                  """)
+        //              .variable("$sharedPostId", originalPostId)
+        //              .execute()
+        //              .path("createRepost.success")
+        //              .entity(Boolean.class)
+        //              .isEqualTo(true)
+        //              .path("createRepost.post.id")
+        //              .entity(UUID.class)
+        //              .get();
+        //          postsIdsToDeleteFirst.add(secondRepostId);
+        //
+        //          List<Notification> notifications = notificationRepository.findAll();
+        //          List<NotificationActor> notificationActors =
+        // notificationActorRepository.findAll();
+        //
+        //          assertThat(notifications).hasSize(1);
+        //          assertThat(notificationActors).hasSize(2);
+        //
+        //          Notification notification = notifications.getFirst();
+        //          assertThat(notification.getPostId()).isEqualTo(originalPostId);
+        //          assertThat(notification.getRecipientUserId()).isEqualTo(originalPostAuthorId);
+        //          assertFalse(notification.isRead());
+        //
+        //          NotificationActor actor = notificationActors.getFirst();
+        //          assertThat(actor.getActorUserId()).isEqualTo(users.get(2).getId());
+        //          assertThat(actor.getNotificationId()).isEqualTo(notification.getId());
+        //        }
 
         @Test
         void deleteRepost_removesFromExistingNotification_deletesOnlyNotificationActor() {
@@ -593,7 +740,47 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
       @Nested
       class quoteNotification {
         @Test
-        void quote_createsDiscreteNotifications() {}
+        void quote_createsDiscreteNotifications() {
+          CreateQuoteInput input =
+              new CreateQuoteInput(originalPostId, "this is the quote content");
+          UUID quoteId =
+              authenticatedTester
+                  .document(
+                      """
+                  mutation CreateQuote($input: CreateQuoteInput!) {
+                    createQuote(input: $input) {
+                      success
+                      post {
+                        id
+                      }
+                    }
+                  }
+                  """)
+                  .variable("input", input)
+                  .execute()
+                  .path("createQuote.success")
+                  .entity(Boolean.class)
+                  .isEqualTo(true)
+                  .path("createQuote.post.id")
+                  .entity(UUID.class)
+                  .get();
+          postsIdsToDeleteFirst.add(quoteId);
+
+          List<Notification> notifications = notificationRepository.findAll();
+          List<NotificationActor> notificationActors = notificationActorRepository.findAll();
+
+          assertThat(notifications).hasSize(1);
+          assertThat(notificationActors).hasSize(1);
+
+          Notification notification = notifications.getFirst();
+          assertThat(notification.getPostId()).isEqualTo(originalPostId);
+          assertThat(notification.getRecipientUserId()).isEqualTo(originalPostAuthorId);
+          assertFalse(notification.isRead());
+
+          NotificationActor actor = notificationActors.getFirst();
+          assertThat(actor.getActorUserId()).isEqualTo(authenticatedUser.getId());
+          assertThat(actor.getNotificationId()).isEqualTo(notification.getId());
+        }
 
         @Test
         void deleteQuote_removesNotification() {
@@ -604,7 +791,114 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
       @Nested
       class replyNotification {
         @Test
-        void reply_createsDiscreteNotifications() {}
+        void reply_createsDiscreteNotifications() {
+          CreateReplyInput input =
+              new CreateReplyInput(originalPostId, "this is the reply content");
+          UUID replyId =
+              authenticatedTester
+                  .document(
+                      """
+                  mutation CreateReply($input: CreateReplyInput!) {
+                    createReply(input: $input) {
+                      success
+                      post {
+                        id
+                      }
+                    }
+                  }
+                  """)
+                  .variable("input", input)
+                  .execute()
+                  .path("createReply.success")
+                  .entity(Boolean.class)
+                  .isEqualTo(true)
+                  .path("createReply.post.id")
+                  .entity(UUID.class)
+                  .get();
+          postsIdsToDeleteFirst.add(replyId);
+
+          List<Notification> notifications = notificationRepository.findAll();
+          List<NotificationActor> notificationActors = notificationActorRepository.findAll();
+
+          assertThat(notifications).hasSize(1);
+          assertThat(notificationActors).hasSize(1);
+
+          Notification notification = notifications.getFirst();
+          assertThat(notification.getPostId()).isEqualTo(originalPostId);
+          assertThat(notification.getRecipientUserId()).isEqualTo(originalPostAuthorId);
+          assertFalse(notification.isRead());
+
+          NotificationActor actor = notificationActors.getFirst();
+          assertThat(actor.getActorUserId()).isEqualTo(authenticatedUser.getId());
+          assertThat(actor.getNotificationId()).isEqualTo(notification.getId());
+        }
+
+        @Test
+        void deleteReply_removesNotification() {
+          // Check that it removes from correct notification
+        }
+      }
+    }
+
+    @Nested
+    class deleteNotificationActorAndCleanupNotification {
+
+      @Nested
+      class followNotification {
+        @Test
+        void unfollow_removesFromExistingNotification_deletesOnlyNotificationActor() {
+          // Check that it removes from correct notification
+        }
+
+        @Test
+        void unfollow_removesFromExistingNotification_cleanupNotificationAndNotificationActor() {
+          // Check that it removes from correct notification
+        }
+      }
+
+      @Nested
+      class likeNotification {
+        @Test
+        void unlike_removesFromExistingNotification_deletesOnlyNotificationActor() {
+          // Check that it removes from correct notification
+        }
+
+        @Test
+        void unlike_removesFromExistingNotification_cleanupNotificationAndNotificationActor() {
+          // Check that it removes from correct notification
+        }
+      }
+
+      @Nested
+      class repostNotification {
+        @Test
+        void deleteRepost_removesFromExistingNotification_deletesOnlyNotificationActor() {
+          // Check that it removes from correct notification
+        }
+
+        @Test
+        void
+            deleteRepost_removesFromExistingNotification_cleanupNotificationAndNotificationActor() {
+          // Check that it removes from correct notification
+        }
+      }
+
+      @Nested
+      class quoteNotification {
+        @Test
+        void deleteQuote_removesNotification() {
+          // Check that it removes from correct notification
+        }
+      }
+
+      @Nested
+      class replyNotification {
+        Post originalPost;
+
+        @BeforeEach
+        void setup() {
+          originalPost = posts.get(1);
+        }
 
         @Test
         void deleteReply_removesNotification() {

@@ -149,12 +149,17 @@ public class NotificationService {
   @Transactional
   public NotificationProfile upsertNotification(
       UUID recipientId, UUID authenticatedUserId, UUID postId, NotificationType type) {
+
     // find notification
     // -> no notification -> create new notification -> create notification actor
     // -> notification
     //                  -> not within timebucket -> create new notification
     //                  -> within timebucket -> update notification time -> create new notification
     // actor
+    if (recipientId.equals(authenticatedUserId)) {
+      // Don't trigger notification in the case of a self action i.e. liked own post
+      return null;
+    }
     if (NotificationConstants.UPDATABLE_NOTIFICATION_TYPES.contains(type)) {
       Optional<Notification> existingNotification;
       if (postId == null) {

@@ -8,6 +8,8 @@ import com.xclone.post.repository.PostRepository;
 import com.xclone.support.helpers.AuthHelpers;
 import com.xclone.user.model.entity.User;
 import com.xclone.user.repository.UserRepository;
+import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,11 +29,15 @@ public class BaseGraphQLIntegrationTest extends BaseIntegrationTest {
   @Autowired protected AuthHelpers authHelpers;
   @Autowired protected HttpGraphQlTester authenticatedTester;
   protected User authenticatedUser;
+  protected List<UUID> postsIdsToDeleteFirst;
 
   void wipeDBs() {
     notificationActorRepository.deleteAll();
     notificationRepository.deleteAll();
     likeRepository.deleteAll();
+    if (postsIdsToDeleteFirst != null) {
+      postRepository.deleteAllById(postsIdsToDeleteFirst);
+    }
     postRepository.deleteAll();
     followRepository.deleteAll();
     userRepository.deleteAll();
