@@ -149,8 +149,6 @@ public class NotificationService {
    *   <li>{@code notification.updatedAt} set to the current timestamp.
    *   <li>{@code notification.read} set to {@code false} to reset the notification read status .
    * </ul>
-   *
-   * @return the updated/created notification in the public facing {@link NotificationProfile} view
    */
   @Transactional
   public void upsertNotification(
@@ -181,9 +179,8 @@ public class NotificationService {
             (type == NotificationType.FOLLOW)
                 && (lastUpdatedSince < NotificationConstants.TIME_BUCKET_SECONDS);
         if (likeOrRepost || followInsideTimeBucket) {
-          Notification updatedNotification =
-              createActorAndUpdateNotification(
-                  authenticatedUserId, existingNotification.get(), now);
+          createActorAndUpdateNotification(authenticatedUserId, existingNotification.get(), now);
+          return;
         }
       }
     }
