@@ -16,27 +16,23 @@ removal path has an open actor-location question.
   `deleteByActorUserIdAndNotificationId` actor-repo methods.
 - Creation / grouping path — append-actor-vs-new-row wired into `createLike`, `createReply`,
   `createRepost`, `createQuote`, `followUser`, using the shared lookups.
+- FOLLOW time-window confirmed at 12 hours — `NotificationConstants.TIME_BUCKET_SECONDS`.
+- FOLLOW removal resolved — `findSpecificFollowNotification` joins on actor to locate the
+  correct notification across time-window boundaries.
+- Discrete-type (QUOTE/REPLY) removal resolved — `findNotification` now joins on actor
+  (`na.actorUserId = :actorId`) so deletion targets the correct per-user notification.
+- Self-notification guard centralised in `upsertNotification` — redundant controller-level
+  checks removed from `LikeController`, `ReplyController`, `ShareController`.
+- `ClockConfig` bean + `@MockitoBean Clock` — deterministic time-based testing for
+  time-window logic.
+- Integration tests for all trigger paths — `NotificationIT.NotificationTriggers` covers
+  upsert (FOLLOW inside/outside time bucket, LIKE, REPOST, QUOTE, REPLY) and deletion
+  (unfollow, unlike, delete repost/quote/reply with single and multiple actors).
+- Post-deletion cascade — `deletePostNotifications` removes all notifications + actors
+  referencing a deleted post; null guard on `getOriginalPost` as defence-in-depth.
+- `PostType` scoped as private enum in `PostController` — no cross-package dependency.
 
 **Open:**
-- Confirm the FOLLOW time-window duration and where it lives (constant vs config);
-  discrete-per-follow remains an acceptable first-pass fallback (the schema supports layering
-  the window in later without migration — purely a change to the "find existing notification"
-  lookup).
-- Resolve the FOLLOW removal actor-location wrinkle — post-based notifications are uniquely
-  keyed by `(recipient, type, post)`, so the unliked / un-reposted actor is guaranteed to sit
-  on the located notification. FOLLOW is time-windowed with no post, so
-  `findNotificationWithoutPostId` returns the *most recent* follow notification, which may
-  *not* hold the unfollowing user's actor row if they followed in an earlier window — that
-  user's actor row then leaks and the older notification never reaches zero from their
-  unfollow. Decide how the unfollow path locates the notification that actually contains this
-  actor (e.g. find the FOLLOW notification for the recipient whose actor set includes this
-  user, rather than the most recent).
-- Tests for the trigger paths — service-method level: one representative post-based type
-  (type is an opaque filter, so the rest share the path) plus the FOLLOW branch, plus the
-  type-independent edges (missing notification returns quietly, removing a non-last actor
-  leaves the notification, removing the last actor deletes it). Call-site level: verify each
-  un/action passes the correct `(type, postId)` — that is where copy-paste / wiring mistakes
-  live, not inside the method.
 - Concurrency hardening (deferred) — the count-then-delete cleanup leaves a zero-actor
   orphan under concurrent un-actions (READ COMMITTED: neither transaction sees the other's
   uncommitted actor delete). Optionally fold the emptiness test into the delete
@@ -66,7 +62,7 @@ removal path has an open actor-location question.
 - Remove `replyThreadId` from `Post` entity, `PostProfile`, `PostFixtures`, schema, and
   tests — clean up the removed field
 - Remove `System.out.println` from `createFeed()` — left over from debugging; replace with
-  logger or delete
+  logger or delete (notification `System.out.println` already removed in XC-90)
 - Add `"Authentication: Required."` to remaining query endpoints — `userByHandle`, `userById`,
   `searchUsers`, and any other protected queries missing the annotation
 - Fix `getNotifications` schema description — currently says "ordered by creation time" but

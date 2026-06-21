@@ -72,6 +72,8 @@ line to update `updatedAt`, but write efficiency preserved. Consistent with `Fol
   absence trap). `notificationId` is a direct `@Column`, so derived name matches column.
 - `deleteByActorUserIdAndNotificationId(UUID, UUID)` — derived delete by FK columns; no-op
   when no match.
+- `deleteAllByNotificationIdIn(List<UUID>)` — bulk delete for post-deletion cascade; the `In`
+  keyword is required for `List` parameters in Spring Data derived queries.
 
 ## ActorCount record
 
@@ -94,10 +96,17 @@ line to update `updatedAt`, but write efficiency preserved. Consistent with `Fol
 
 ### Notification lookup methods
 
-- `findNotification(UUID recipientId, UUID postId, NotificationType type)` — returns
-  `Optional<Notification>`; keyed by `(recipient, post, type)`. Shared by create and delete.
+- `findNotification(UUID recipientId, UUID actorId, UUID postId, NotificationType type)` —
+  joins on `NotificationActor` to locate the specific notification containing this actor;
+  keyed by `(recipient, actor, post, type)`. The actor join is critical for discrete types
+  (QUOTE/REPLY) where multiple notifications share the same `(recipient, post, type)`.
 - `findNotificationWithoutPostId(UUID recipientId, NotificationType type)` — returns most
-  recent notification of type, ordered by `updatedAt desc`. Used for FOLLOW (null `postId`).
+  recent notification of type, ordered by `updatedAt desc`. Used for FOLLOW upsert path only.
+- `findSpecificFollowNotification(UUID recipientId, UUID actorId)` — joins on actor to locate
+  the FOLLOW notification containing a specific actor. Used by the FOLLOW deletion path
+  (replaces `findNotificationWithoutPostId` for deletions).
+- `findAllByPostId(UUID postId)` — returns all notifications referencing a post; used by
+  `deletePostNotifications` for post-deletion cascade.
 
 ### deleteNotificationActorAndCleanupNotification
 
@@ -115,12 +124,23 @@ line to update `updatedAt`, but write efficiency preserved. Consistent with `Fol
   queued delete before the count query runs — no manual flush needed.
 - Named for both operations (delete actor + conditionally delete notification).
 
-### Creation / grouping path (implemented, tests pending)
+### Creation / grouping path (implemented, tested)
 
-- On action: look up existing notification, either append `NotificationActor` (and bump
-  `updatedAt`) or create fresh `Notification`.
-- Post-based types group by `(recipient, type, post)`.
-- FOLLOW uses time-windowed model (append if within window, else new row).
+- `upsertNotification(UUID recipientId, UUID authenticatedUserId, UUID postId, NotificationType type)` —
+  self-notification guard (`recipientId == authenticatedUserId` → return null); centralised
+  here, not duplicated in controllers.
+- `UPDATABLE_NOTIFICATION_TYPES` (LIKE, REPOST, FOLLOW) — look up existing notification and
+  append actor. Non-updatable types (QUOTE, REPLY, MENTION) always create a new notification.
+- `ALWAYS_AGGREGATE_NOTIFICATION_TYPES` (LIKE, REPOST) — always update existing notification
+  regardless of time. FOLLOW uses time-windowed aggregation (`TIME_BUCKET_SECONDS = 43200`).
+- Post-based updatable types group by `(recipient, actor, type, post)`.
+- FOLLOW uses time-windowed model (append if within `TIME_BUCKET_SECONDS`, else new row).
+
+### Post-deletion cascade
+
+- `deletePostNotifications(UUID postId)` — deletes all notifications + actors referencing
+  a post. Called when a post is soft-deleted. Mirrors X's behaviour: notifications about
+  deleted posts are removed.
 
 ### Concurrency limitation (accepted)
 

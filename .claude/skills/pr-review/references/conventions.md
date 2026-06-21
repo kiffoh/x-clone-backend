@@ -34,10 +34,13 @@ as they surface in review. Keep it specific — vague rules don't catch bugs.
   equals the acting user's id. Flag new notification triggers that omit it.
 - FOLLOW notifications aggregate over a 12-hour window; QUOTE / REPLY / MENTION are
   discrete. Check that new trigger code respects the right model.
-- **Open issue — flag any change touching it:** the FOLLOW deletion path
-  (`findNotificationWithoutPostId`) can retrieve the wrong notification when a
-  recipient has accumulated multiple FOLLOW windows, leaking actor rows. Any edit
-  near this needs a deliberate lookup strategy, not an incidental change.
+- Notification lookup queries that locate a notification for deletion must join on
+  the actor (`na.actorUserId = :actorId`). Without the join, `ORDER BY updatedAt
+  DESC LIMIT 1` can return a different user's notification when multiple
+  notifications share the same `(recipientId, postId, type)` — the delete is then
+  a silent no-op and the correct notification leaks. This was caught for both
+  FOLLOW (resolved via `findSpecificFollowNotification`) and discrete types
+  (QUOTE/REPLY — resolved by adding actor join to `findNotification`).
 
 ## Tests
 
