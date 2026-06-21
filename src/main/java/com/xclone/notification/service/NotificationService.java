@@ -9,6 +9,7 @@ import com.xclone.notification.dto.NotificationProfile;
 import com.xclone.notification.dto.connection.NotificationConnection;
 import com.xclone.notification.dto.connection.NotificationEdge;
 import com.xclone.notification.model.NotificationConstants;
+import com.xclone.notification.model.NotificationConstraintName;
 import com.xclone.notification.model.entity.Notification;
 import com.xclone.notification.model.entity.NotificationActor;
 import com.xclone.notification.model.enums.NotificationType;
@@ -23,12 +24,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.ServerErrorMessage;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Service layer responsible for notification-related operations. */
+@Slf4j
 @Service
 public class NotificationService {
   private final NotificationRepository notificationRepository;
@@ -160,12 +166,15 @@ public class NotificationService {
     }
     if (NotificationConstants.UPDATABLE_NOTIFICATION_TYPES.contains(type)) {
       Optional<Notification> existingNotification;
-      if (postId == null) {
+      if (type == NotificationType.FOLLOW) {
+        existingNotification = notificationRepository.findLastUpdatedFollow(recipientId);
+      } else if (NotificationConstants.ALWAYS_AGGREGATE_NOTIFICATION_TYPES.contains(type)) {
         existingNotification =
-            notificationRepository.findNotificationWithoutPostId(recipientId, type);
+            notificationRepository.findAggregateNotification(recipientId, postId, type);
       } else {
         existingNotification =
-            notificationRepository.findNotification(recipientId, authenticatedUserId, postId, type);
+            notificationRepository.findDiscreteNotification(
+                recipientId, authenticatedUserId, postId, type);
       }
 
       if (existingNotification.isPresent()) {
@@ -185,8 +194,28 @@ public class NotificationService {
       }
     }
 
-    Notification notification = createNotification(recipientId, type, postId);
-    createNotificationActor(notification.getId(), authenticatedUserId);
+    try {
+      Notification notification = createNotification(recipientId, type, postId);
+      createNotificationActor(notification.getId(), authenticatedUserId);
+    } catch (DataIntegrityViolationException ex) {
+      if (ex.contains(PSQLException.class)) {
+        PSQLException psql = (PSQLException) ex.getRootCause();
+        if (psql != null) {
+          ServerErrorMessage serverError = psql.getServerErrorMessage();
+          if (serverError != null) {
+            String constraintName = serverError.getConstraint();
+            if (NotificationConstraintName.ONE_LIKE_NOTIFICATION.equals(constraintName)
+                || NotificationConstraintName.ONE_REPOST_NOTIFICATION.equals(constraintName)) {
+              log.debug(
+                  "Duplicate aggregate notification swallowed (concurrent race): {}",
+                  constraintName);
+              return;
+            }
+          }
+        }
+      }
+      throw ex;
+    }
   }
 
   private Notification createNotification(UUID recipientId, NotificationType type, UUID postId) {
@@ -233,7 +262,8 @@ public class NotificationService {
           notificationRepository.findSpecificFollowNotification(recipientId, authenticatedUserId);
     } else {
       notification =
-          notificationRepository.findNotification(recipientId, authenticatedUserId, postId, type);
+          notificationRepository.findDiscreteNotification(
+              recipientId, authenticatedUserId, postId, type);
     }
     if (notification.isEmpty()) {
       // No notification to clean up so fails silently

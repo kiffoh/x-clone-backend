@@ -133,8 +133,14 @@ line to update `updatedAt`, but write efficiency preserved. Consistent with `Fol
   append actor. Non-updatable types (QUOTE, REPLY, MENTION) always create a new notification.
 - `ALWAYS_AGGREGATE_NOTIFICATION_TYPES` (LIKE, REPOST) — always update existing notification
   regardless of time. FOLLOW uses time-windowed aggregation (`TIME_BUCKET_SECONDS = 43200`).
-- Post-based updatable types group by `(recipient, actor, type, post)`.
+- Aggregate types (LIKE, REPOST) use `findAggregateNotification` — no actor join; keyed by
+  `(recipient, post, type)`. Discrete types use `findDiscreteNotification` — joins on actor
+  because multiple notifications share `(recipient, post, type)`.
 - FOLLOW uses time-windowed model (append if within `TIME_BUCKET_SECONDS`, else new row).
+- Partial unique indexes enforce one aggregate notification per `(post, recipient)` per type:
+  `one_like_notification_per_recipient`, `one_repost_notification_per_recipient`. Constraint
+  violations from concurrent races are swallowed — the losing thread's actor is lost (see
+  concurrency limitation below).
 
 ### Post-deletion cascade
 
@@ -142,12 +148,18 @@ line to update `updatedAt`, but write efficiency preserved. Consistent with `Fol
   a post. Called when a post is soft-deleted. Mirrors X's behaviour: notifications about
   deleted posts are removed.
 
-### Concurrency limitation (accepted)
+### Concurrency limitations (accepted)
 
-Read-count-then-delete has TOCTOU gap under Postgres READ COMMITTED — two simultaneous
-un-actions each delete their own actor, both count a remaining actor, neither deletes the
-now-empty notification. Leaves a zero-actor orphan. Accepted for learning build. Fix:
-`DELETE … WHERE NOT EXISTS (SELECT 1 FROM notification_actors …)` or row lock.
+Two TOCTOU gaps under Postgres READ COMMITTED, both accepted for learning build:
+
+1. **Upsert path:** concurrent likes/reposts both miss `findAggregateNotification`, both try
+   to create a notification. One succeeds; the other hits the partial unique index and is
+   swallowed. The losing thread's actor is lost because the persistence context is
+   inconsistent after a flush failure. Fix: retry actor creation in a new transaction, or
+   use `INSERT … ON CONFLICT`.
+2. **Deletion path:** concurrent un-actions each delete their own actor, both count a
+   remaining actor, neither deletes the now-empty notification. Leaves a zero-actor orphan.
+   Fix: `DELETE … WHERE NOT EXISTS (SELECT 1 FROM notification_actors …)` or row lock.
 
 ## Design decisions
 

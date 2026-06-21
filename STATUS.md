@@ -33,10 +33,15 @@ removal path has an open actor-location question.
 - `PostType` scoped as private enum in `PostController` — no cross-package dependency.
 
 **Open:**
-- Concurrency hardening (deferred) — the count-then-delete cleanup leaves a zero-actor
-  orphan under concurrent un-actions (READ COMMITTED: neither transaction sees the other's
-  uncommitted actor delete). Optionally fold the emptiness test into the delete
-  (`DELETE … WHERE NOT EXISTS (SELECT 1 FROM notification_actors …)`) or take a row lock.
+- Concurrency hardening (deferred) — two TOCTOU gaps under READ COMMITTED:
+  1. **Upsert path:** concurrent likes/reposts both miss `findAggregateNotification`, both try
+     to create → one hits the partial unique index (`one_like_notification_per_recipient` /
+     `one_repost_notification_per_recipient`). Currently swallowed — the losing thread's actor
+     is lost because the persistence context is inconsistent after a flush failure. Fix: retry
+     actor creation in a new transaction, or use `INSERT … ON CONFLICT`.
+  2. **Deletion path:** concurrent un-actions each delete their own actor, both count a
+     remaining actor, neither deletes the now-empty notification. Leaves a zero-actor orphan.
+     Fix: `DELETE … WHERE NOT EXISTS (SELECT 1 FROM notification_actors …)` or row lock.
 
 ---
 
