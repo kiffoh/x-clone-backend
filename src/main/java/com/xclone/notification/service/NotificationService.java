@@ -268,6 +268,14 @@ public class NotificationService {
     return new NotificationConnection(edges, pageInfo);
   }
 
+  /**
+   * Deletes all notification data and the corresponding notification actor data with a post id that
+   * matches the queried id.
+   *
+   * <p>Uses a {@link Transactional} view for an atomic delete.
+   *
+   * @param postId unique identifier of the post
+   */
   @Transactional
   public void deletePostNotifications(UUID postId) {
     List<Notification> notifications = notificationRepository.findAllByPostId(postId);
