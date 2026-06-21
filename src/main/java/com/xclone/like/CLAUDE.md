@@ -15,6 +15,8 @@
 ## LikeController
 
 - `LikeController` lives in `like/controller/`.
+- `likePost` triggers `upsertNotification(LIKE)` after creating the like.
+- `unlikePost` triggers `deleteNotificationActorAndCleanupNotification(LIKE)` after deleting.
 
 ## NotPostAuthorException
 

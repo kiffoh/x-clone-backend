@@ -57,8 +57,10 @@ Phase 7 complete. Follow/unfollow with paginated followers/following lists.
 ## FollowController
 
 - `@MutationMapping` for `followUser` and `unfollowUser`.
-- `followUser` catches `AccountNotActiveException` as payload error.
-- `unfollowUser` does **not** catch `AccountNotActiveException` — status irrelevant to unfollow.
+- `followUser` catches `AccountNotActiveException` as payload error; triggers
+  `upsertNotification(FOLLOW)` with `postId = null`.
+- `unfollowUser` does **not** catch `AccountNotActiveException` — status irrelevant to unfollow;
+  triggers `deleteNotificationActorAndCleanupNotification(FOLLOW)` with `postId = null`.
 - Malformed UUID handled as protocol error via `BindException` in `GraphQlExceptionHandler`.
 
 ## GraphQlErrorMapper additions

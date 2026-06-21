@@ -103,6 +103,12 @@ Phase 8 complete + getPost refactor.
   `PostService.mapIfActive()` — duplicated logic consolidated.
 - **Service method name hides implementation detail:** `createRepost` is the public name even
   though it sometimes reactivates a deleted repost.
+- **`deletePost` returns `PostProfile`** — needed by `PostController` to determine post type
+  and locate the original post for notification cleanup.
+- **`PostType` is a private enum in `PostController`** — only used by `deletePost` to
+  discern reply/quote/repost for notification cleanup; not a first-class domain concept.
+- **Null guard on `getOriginalPost`** — defence-in-depth; unreachable in normal flow because
+  post-deletion cascades notifications first, but guards against race conditions.
 
 ## PostFixtures
 

@@ -54,6 +54,7 @@ Phases 9–11 complete. Replies are posts with a non-null `parentId` — no sepa
 - `@MutationMapping` for `createReply`.
 - Catches `ConstraintViolationException` → 400, `PostNotFoundException` → 404.
 - Returns `PostResponse("200", true, reply, null)`.
+- Triggers `upsertNotification(REPLY)` with `parentPost.id()` as `postId`.
 
 ## Schema
 

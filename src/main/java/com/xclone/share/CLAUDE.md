@@ -59,6 +59,13 @@ Phases 12–14 complete. "Share" is the umbrella term covering pure reposts + qu
 
 - `@MutationMapping`; catches `ConstraintViolationException` → 400,
   `PostNotFoundException` → 404.
+- Triggers `upsertNotification(QUOTE)` with `sharedPost.id()` as `postId`.
+
+### Notification triggers
+
+- `createRepost` triggers `upsertNotification(REPOST)` with `sharedPost.id()` as `postId`.
+- Deletion of reposts/quotes handled via `PostController.deletePost` — `discernPostType`
+  determines the post type and `deleteNotificationActorAndCleanupNotification` cleans up.
 
 ## Share Schema Fields (Phase 14)
 
