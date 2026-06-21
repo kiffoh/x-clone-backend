@@ -15,6 +15,7 @@ import com.xclone.notification.model.enums.NotificationType;
 import com.xclone.notification.repository.NotificationActorRepository;
 import com.xclone.notification.repository.NotificationRepository;
 import com.xclone.user.dto.UserProfile;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -32,12 +33,15 @@ import org.springframework.transaction.annotation.Transactional;
 public class NotificationService {
   private final NotificationRepository notificationRepository;
   private final NotificationActorRepository notificationActorRepository;
+  private final Clock clock;
 
   public NotificationService(
       NotificationRepository notificationRepository,
-      NotificationActorRepository notificationActorRepository) {
+      NotificationActorRepository notificationActorRepository,
+      Clock clock) {
     this.notificationRepository = notificationRepository;
     this.notificationActorRepository = notificationActorRepository;
+    this.clock = clock;
   }
 
   /**
@@ -171,7 +175,7 @@ public class NotificationService {
 
       if (existingNotification.isPresent()) {
         NotificationType existingType = existingNotification.get().getType();
-        Instant now = Instant.now();
+        Instant now = Instant.now(clock);
         // Should it be from createdAt?
         long lastUpdatedSince =
             now.getEpochSecond() - existingNotification.get().getUpdatedAt().getEpochSecond();
@@ -242,6 +246,7 @@ public class NotificationService {
     } else {
       notification = notificationRepository.findNotification(recipientId, postId, type);
     }
+    System.out.println("Notification: " + notification);
     if (notification.isEmpty()) {
       // No notification to clean up so fails silently
       return;

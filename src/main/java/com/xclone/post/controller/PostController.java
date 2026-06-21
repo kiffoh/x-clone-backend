@@ -7,6 +7,7 @@ import com.xclone.exception.custom.PostNotFoundException;
 import com.xclone.like.dto.LikeCount;
 import com.xclone.like.service.LikeService;
 import com.xclone.notification.service.NotificationService;
+import com.xclone.post.dto.PostIdAndAuthorId;
 import com.xclone.post.dto.PostProfile;
 import com.xclone.post.dto.connection.PostConnection;
 import com.xclone.post.dto.mutation.PostResponse;
@@ -385,11 +386,12 @@ public class PostController {
       PostProfile deletedPost = postService.deletePost(postId, userDetails.getId());
       PostType postType = discernPostType(deletedPost);
       if (postType != PostType.POST) {
+        PostIdAndAuthorId originalPost = getOriginalPostIdAndAuthor(deletedPost, postType);
         notificationService.deleteNotificationActorAndCleanupNotification(
             userDetails.getId(),
-            getRecipientUser(deletedPost, postType),
+            originalPost.authorId(),
             postType.toNotificationType(),
-            postId);
+            originalPost.postId());
       }
       return new DeleteResponse("200", true, null);
     } catch (NotPostAuthorException ex) {
@@ -414,7 +416,7 @@ public class PostController {
     return PostType.POST;
   }
 
-  private UUID getRecipientUser(PostProfile post, PostType type) {
+  private PostIdAndAuthorId getOriginalPostIdAndAuthor(PostProfile post, PostType type) {
     UUID postId;
     if (type == PostType.REPLY) {
       postId = post.parentId();
@@ -423,6 +425,6 @@ public class PostController {
       postId = post.sharedPostId();
     }
     PostProfile originalPost = getPost(postId);
-    return originalPost.authorId();
+    return new PostIdAndAuthorId(postId, originalPost.authorId());
   }
 }
