@@ -149,6 +149,12 @@ now-empty notification. Leaves a zero-actor orphan. Accepted for learning build.
   returns no row for zero actors; `.getFirst()` would throw `NoSuchElementException`.
 - **Notification trigger testing strategy:** test what varies (post-based vs FOLLOW branch +
   type-independent edges), not each enum value. Per-type correctness verified at call sites.
+- **Post deletion cascades to notifications** — when a post is soft-deleted, all notifications
+  referencing that `postId` are cleaned up (notifications + actors). Mirrors X's behaviour:
+  "User B liked your tweet" is meaningless once the tweet is deleted. This also makes the
+  reply/quote/repost delete path safe — if the original post is already deleted, its
+  notifications are already gone, so there is nothing to clean up (null guard kept as
+  defence-in-depth).
 
 ## NotificationController
 
