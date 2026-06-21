@@ -6,21 +6,27 @@
 
 Wiring notification creation and removal into existing action / un-action services
 (`createLike`/`deleteLike`, `createRepost`/un-repost, `createQuote`, `createReply`,
-`followUser`/`unfollowUser`). The shared lookup layer and the removal (cleanup) path are
-complete; the creation / grouping path is implemented and awaiting tests, and the FOLLOW
-removal path has an open actor-location question.
+`followUser`/`unfollowUser`). Creation, removal, and integration tests are complete.
+Only concurrency hardening remains open.
 
 **Done:**
-- Removal / cleanup path — `deleteNotificationActorAndCleanupNotification` plus shared
-  `findNotification` / `findNotificationWithoutPostId` lookups and `countByNotificationId` /
-  `deleteByActorUserIdAndNotificationId` actor-repo methods.
-- Creation / grouping path — append-actor-vs-new-row wired into `createLike`, `createReply`,
-  `createRepost`, `createQuote`, `followUser`, using the shared lookups.
+- Removal / cleanup path — `deleteNotificationActorAndCleanupNotification` plus
+  `findDiscreteNotification` / `findSpecificFollowNotification` lookups and
+  `countByNotificationId` / `deleteByActorUserIdAndNotificationId` actor-repo methods.
+- Creation / grouping path — `upsertNotification` wired into `createLike`, `createReply`,
+  `createRepost`, `createQuote`, `followUser`; uses `findAggregateNotification` (LIKE/REPOST),
+  `findLastUpdatedFollow` (FOLLOW), or creates new (discrete types).
 - FOLLOW time-window confirmed at 12 hours — `NotificationConstants.TIME_BUCKET_SECONDS`.
 - FOLLOW removal resolved — `findSpecificFollowNotification` joins on actor to locate the
   correct notification across time-window boundaries.
-- Discrete-type (QUOTE/REPLY) removal resolved — `findNotification` now joins on actor
+- Discrete-type (QUOTE/REPLY) removal resolved — `findDiscreteNotification` joins on actor
   (`na.actorUserId = :actorId`) so deletion targets the correct per-user notification.
+- Aggregate vs discrete query split — `findAggregateNotification` (no actor join, keyed by
+  `recipient/post/type`) for LIKE/REPOST upsert; `findDiscreteNotification` (with actor join)
+  for QUOTE/REPLY/MENTION deletion.
+- Partial unique indexes — `one_like_notification_per_recipient` and
+  `one_repost_notification_per_recipient` enforce one aggregate notification per
+  `(post, recipient)` per type; concurrent race violations swallowed with `@Slf4j` logging.
 - Self-notification guard centralised in `upsertNotification` — redundant controller-level
   checks removed from `LikeController`, `ReplyController`, `ShareController`.
 - `ClockConfig` bean + `@MockitoBean Clock` — deterministic time-based testing for

@@ -45,7 +45,9 @@ line to update `updatedAt`, but write efficiency preserved. Consistent with `Fol
 
 ## NotificationConstraintName
 
-- Uses `{domain}_constraint_{name}` convention.
+- Uses `{domain}_constraint_{name}` convention for FK constraints.
+- `ONE_LIKE_NOTIFICATION` / `ONE_REPOST_NOTIFICATION` — partial unique index names (not FK
+  constraints, so they use descriptive index names rather than `{domain}_constraint_` prefix).
 - Dead `POST_ID_FK` constant and `// Is this clear enough` comment removed.
 
 ## NotificationConstants
@@ -96,15 +98,17 @@ line to update `updatedAt`, but write efficiency preserved. Consistent with `Fol
 
 ### Notification lookup methods
 
-- `findNotification(UUID recipientId, UUID actorId, UUID postId, NotificationType type)` —
-  joins on `NotificationActor` to locate the specific notification containing this actor;
-  keyed by `(recipient, actor, post, type)`. The actor join is critical for discrete types
-  (QUOTE/REPLY) where multiple notifications share the same `(recipient, post, type)`.
-- `findNotificationWithoutPostId(UUID recipientId, NotificationType type)` — returns most
-  recent notification of type, ordered by `updatedAt desc`. Used for FOLLOW upsert path only.
+- `findDiscreteNotification(UUID recipientId, UUID actorId, UUID postId, NotificationType type)`
+  — joins on `NotificationActor` because multiple notifications share the same
+  `(recipient, post, type)` for discrete types (QUOTE/REPLY/MENTION); the actor disambiguates.
+- `findAggregateNotification(UUID recipientId, UUID postId, NotificationType type)` — no actor
+  join; `(recipient, post, type)` uniquely identifies the notification for aggregate types
+  (LIKE/REPOST). Uniqueness enforced by partial unique indexes in `schema.sql`.
+- `findLastUpdatedFollow(UUID recipientId)` — returns the most recently updated FOLLOW
+  notification; used by the upsert path to check if the time-window is still open.
 - `findSpecificFollowNotification(UUID recipientId, UUID actorId)` — joins on actor to locate
-  the FOLLOW notification containing a specific actor. Used by the FOLLOW deletion path
-  (replaces `findNotificationWithoutPostId` for deletions).
+  the FOLLOW notification containing a specific actor; used by the deletion path where
+  `findLastUpdatedFollow` would miss older notifications.
 - `findAllByPostId(UUID postId)` — returns all notifications referencing a post; used by
   `deletePostNotifications` for post-deletion cascade.
 
@@ -112,8 +116,8 @@ line to update `updatedAt`, but write efficiency preserved. Consistent with `Fol
 
 - Signature: `(UUID authenticatedUserId, UUID recipientId, NotificationType type, UUID postId)`.
 - `@Transactional`.
-- Looks up notification: `findNotificationWithoutPostId` when `postId == null` (FOLLOW),
-  otherwise `findNotification`.
+- Looks up notification: `findSpecificFollowNotification` for FOLLOW (joins on actor),
+  otherwise `findDiscreteNotification`.
 - Returns silently when no notification found — cleanup is a side-effect of un-action; must not
   fail or roll back the surrounding operation. Differs from `readNotification` where the
   notification *is* the resource.
