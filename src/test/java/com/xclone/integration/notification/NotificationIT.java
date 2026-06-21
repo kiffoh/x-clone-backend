@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.graphql.test.tester.HttpGraphQlTester;
@@ -698,7 +699,8 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
     }
 
     @Nested
-    class upsertNotification {
+    @DisplayName("UpsertNotification")
+    class UpsertNotification {
       @Nested
       class followNotification {
         UUID userIdToFollow;
@@ -955,7 +957,8 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
     }
 
     @Nested
-    class deleteNotificationActorAndCleanupNotification {
+    @DisplayName("deleteNotificationActorAndCleanupNotification")
+    class DeleteNotificationActorAndCleanupNotification {
       @Nested
       class followNotification {
         @Test
@@ -1199,7 +1202,7 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
             deleteRepost_removesFromExistingNotification_cleanupNotificationAndNotificationActor() {
           UUID user2RepostId = createRepostWithTester(user2AuthenticatedTester, originalPostId);
           int notificationCountBeforeDelete = notificationRepository.findAll().size();
-          int actorCountBeforeDelete = notificationRepository.findAll().size();
+          int actorCountBeforeDelete = notificationActorRepository.findAll().size();
 
           user2AuthenticatedTester
               .document(
@@ -1230,12 +1233,12 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
       class quoteNotification {
         @Test
         void deleteQuote_removesNotification() {
-          createQuoteWithTester(user0AuthenticatedTester, originalPostId);
-          UUID secondQuoteId = createQuoteWithTester(user2AuthenticatedTester, originalPostId);
+          UUID firstQuoteId = createQuoteWithTester(user0AuthenticatedTester, originalPostId);
+          createQuoteWithTester(user2AuthenticatedTester, originalPostId);
           int notificationCountBeforeDelete = notificationRepository.findAll().size();
-          int actorCountBeforeDelete = notificationRepository.findAll().size();
+          int actorCountBeforeDelete = notificationActorRepository.findAll().size();
 
-          user2AuthenticatedTester
+          user0AuthenticatedTester
               .document(
                   """
                           mutation DeleteQuote($sharedPostId: ID!) {
@@ -1244,7 +1247,7 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
                             }
                           }
                       """)
-              .variable("sharedPostId", secondQuoteId)
+              .variable("sharedPostId", firstQuoteId)
               .execute()
               .path("deletePost.success")
               .entity(Boolean.class)
@@ -1264,12 +1267,12 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
       class replyNotification {
         @Test
         void deleteReply_removesNotification() {
-          createReplyWithTester(user0AuthenticatedTester, originalPostId);
-          UUID user2ReplyId = createReplyWithTester(user2AuthenticatedTester, originalPostId);
+          UUID firstReplyId = createReplyWithTester(user0AuthenticatedTester, originalPostId);
+          createReplyWithTester(user2AuthenticatedTester, originalPostId);
           int notificationCountBeforeDelete = notificationRepository.findAll().size();
-          int actorCountBeforeDelete = notificationRepository.findAll().size();
+          int actorCountBeforeDelete = notificationActorRepository.findAll().size();
 
-          user2AuthenticatedTester
+          user0AuthenticatedTester
               .document(
                   """
                           mutation DeleteReply($parentId: ID!) {
@@ -1278,7 +1281,7 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
                             }
                           }
                       """)
-              .variable("parentId", user2ReplyId)
+              .variable("parentId", firstReplyId)
               .execute()
               .path("deletePost.success")
               .entity(Boolean.class)

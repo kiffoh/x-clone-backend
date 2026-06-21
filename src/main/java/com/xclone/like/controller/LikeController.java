@@ -46,11 +46,8 @@ public class LikeController {
     try {
       likeService.createLike(postId, userDetails.getId());
       PostProfile updatedPost = postService.getPost(postId);
-      // Don't notify on self like
-      if (!updatedPost.authorId().equals(userDetails.getId())) {
-        notificationService.upsertNotification(
-            updatedPost.authorId(), userDetails.getId(), updatedPost.id(), NotificationType.LIKE);
-      }
+      notificationService.upsertNotification(
+          updatedPost.authorId(), userDetails.getId(), updatedPost.id(), NotificationType.LIKE);
       return new PostResponse("201", true, updatedPost, null);
     } catch (PostNotFoundException ex) {
       return new PostResponse(

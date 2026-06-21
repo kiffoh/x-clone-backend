@@ -48,10 +48,12 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
   List<ActorCount> findActorCounts(@Param("notificationIds") List<UUID> notificationIds);
 
   @Query(
-      "select n from Notification n where n.recipientUserId = :recipientId"
+      "select n from Notification n join NotificationActor na on n.id = na.notificationId"
+          + " where n.recipientUserId = :recipientId and na.actorUserId = :actorId"
           + " and n.postId = :postId and n.type = :type order by n.updatedAt desc limit 1")
   Optional<Notification> findNotification(
       @Param("recipientId") UUID recipientId,
+      @Param("actorId") UUID authenticatedUserId,
       @Param("postId") UUID postId,
       @Param("type") NotificationType type);
 
@@ -68,4 +70,6 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
           + " and na.actorUserId = :actorId")
   Optional<Notification> findSpecificFollowNotification(
       @Param("recipientId") UUID recipientId, @Param("actorId") UUID actorId);
+
+  List<Notification> findAllByPostId(UUID postId);
 }

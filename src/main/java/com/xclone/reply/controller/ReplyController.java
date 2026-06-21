@@ -70,11 +70,8 @@ public class ReplyController {
     try {
       PostProfile reply = postService.createReply(input, userDetails.getId());
       PostProfile parentPost = postService.getPost(input.parentId());
-      // Don't notify on self reply
-      if (!parentPost.authorId().equals(userDetails.getId())) {
-        notificationService.upsertNotification(
-            parentPost.authorId(), userDetails.getId(), parentPost.id(), NotificationType.REPLY);
-      }
+      notificationService.upsertNotification(
+          parentPost.authorId(), userDetails.getId(), parentPost.id(), NotificationType.REPLY);
       return new PostResponse("200", true, reply, null);
     } catch (ConstraintViolationException ex) {
       return new PostResponse("400", false, null, GraphQlErrorMapper.fromConstraintViolations(ex));

@@ -6,13 +6,13 @@ import com.xclone.exception.custom.NotPostAuthorException;
 import com.xclone.exception.custom.PostNotFoundException;
 import com.xclone.like.dto.LikeCount;
 import com.xclone.like.service.LikeService;
+import com.xclone.notification.model.enums.NotificationType;
 import com.xclone.notification.service.NotificationService;
 import com.xclone.post.dto.PostProfile;
 import com.xclone.post.dto.connection.PostConnection;
 import com.xclone.post.dto.mutation.PostResponse;
 import com.xclone.post.dto.request.CreatePostInput;
 import com.xclone.post.dto.request.UpdatePostInput;
-import com.xclone.post.model.enums.PostType;
 import com.xclone.post.service.PostService;
 import com.xclone.reply.dto.ReplyCount;
 import com.xclone.reply.service.ReplyService;
@@ -386,11 +386,16 @@ public class PostController {
       PostType postType = discernPostType(deletedPost);
       if (postType != PostType.POST) {
         PostProfile originalPost = getOriginalPost(deletedPost, postType);
-        notificationService.deleteNotificationActorAndCleanupNotification(
-            userDetails.getId(),
-            originalPost.authorId(),
-            postType.toNotificationType(),
-            originalPost.id());
+        if (originalPost != null) {
+          notificationService.deleteNotificationActorAndCleanupNotification(
+              userDetails.getId(),
+              originalPost.authorId(),
+              postType.toNotificationType(),
+              originalPost.id());
+        }
+      } else {
+        // delete all notifications related to post on post-deletion
+        notificationService.deletePostNotifications(deletedPost.id());
       }
       return new DeleteResponse("200", true, null);
     } catch (NotPostAuthorException ex) {
@@ -424,5 +429,29 @@ public class PostController {
       postId = post.sharedPostId();
     }
     return getPost(postId);
+  }
+
+  /** Enum for each type of post. */
+  private enum PostType {
+    REPOST,
+    QUOTE,
+    REPLY,
+    POST;
+
+    /**
+     * Mapping method to convert the {@link PostType} to its corresponding {@link NotificationType}.
+     *
+     * <p>{@link PostType} contains a subset of {@link NotificationType} values.
+     *
+     * @return corresponding notification type
+     */
+    private NotificationType toNotificationType() {
+      return switch (this) {
+        case REPLY -> NotificationType.REPLY;
+        case REPOST -> NotificationType.REPOST;
+        case QUOTE -> NotificationType.QUOTE;
+        case POST -> throw new IllegalStateException("POST has no corresponding notification type");
+      };
+    }
   }
 }
