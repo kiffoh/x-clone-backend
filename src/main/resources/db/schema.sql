@@ -115,3 +115,5 @@ CREATE INDEX idx_notifications_recipient on notifications(recipient_user_id);
 CREATE INDEX idx_notifications_created_at on notifications(created_at);
 CREATE INDEX idx_notifications_read on notifications(read);
 CREATE INDEX idx_notifications_post ON notifications(post_id);
+CREATE UNIQUE INDEX one_like_notification_per_recipient ON  notifications(post_id, recipient_user_id) WHERE type = 'LIKE';
+CREATE UNIQUE INDEX one_repost_notification_per_recipient ON notifications(post_id, recipient_user_id) WHERE type = 'REPOST';

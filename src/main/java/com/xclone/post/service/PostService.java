@@ -283,7 +283,7 @@ public class PostService {
    * @throws PostNotFoundException when post cannot be found in the database
    */
   @Transactional
-  public void deletePost(UUID postId, UUID userId) {
+  public PostProfile deletePost(UUID postId, UUID userId) {
     Post post =
         postRepository
             .findById(postId)
@@ -294,6 +294,8 @@ public class PostService {
     }
 
     post.setStatus(Status.DELETED);
+
+    return post.toPostProfile();
   }
 
   /**

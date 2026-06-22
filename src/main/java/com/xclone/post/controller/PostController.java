@@ -6,6 +6,8 @@ import com.xclone.exception.custom.NotPostAuthorException;
 import com.xclone.exception.custom.PostNotFoundException;
 import com.xclone.like.dto.LikeCount;
 import com.xclone.like.service.LikeService;
+import com.xclone.notification.model.enums.NotificationType;
+import com.xclone.notification.service.NotificationService;
 import com.xclone.post.dto.PostProfile;
 import com.xclone.post.dto.connection.PostConnection;
 import com.xclone.post.dto.mutation.PostResponse;
@@ -46,18 +48,21 @@ public class PostController {
   private final LikeService likeService;
   private final ReplyService replyService;
   private final ShareService shareService;
+  private final NotificationService notificationService;
 
   public PostController(
       PostService postService,
       UserService userService,
       LikeService likeService,
       ReplyService replyService,
-      ShareService shareService) {
+      ShareService shareService,
+      NotificationService notificationService) {
     this.postService = postService;
     this.userService = userService;
     this.likeService = likeService;
     this.replyService = replyService;
     this.shareService = shareService;
+    this.notificationService = notificationService;
   }
 
   /**
@@ -377,7 +382,21 @@ public class PostController {
   public DeleteResponse deletePost(
       @AuthenticationPrincipal CustomUserDetails userDetails, @Argument UUID postId) {
     try {
-      postService.deletePost(postId, userDetails.getId());
+      PostProfile deletedPost = postService.deletePost(postId, userDetails.getId());
+      PostType postType = discernPostType(deletedPost);
+      if (postType != PostType.POST) {
+        PostProfile originalPost = getOriginalPost(deletedPost, postType);
+        if (originalPost != null) {
+          notificationService.deleteNotificationActorAndCleanupNotification(
+              userDetails.getId(),
+              originalPost.authorId(),
+              postType.toNotificationType(),
+              originalPost.id());
+        }
+      } else {
+        // delete all notifications related to post on post-deletion
+        notificationService.deletePostNotifications(deletedPost.id());
+      }
       return new DeleteResponse("200", true, null);
     } catch (NotPostAuthorException ex) {
       return new DeleteResponse(
@@ -385,6 +404,54 @@ public class PostController {
     } catch (PostNotFoundException ex) {
       return new DeleteResponse(
           "404", false, GraphQlErrorMapper.fromPostNotFound("deletePost", ex));
+    }
+  }
+
+  private PostType discernPostType(PostProfile post) {
+    if (post.parentId() != null) {
+      return PostType.REPLY;
+    }
+    if (post.sharedPostId() != null && post.messageContent() != null) {
+      return PostType.QUOTE;
+    }
+    if (post.sharedPostId() != null) {
+      return PostType.REPOST;
+    }
+    return PostType.POST;
+  }
+
+  private PostProfile getOriginalPost(PostProfile post, PostType type) {
+    UUID postId;
+    if (type == PostType.REPLY) {
+      postId = post.parentId();
+    } else {
+      // Must be a shared post type - QUOTE / REPOST
+      postId = post.sharedPostId();
+    }
+    return getPost(postId);
+  }
+
+  /** Enum for each type of post. */
+  private enum PostType {
+    REPOST,
+    QUOTE,
+    REPLY,
+    POST;
+
+    /**
+     * Mapping method to convert the {@link PostType} to its corresponding {@link NotificationType}.
+     *
+     * <p>{@link PostType} contains a subset of {@link NotificationType} values.
+     *
+     * @return corresponding notification type
+     */
+    private NotificationType toNotificationType() {
+      return switch (this) {
+        case REPLY -> NotificationType.REPLY;
+        case REPOST -> NotificationType.REPOST;
+        case QUOTE -> NotificationType.QUOTE;
+        case POST -> throw new IllegalStateException("POST has no corresponding notification type");
+      };
     }
   }
 }

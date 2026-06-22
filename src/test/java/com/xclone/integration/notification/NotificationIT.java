@@ -7,6 +7,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.tuple;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
 
 import com.xclone.exception.dto.FieldError;
 import com.xclone.integration.base.BaseGraphQLIntegrationTest;
@@ -15,18 +16,27 @@ import com.xclone.notification.dto.NotificationProfile;
 import com.xclone.notification.dto.connection.NotificationConnection;
 import com.xclone.notification.dto.connection.NotificationEdge;
 import com.xclone.notification.dto.mutation.NotificationResponse;
+import com.xclone.notification.model.NotificationConstants;
 import com.xclone.notification.model.entity.Notification;
+import com.xclone.notification.model.entity.NotificationActor;
 import com.xclone.notification.model.enums.NotificationType;
 import com.xclone.post.model.entity.Post;
+import com.xclone.reply.dto.request.CreateReplyInput;
+import com.xclone.share.dto.request.CreateQuoteInput;
 import com.xclone.support.fixtures.UserFixtures;
 import com.xclone.user.model.entity.User;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springframework.graphql.test.tester.HttpGraphQlTester;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 public class NotificationIT extends BaseGraphQLIntegrationTest {
   List<String> handles = List.of("example1", "example2", "example3", "example4", "example5");
@@ -34,9 +44,12 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
 
   List<String> messageContents = List.of("one for sorrow", "two for joy", "three for a girl");
   List<Post> posts;
+
   Post likedPost;
   Post repostedPost;
   List<Notification> notifications;
+
+  @MockitoBean private Clock clock;
 
   @BeforeEach
   void setup() {
@@ -52,6 +65,10 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
     // - authenticated user authors post at index-0, index-1 and index-2
     List<User> authenticatedUserRepeated = Collections.nCopies(3, authenticatedUser);
     posts = seedPosts(messageContents, authenticatedUserRepeated, postRepository);
+    when(clock.instant()).thenReturn(Instant.now());
+  }
+
+  void addNotifications() {
     notifications = new ArrayList<>();
     // user 1 and user 2 like authenticated users post (post 0)
     likedPost = posts.getFirst();
@@ -77,6 +94,10 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
 
   @Nested
   class NotificationTests {
+    @BeforeEach
+    void setupNotifications() {
+      addNotifications();
+    }
 
     /**
      * A malformed cursor is tested in {@link ValidationIT.malformedCursorTests} so it has been
@@ -358,6 +379,11 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
 
   @Nested
   class ReadNotificationTests {
+    @BeforeEach
+    void setupNotifications() {
+      addNotifications();
+    }
+
     @Test
     void readNotification_validId_notificationNotRead_returnsNotificationResponse() {
       NotificationResponse response =
@@ -520,6 +546,756 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
           .extracting(FieldError::field, FieldError::message)
           .containsExactlyInAnyOrder(
               tuple("userId", "Only the recipient can read the notification"));
+    }
+  }
+
+  @Nested
+  class NotificationTriggers {
+    UUID originalPostId;
+    UUID originalPostAuthorId;
+    HttpGraphQlTester user0AuthenticatedTester;
+    HttpGraphQlTester user2AuthenticatedTester;
+
+    @BeforeEach
+    void setup() {
+      posts =
+          seedPosts(
+              messageContents,
+              List.of(users.getFirst(), users.get(1), users.get(2)),
+              postRepository);
+      postsIdsToDeleteFirst = new ArrayList<>();
+      originalPostId = posts.get(1).getId();
+      originalPostAuthorId = posts.get(1).getAuthorId();
+      user0AuthenticatedTester = authenticatedTester;
+      // Sets the accessToken to match that of user-2
+      String user2AccessToken = authHelpers.getUserAccessToken(users.get(2).getId().toString());
+      user2AuthenticatedTester =
+          authenticatedTester
+              .mutate()
+              .headers(headers -> headers.setBearerAuth(user2AccessToken))
+              .build();
+    }
+
+    private UUID createRepostWithTester(
+        HttpGraphQlTester authenticatedTester, UUID originalPostId) {
+      UUID repostId =
+          authenticatedTester
+              .document(
+                  """
+                           mutation CreateRepost($sharedPostId: ID!) {
+                            createRepost(sharedPostId: $sharedPostId) {
+                              success
+                              post {
+                                id
+                              }
+                            }
+                          }
+                          """)
+              .variable("sharedPostId", originalPostId)
+              .execute()
+              .path("createRepost.success")
+              .entity(Boolean.class)
+              .isEqualTo(true)
+              .path("createRepost.post.id")
+              .entity(UUID.class)
+              .get();
+      postsIdsToDeleteFirst.add(repostId);
+      return repostId;
+    }
+
+    private void triggerFollowWithTester(
+        HttpGraphQlTester authenticatedTester, UUID userIdToFollow) {
+      authenticatedTester
+          .document(
+              """
+                          mutation CreateFollow($userIdToFollow: ID!) {
+                            followUser(userIdToFollow: $userIdToFollow) {
+                              success
+                              user {
+                                id
+                              }
+                            }
+                          }
+                          """)
+          .variable("userIdToFollow", userIdToFollow)
+          .execute()
+          .path("followUser.success")
+          .entity(Boolean.class)
+          .isEqualTo(true);
+    }
+
+    private void createLikeWithTester(HttpGraphQlTester authenticatedTester, UUID originalPostId) {
+      authenticatedTester
+          .document(
+              """
+                          mutation CreateLike($postId: ID!) {
+                            likePost(postId: $postId) {
+                              success
+                              post {
+                                id
+                              }
+                            }
+                          }
+                          """)
+          .variable("postId", originalPostId)
+          .execute()
+          .path("likePost.success")
+          .entity(Boolean.class)
+          .isEqualTo(true);
+    }
+
+    private UUID createQuoteWithTester(HttpGraphQlTester authenticatedTester, UUID originalPostId) {
+      CreateQuoteInput input = new CreateQuoteInput(originalPostId, "this is the quote content");
+      UUID quoteId =
+          authenticatedTester
+              .document(
+                  """
+                          mutation CreateQuote($input: CreateQuoteInput!) {
+                            createQuote(input: $input) {
+                              success
+                              post {
+                                id
+                              }
+                            }
+                          }
+                          """)
+              .variable("input", input)
+              .execute()
+              .path("createQuote.success")
+              .entity(Boolean.class)
+              .isEqualTo(true)
+              .path("createQuote.post.id")
+              .entity(UUID.class)
+              .get();
+      postsIdsToDeleteFirst.add(quoteId);
+      return quoteId;
+    }
+
+    private UUID createReplyWithTester(HttpGraphQlTester authenticatedTester, UUID originalPostId) {
+      CreateReplyInput input = new CreateReplyInput(originalPostId, "this is the reply content");
+      UUID replyId =
+          authenticatedTester
+              .document(
+                  """
+                          mutation CreateReply($input: CreateReplyInput!) {
+                            createReply(input: $input) {
+                              success
+                              post {
+                                id
+                              }
+                            }
+                          }
+                          """)
+              .variable("input", input)
+              .execute()
+              .path("createReply.success")
+              .entity(Boolean.class)
+              .isEqualTo(true)
+              .path("createReply.post.id")
+              .entity(UUID.class)
+              .get();
+      postsIdsToDeleteFirst.add(replyId);
+      return replyId;
+    }
+
+    @Nested
+    @DisplayName("UpsertNotification")
+    class UpsertNotification {
+      @Nested
+      class followNotification {
+        UUID userIdToFollow;
+
+        @BeforeEach
+        void setupUserIdToFollow() {
+          userIdToFollow = users.get(1).getId();
+        }
+
+        @Test
+        void follow_noOutstandingFollows_createsNewNotification_createsNewNotificationActor() {
+          triggerFollowWithTester(user0AuthenticatedTester, userIdToFollow);
+
+          List<NotificationActor> notificationActors = notificationActorRepository.findAll();
+          List<Notification> notifications = notificationRepository.findAll();
+
+          assertThat(notifications).hasSize(1);
+          assertThat(notificationActors).hasSize(1);
+
+          Notification notification = notifications.getFirst();
+          assertNull(notification.getPostId());
+          assertThat(notification.getRecipientUserId()).isEqualTo(userIdToFollow);
+          assertFalse(notification.isRead());
+
+          NotificationActor actor = notificationActors.getFirst();
+          assertThat(actor.getActorUserId()).isEqualTo(authenticatedUser.getId());
+          assertThat(actor.getNotificationId()).isEqualTo(notification.getId());
+        }
+
+        @Test
+        void follow_insideTimeBucket_updatesExistingNotification_createsNewNotificationActor() {
+          triggerFollowWithTester(user0AuthenticatedTester, userIdToFollow);
+          triggerFollowWithTester(user2AuthenticatedTester, userIdToFollow);
+
+          List<NotificationActor> notificationActors = notificationActorRepository.findAll();
+          List<Notification> notifications = notificationRepository.findAll();
+
+          assertThat(notifications).hasSize(1);
+          assertThat(notificationActors).hasSize(2);
+
+          Notification notification = notifications.getFirst();
+          assertNull(notification.getPostId());
+          assertThat(notification.getRecipientUserId()).isEqualTo(userIdToFollow);
+          assertFalse(notification.isRead());
+
+          // findAll method in repository returns data rows in order creation, therefore:
+          // - user 0 is actor at index 0 in notification actors list
+          // - user 2 is actor at index 1 in notification actors list
+          NotificationActor firstActor = notificationActors.getFirst();
+          NotificationActor secondActor = notificationActors.getLast();
+          assertThat(firstActor.getActorUserId()).isEqualTo(users.get(0).getId());
+          assertThat(firstActor.getNotificationId()).isEqualTo(notification.getId());
+          assertThat(secondActor.getActorUserId()).isEqualTo(users.get(2).getId());
+          assertThat(secondActor.getNotificationId()).isEqualTo(notification.getId());
+        }
+
+        @Test
+        void follow_outsideTimeBucket_createsNewNotification_createsNewNotificationActor() {
+          Instant timeOutsideTimeBucket =
+              Instant.now().plusSeconds(NotificationConstants.TIME_BUCKET_SECONDS * 2);
+          when(clock.instant()).thenReturn(timeOutsideTimeBucket);
+          triggerFollowWithTester(user0AuthenticatedTester, userIdToFollow);
+          triggerFollowWithTester(user2AuthenticatedTester, userIdToFollow);
+
+          List<Notification> notifications = notificationRepository.findAll();
+          List<NotificationActor> notificationActors = notificationActorRepository.findAll();
+
+          assertThat(notifications).hasSize(2);
+          assertThat(notificationActors).hasSize(2);
+
+          // findAll method in repository returns data rows in order creation:
+          Notification firstNotification = notifications.getFirst();
+          Notification secondNotification = notifications.getLast();
+          assertNull(firstNotification.getPostId());
+          assertThat(firstNotification.getRecipientUserId()).isEqualTo(userIdToFollow);
+          assertFalse(firstNotification.isRead());
+          assertNull(secondNotification.getPostId());
+          assertThat(secondNotification.getRecipientUserId()).isEqualTo(userIdToFollow);
+          assertFalse(secondNotification.isRead());
+
+          // findAll method in repository returns data rows in order creation, therefore:
+          // - user 0 is actor at index 0 in notification actors list
+          // - user 2 is actor at index 1 in notification actors list
+          NotificationActor firstActor = notificationActors.getFirst();
+          NotificationActor secondActor = notificationActors.getLast();
+          assertThat(firstActor.getActorUserId()).isEqualTo(users.get(0).getId());
+          assertThat(firstActor.getNotificationId()).isEqualTo(firstNotification.getId());
+          assertThat(secondActor.getActorUserId()).isEqualTo(users.get(2).getId());
+          assertThat(secondActor.getNotificationId()).isEqualTo(secondNotification.getId());
+        }
+      }
+
+      @Nested
+      class likeNotification {
+        @Test
+        void like_createsNewNotification_createsNewNotificationActor() {
+          createLikeWithTester(user0AuthenticatedTester, originalPostId);
+
+          List<NotificationActor> notificationActors = notificationActorRepository.findAll();
+          List<Notification> notifications = notificationRepository.findAll();
+
+          assertThat(notifications).hasSize(1);
+          assertThat(notificationActors).hasSize(1);
+
+          Notification notification = notifications.getFirst();
+          assertThat(notification.getPostId()).isEqualTo(originalPostId);
+          assertThat(notification.getRecipientUserId()).isEqualTo(originalPostAuthorId);
+          assertFalse(notification.isRead());
+
+          NotificationActor actor = notificationActors.getFirst();
+          assertThat(actor.getActorUserId()).isEqualTo(authenticatedUser.getId());
+          assertThat(actor.getNotificationId()).isEqualTo(notification.getId());
+        }
+
+        @Test
+        void like_updatesExistingNotification_createsNewNotificationActor() {
+          createLikeWithTester(user0AuthenticatedTester, originalPostId);
+          createLikeWithTester(user2AuthenticatedTester, originalPostId);
+
+          List<NotificationActor> notificationActors = notificationActorRepository.findAll();
+          List<Notification> notifications = notificationRepository.findAll();
+
+          assertThat(notifications).hasSize(1);
+          assertThat(notificationActors).hasSize(2);
+
+          Notification notification = notifications.getFirst();
+          assertThat(notification.getPostId()).isEqualTo(originalPostId);
+          assertThat(notification.getRecipientUserId()).isEqualTo(originalPostAuthorId);
+          assertFalse(notification.isRead());
+
+          // findAll method in repository returns data rows in order creation, therefore:
+          // - user 0 is actor at index 0 in notification actors list
+          // - user 2 is actor at index 1 in notification actors list
+          NotificationActor firstActor = notificationActors.getFirst();
+          NotificationActor secondActor = notificationActors.getLast();
+          assertThat(firstActor.getActorUserId()).isEqualTo(users.get(0).getId());
+          assertThat(firstActor.getNotificationId()).isEqualTo(notification.getId());
+          assertThat(secondActor.getActorUserId()).isEqualTo(users.get(2).getId());
+          assertThat(secondActor.getNotificationId()).isEqualTo(notification.getId());
+        }
+      }
+
+      @Nested
+      class repostNotification {
+        @Test
+        void repost_createsNewNotification_createsNewNotificationActor() {
+          createRepostWithTester(user0AuthenticatedTester, originalPostId);
+
+          List<Notification> notifications = notificationRepository.findAll();
+          List<NotificationActor> notificationActors = notificationActorRepository.findAll();
+
+          assertThat(notifications).hasSize(1);
+          assertThat(notificationActors).hasSize(1);
+
+          Notification notification = notifications.getFirst();
+          assertThat(notification.getPostId()).isEqualTo(originalPostId);
+          assertThat(notification.getRecipientUserId()).isEqualTo(originalPostAuthorId);
+          assertFalse(notification.isRead());
+
+          NotificationActor actor = notificationActors.getFirst();
+          assertThat(actor.getActorUserId()).isEqualTo(authenticatedUser.getId());
+          assertThat(actor.getNotificationId()).isEqualTo(notification.getId());
+        }
+
+        @Test
+        void repost_updatesExistingNotification_createsNewNotificationActor() {
+          createRepostWithTester(user0AuthenticatedTester, originalPostId);
+          createRepostWithTester(user2AuthenticatedTester, originalPostId);
+
+          List<Notification> notifications = notificationRepository.findAll();
+          List<NotificationActor> notificationActors = notificationActorRepository.findAll();
+
+          assertThat(notifications).hasSize(1);
+          assertThat(notificationActors).hasSize(2);
+
+          Notification notification = notifications.getFirst();
+          assertThat(notification.getPostId()).isEqualTo(originalPostId);
+          assertThat(notification.getRecipientUserId()).isEqualTo(originalPostAuthorId);
+          assertFalse(notification.isRead());
+
+          // findAll method in repository returns data rows in order creation, therefore:
+          // - user 0 is actor at index 0 in notification actors list
+          // - user 2 is actor at index 1 in notification actors list
+          NotificationActor firstActor = notificationActors.getFirst();
+          NotificationActor secondActor = notificationActors.getLast();
+          assertThat(firstActor.getActorUserId()).isEqualTo(users.get(0).getId());
+          assertThat(firstActor.getNotificationId()).isEqualTo(notification.getId());
+          assertThat(secondActor.getActorUserId()).isEqualTo(users.get(2).getId());
+          assertThat(secondActor.getNotificationId()).isEqualTo(notification.getId());
+        }
+      }
+
+      @Nested
+      class quoteNotification {
+        @Test
+        void quote_createsDiscreteNotifications() {
+          createQuoteWithTester(user0AuthenticatedTester, originalPostId);
+          createQuoteWithTester(user2AuthenticatedTester, originalPostId);
+
+          List<Notification> notifications = notificationRepository.findAll();
+          List<NotificationActor> notificationActors = notificationActorRepository.findAll();
+
+          assertThat(notifications).hasSize(2);
+          assertThat(notificationActors).hasSize(2);
+
+          // findAll method in repository returns data rows in order creation, therefore:
+          // - user 0 notification is created first
+          // - user 2 notification is created last
+          Notification firstNotification = notifications.getFirst();
+          Notification secondNotification = notifications.getLast();
+          assertThat(firstNotification.getPostId()).isEqualTo(originalPostId);
+          assertThat(firstNotification.getRecipientUserId()).isEqualTo(originalPostAuthorId);
+          assertFalse(firstNotification.isRead());
+
+          NotificationActor firstActor = notificationActors.getFirst();
+          assertThat(firstActor.getActorUserId()).isEqualTo(authenticatedUser.getId());
+          assertThat(firstActor.getNotificationId()).isEqualTo(firstNotification.getId());
+          NotificationActor secondActor = notificationActors.getLast();
+          assertThat(secondActor.getActorUserId()).isEqualTo(users.get(2).getId());
+          assertThat(secondActor.getNotificationId()).isEqualTo(secondNotification.getId());
+        }
+      }
+
+      @Nested
+      class replyNotification {
+        @Test
+        void reply_createsDiscreteNotifications() {
+          createReplyWithTester(user0AuthenticatedTester, originalPostId);
+          createReplyWithTester(user2AuthenticatedTester, originalPostId);
+
+          List<Notification> notifications = notificationRepository.findAll();
+          List<NotificationActor> notificationActors = notificationActorRepository.findAll();
+
+          assertThat(notifications).hasSize(2);
+          assertThat(notificationActors).hasSize(2);
+
+          // findAll method in repository returns data rows in order creation, therefore:
+          // - user 0 notification is created first
+          // - user 2 notification is created last
+          Notification firstNotification = notifications.getFirst();
+          Notification secondNotification = notifications.getLast();
+          assertThat(firstNotification.getPostId()).isEqualTo(originalPostId);
+          assertThat(firstNotification.getRecipientUserId()).isEqualTo(originalPostAuthorId);
+          assertFalse(firstNotification.isRead());
+
+          NotificationActor firstActor = notificationActors.getFirst();
+          assertThat(firstActor.getActorUserId()).isEqualTo(authenticatedUser.getId());
+          assertThat(firstActor.getNotificationId()).isEqualTo(firstNotification.getId());
+          NotificationActor secondActor = notificationActors.getLast();
+          assertThat(secondActor.getActorUserId()).isEqualTo(users.get(2).getId());
+          assertThat(secondActor.getNotificationId()).isEqualTo(secondNotification.getId());
+        }
+      }
+    }
+
+    @Nested
+    @DisplayName("deleteNotificationActorAndCleanupNotification")
+    class DeleteNotificationActorAndCleanupNotification {
+      @Nested
+      class followNotification {
+        @Test
+        void unfollow_removesFromExistingNotification_deletesOnlyNotificationActor() {
+          UUID recipientUserId = users.get(1).getId();
+          triggerFollowWithTester(user0AuthenticatedTester, recipientUserId);
+          triggerFollowWithTester(user2AuthenticatedTester, recipientUserId);
+          int notificationCountBeforeDelete = notificationRepository.findAll().size();
+          int actorCountBeforeDelete = notificationActorRepository.findAll().size();
+
+          user2AuthenticatedTester
+              .document(
+                  """
+                          mutation DeleteFollow($userIdToUnfollow: ID!) {
+                            unfollowUser(userIdToUnfollow: $userIdToUnfollow) {
+                              success
+                              user {
+                                id
+                              }
+                            }
+                          }
+                          """)
+              .variable("userIdToUnfollow", recipientUserId)
+              .execute()
+              .path("unfollowUser.success")
+              .entity(Boolean.class)
+              .isEqualTo(true);
+
+          List<NotificationActor> notificationActors = notificationActorRepository.findAll();
+          List<Notification> notifications = notificationRepository.findAll();
+
+          assertThat(notificationCountBeforeDelete).isEqualTo(1);
+          assertThat(actorCountBeforeDelete).isEqualTo(2);
+          assertThat(notifications).hasSize(1);
+          assertThat(notificationActors).hasSize(1);
+
+          NotificationActor actor = notificationActors.getFirst();
+          assertThat(actor.getActorUserId()).isEqualTo(authenticatedUser.getId());
+        }
+
+        @Test
+        void unfollow_removesFromExistingNotification_cleanupNotificationAndNotificationActor() {
+          UUID recipientUserId = users.get(1).getId();
+          triggerFollowWithTester(user0AuthenticatedTester, recipientUserId);
+          int notificationCountBeforeDelete = notificationRepository.findAll().size();
+          int actorCountBeforeDelete = notificationActorRepository.findAll().size();
+
+          user0AuthenticatedTester
+              .document(
+                  """
+                          mutation DeleteFollow($userIdToUnfollow: ID!) {
+                            unfollowUser(userIdToUnfollow: $userIdToUnfollow) {
+                              success
+                              user {
+                                id
+                              }
+                            }
+                          }
+                          """)
+              .variable("userIdToUnfollow", recipientUserId)
+              .execute()
+              .path("unfollowUser.success")
+              .entity(Boolean.class)
+              .isEqualTo(true);
+
+          List<NotificationActor> notificationActors = notificationActorRepository.findAll();
+          List<Notification> notifications = notificationRepository.findAll();
+
+          assertThat(notificationCountBeforeDelete).isEqualTo(1);
+          assertThat(actorCountBeforeDelete).isEqualTo(1);
+          assertThat(notifications).hasSize(0);
+          assertThat(notificationActors).hasSize(0);
+        }
+
+        @Test
+        void unfollow_removesFromCorrectTimeBucket() {
+          // Initialise
+          Instant timeOutsideTimeBucket =
+              Instant.now().plusSeconds(NotificationConstants.TIME_BUCKET_SECONDS * 2);
+          when(clock.instant()).thenReturn(timeOutsideTimeBucket);
+          UUID recipientUserId = users.get(1).getId();
+          triggerFollowWithTester(user0AuthenticatedTester, recipientUserId);
+          triggerFollowWithTester(user2AuthenticatedTester, recipientUserId);
+          int notificationCountBeforeDelete = notificationRepository.findAll().size();
+          int actorCountBeforeDelete = notificationActorRepository.findAll().size();
+
+          user2AuthenticatedTester
+              .document(
+                  """
+                          mutation DeleteFollow($userIdToUnfollow: ID!) {
+                            unfollowUser(userIdToUnfollow: $userIdToUnfollow) {
+                              success
+                              user {
+                                id
+                              }
+                            }
+                          }
+                          """)
+              .variable("userIdToUnfollow", recipientUserId)
+              .execute()
+              .path("unfollowUser.success")
+              .entity(Boolean.class)
+              .isEqualTo(true);
+
+          List<NotificationActor> notificationActors = notificationActorRepository.findAll();
+          List<Notification> notifications = notificationRepository.findAll();
+
+          assertThat(notificationCountBeforeDelete).isEqualTo(2);
+          assertThat(actorCountBeforeDelete).isEqualTo(2);
+          assertThat(notifications).hasSize(1);
+          assertThat(notificationActors).hasSize(1);
+
+          NotificationActor actor = notificationActors.getFirst();
+          assertThat(actor.getActorUserId()).isEqualTo(authenticatedUser.getId());
+        }
+      }
+
+      @Nested
+      class likeNotification {
+        @Test
+        void unlike_removesFromExistingNotification_deletesOnlyNotificationActor() {
+          createLikeWithTester(user0AuthenticatedTester, originalPostId);
+          createLikeWithTester(user2AuthenticatedTester, originalPostId);
+          int notificationCountBeforeDelete = notificationRepository.findAll().size();
+          int actorCountBeforeDelete = notificationActorRepository.findAll().size();
+
+          user2AuthenticatedTester
+              .document(
+                  """
+                          mutation DeleteLike($postId: ID!) {
+                            unlikePost(postId: $postId) {
+                              success
+                              post {
+                                id
+                              }
+                            }
+                          }
+                          """)
+              .variable("postId", originalPostId)
+              .execute()
+              .path("unlikePost.success")
+              .entity(Boolean.class)
+              .isEqualTo(true);
+
+          List<NotificationActor> notificationActors = notificationActorRepository.findAll();
+          List<Notification> notifications = notificationRepository.findAll();
+
+          assertThat(notificationCountBeforeDelete).isEqualTo(1);
+          assertThat(actorCountBeforeDelete).isEqualTo(2);
+          assertThat(notifications).hasSize(1);
+          assertThat(notificationActors).hasSize(1);
+
+          Notification notification = notifications.getFirst();
+          assertThat(notification.getPostId()).isEqualTo(originalPostId);
+          assertThat(notification.getRecipientUserId()).isEqualTo(originalPostAuthorId);
+          assertFalse(notification.isRead());
+
+          NotificationActor actor = notificationActors.getFirst();
+          assertThat(actor.getActorUserId()).isEqualTo(authenticatedUser.getId());
+          assertThat(actor.getNotificationId()).isEqualTo(notification.getId());
+        }
+
+        @Test
+        void unlike_removesFromExistingNotification_cleanupNotificationAndNotificationActor() {
+          createLikeWithTester(user2AuthenticatedTester, originalPostId);
+          int notificationCountBeforeDelete = notificationRepository.findAll().size();
+          int actorCountBeforeDelete = notificationActorRepository.findAll().size();
+
+          user2AuthenticatedTester
+              .document(
+                  """
+                          mutation DeleteLike($postId: ID!) {
+                            unlikePost(postId: $postId) {
+                              success
+                              post {
+                                id
+                              }
+                            }
+                          }
+                          """)
+              .variable("postId", originalPostId)
+              .execute()
+              .path("unlikePost.success")
+              .entity(Boolean.class)
+              .isEqualTo(true);
+
+          List<NotificationActor> notificationActors = notificationActorRepository.findAll();
+          List<Notification> notifications = notificationRepository.findAll();
+
+          assertThat(notificationCountBeforeDelete).isEqualTo(1);
+          assertThat(actorCountBeforeDelete).isEqualTo(1);
+          assertThat(notifications).hasSize(0);
+          assertThat(notificationActors).hasSize(0);
+        }
+      }
+
+      @Nested
+      class repostNotification {
+        @Test
+        void deleteRepost_removesFromExistingNotification_deletesOnlyNotificationActor() {
+          createRepostWithTester(user0AuthenticatedTester, originalPostId);
+          UUID user2RepostId = createRepostWithTester(user2AuthenticatedTester, originalPostId);
+          int notificationCountBeforeDelete = notificationRepository.findAll().size();
+          int actorCountBeforeDelete = notificationActorRepository.findAll().size();
+
+          user2AuthenticatedTester
+              .document(
+                  """
+                          mutation DeleteRepost($sharedPostId: ID!) {
+                            deletePost(postId: $sharedPostId) {
+                              success
+                            }
+                          }
+                          """)
+              .variable("sharedPostId", user2RepostId)
+              .execute()
+              .path("deletePost.success")
+              .entity(Boolean.class)
+              .isEqualTo(true);
+
+          List<Notification> notifications = notificationRepository.findAll();
+          List<NotificationActor> notificationActors = notificationActorRepository.findAll();
+
+          assertThat(notificationCountBeforeDelete).isEqualTo(1);
+          assertThat(actorCountBeforeDelete).isEqualTo(2);
+          assertThat(notifications).hasSize(1);
+          assertThat(notificationActors).hasSize(1);
+
+          Notification notification = notifications.getFirst();
+          assertThat(notification.getPostId()).isEqualTo(originalPostId);
+          assertThat(notification.getRecipientUserId()).isEqualTo(originalPostAuthorId);
+          assertFalse(notification.isRead());
+
+          NotificationActor actor = notificationActors.getFirst();
+          assertThat(actor.getActorUserId()).isEqualTo(authenticatedUser.getId());
+          assertThat(actor.getNotificationId()).isEqualTo(notification.getId());
+        }
+
+        @Test
+        void
+            deleteRepost_removesFromExistingNotification_cleanupNotificationAndNotificationActor() {
+          UUID user2RepostId = createRepostWithTester(user2AuthenticatedTester, originalPostId);
+          int notificationCountBeforeDelete = notificationRepository.findAll().size();
+          int actorCountBeforeDelete = notificationActorRepository.findAll().size();
+
+          user2AuthenticatedTester
+              .document(
+                  """
+                          mutation DeleteRepost($sharedPostId: ID!) {
+                            deletePost(postId: $sharedPostId) {
+                              success
+                            }
+                          }
+                          """)
+              .variable("sharedPostId", user2RepostId)
+              .execute()
+              .path("deletePost.success")
+              .entity(Boolean.class)
+              .isEqualTo(true);
+
+          List<Notification> notifications = notificationRepository.findAll();
+          List<NotificationActor> notificationActors = notificationActorRepository.findAll();
+
+          assertThat(notificationCountBeforeDelete).isEqualTo(1);
+          assertThat(actorCountBeforeDelete).isEqualTo(1);
+          assertThat(notifications).hasSize(0);
+          assertThat(notificationActors).hasSize(0);
+        }
+      }
+
+      @Nested
+      class quoteNotification {
+        @Test
+        void deleteQuote_removesNotification() {
+          UUID firstQuoteId = createQuoteWithTester(user0AuthenticatedTester, originalPostId);
+          createQuoteWithTester(user2AuthenticatedTester, originalPostId);
+          int notificationCountBeforeDelete = notificationRepository.findAll().size();
+          int actorCountBeforeDelete = notificationActorRepository.findAll().size();
+
+          user0AuthenticatedTester
+              .document(
+                  """
+                          mutation DeleteQuote($sharedPostId: ID!) {
+                            deletePost(postId: $sharedPostId) {
+                              success
+                            }
+                          }
+                      """)
+              .variable("sharedPostId", firstQuoteId)
+              .execute()
+              .path("deletePost.success")
+              .entity(Boolean.class)
+              .isEqualTo(true);
+
+          List<Notification> notifications = notificationRepository.findAll();
+          List<NotificationActor> notificationActors = notificationActorRepository.findAll();
+
+          assertThat(notificationCountBeforeDelete).isEqualTo(2);
+          assertThat(actorCountBeforeDelete).isEqualTo(2);
+          assertThat(notifications).hasSize(1);
+          assertThat(notificationActors).hasSize(1);
+        }
+      }
+
+      @Nested
+      class replyNotification {
+        @Test
+        void deleteReply_removesNotification() {
+          UUID firstReplyId = createReplyWithTester(user0AuthenticatedTester, originalPostId);
+          createReplyWithTester(user2AuthenticatedTester, originalPostId);
+          int notificationCountBeforeDelete = notificationRepository.findAll().size();
+          int actorCountBeforeDelete = notificationActorRepository.findAll().size();
+
+          user0AuthenticatedTester
+              .document(
+                  """
+                          mutation DeleteReply($parentId: ID!) {
+                            deletePost(postId: $parentId) {
+                              success
+                            }
+                          }
+                      """)
+              .variable("parentId", firstReplyId)
+              .execute()
+              .path("deletePost.success")
+              .entity(Boolean.class)
+              .isEqualTo(true);
+
+          List<Notification> notifications = notificationRepository.findAll();
+          List<NotificationActor> notificationActors = notificationActorRepository.findAll();
+
+          assertThat(notificationCountBeforeDelete).isEqualTo(2);
+          assertThat(actorCountBeforeDelete).isEqualTo(2);
+          assertThat(notifications).hasSize(1);
+          assertThat(notificationActors).hasSize(1);
+        }
+      }
     }
   }
 }

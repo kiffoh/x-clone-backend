@@ -6,6 +6,8 @@ import com.xclone.exception.custom.DuplicateFollowException;
 import com.xclone.exception.custom.SelfFollowException;
 import com.xclone.follow.model.entity.Follow;
 import com.xclone.follow.service.FollowService;
+import com.xclone.notification.model.enums.NotificationType;
+import com.xclone.notification.service.NotificationService;
 import com.xclone.security.jwt.JwtAuthenticationFilter;
 import com.xclone.security.user.CustomUserDetails;
 import com.xclone.user.dto.UserProfile;
@@ -21,9 +23,11 @@ import org.springframework.stereotype.Controller;
 @Controller
 public class FollowController {
   private final FollowService followService;
+  private final NotificationService notificationService;
 
-  public FollowController(FollowService followService) {
+  public FollowController(FollowService followService, NotificationService notificationService) {
     this.followService = followService;
+    this.notificationService = notificationService;
   }
 
   /**
@@ -43,6 +47,8 @@ public class FollowController {
     UUID followerId = userDetails.getId();
     try {
       UserProfile updatedUser = followService.followUser(followerId, userIdToFollow);
+      notificationService.upsertNotification(
+          userIdToFollow, followerId, null, NotificationType.FOLLOW);
       return new UserResponse("201", true, updatedUser, null);
     } catch (UsernameNotFoundException ex) {
       return new UserResponse(
@@ -74,6 +80,9 @@ public class FollowController {
     UUID followerId = userDetails.getId();
     try {
       UserProfile updatedUser = followService.unfollowUser(followerId, userIdToUnfollow);
+      notificationService.deleteNotificationActorAndCleanupNotification(
+          userDetails.getId(), userIdToUnfollow, NotificationType.FOLLOW, null);
+
       return new UserResponse("200", true, updatedUser, null);
     } catch (UsernameNotFoundException ex) {
       return new UserResponse(
