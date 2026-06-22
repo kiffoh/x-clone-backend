@@ -1,10 +1,6 @@
 package com.xclone.integration.post;
 
-import static com.xclone.support.helpers.PostHelpers.createPostContents;
-import static com.xclone.support.helpers.PostHelpers.deletePostsInDescendingOrder;
-import static com.xclone.support.helpers.PostHelpers.seedPosts;
-import static com.xclone.support.helpers.PostHelpers.seedQuotes;
-import static com.xclone.support.helpers.PostHelpers.setPostStatusDeleted;
+import static com.xclone.support.helpers.PostHelpers.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -2691,6 +2687,117 @@ public class PostIT extends BaseGraphQLIntegrationTest {
                   assertTrue(sharedByMe.get(2)); // post 1
                 });
       }
+    }
+  }
+
+  @Nested
+  class mentionTests {
+    Post postWithMention;
+    User firstMentionedUser;
+
+    void addMention(Post post, User author) {
+      seedMention(post, author, mentionRepository);
+    }
+
+    @BeforeEach
+    void setup() {
+      // User 0 follows user 1 (outer setup) + user 2
+      FollowHelpers.seedFollow(followRepository, users.getFirst(), users.get(2));
+      // posts:
+      // - authenticated user authors post at index-0
+      // - user at index-1 authors post at index-1
+      // - user at index-2 authors post at index-2
+      postWithMention = posts.get(1);
+      firstMentionedUser = users.get(2);
+      addMention(postWithMention, firstMentionedUser);
+    }
+
+    @Test
+    void getPostWithNoMentions_returnsPostProfile() {
+      authenticatedTester
+          .document(
+              """
+                query GetPost($id: ID!) {
+                  getPost(postId: $id) {
+                    mentions {
+                      id
+                    }
+                  }
+                }
+                """)
+          .variable("id", posts.get(2).getId())
+          .execute()
+          .path("getPost.mentions[*].id")
+          .entityList(UUID.class)
+          .hasSize(0);
+    }
+
+    @Test
+    void getPostWithOneMention_returnsPostProfile() {
+      authenticatedTester
+          .document(
+              """
+                query GetPost($id: ID!) {
+                  getPost(postId: $id) {
+                    mentions {
+                      id
+                    }
+                  }
+                }
+                """)
+          .variable("id", postWithMention.getId())
+          .execute()
+          .path("getPost.mentions[*].id")
+          .entityList(UUID.class)
+          .hasSize(1)
+          .contains(firstMentionedUser.getId());
+    }
+
+    @Test
+    void getPostWithDeletedMentionedUser_excludesDeletedUser() {
+      firstMentionedUser.setStatus(UserStatus.DELETED);
+      userRepository.saveAndFlush(firstMentionedUser);
+
+      authenticatedTester
+          .document(
+              """
+                query GetPost($id: ID!) {
+                  getPost(postId: $id) {
+                    mentions {
+                      id
+                    }
+                  }
+                }
+                """)
+          .variable("id", postWithMention.getId())
+          .execute()
+          .path("getPost.mentions[*].id")
+          .entityList(UUID.class)
+          .hasSize(0);
+    }
+
+    @Test
+    void getPostWithMultipleMentions_returnsPostProfile() {
+      User secondMentionedUser = authenticatedUser;
+      addMention(postWithMention, secondMentionedUser);
+
+      authenticatedTester
+          .document(
+              """
+                query GetPost($id: ID!) {
+                  getPost(postId: $id) {
+                    mentions {
+                      id
+                    }
+                  }
+                }
+                """)
+          .variable("id", postWithMention.getId())
+          .execute()
+          .path("getPost.mentions[*].id")
+          .entityList(UUID.class)
+          .hasSize(2)
+          .contains(firstMentionedUser.getId(), secondMentionedUser.getId());
     }
   }
 }

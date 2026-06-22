@@ -2,6 +2,7 @@ package com.xclone.integration.base;
 
 import com.xclone.follow.repository.FollowRepository;
 import com.xclone.like.repository.LikeRepository;
+import com.xclone.mention.repository.MentionRepository;
 import com.xclone.notification.repository.NotificationActorRepository;
 import com.xclone.notification.repository.NotificationRepository;
 import com.xclone.post.repository.PostRepository;
@@ -26,6 +27,7 @@ public class BaseGraphQLIntegrationTest extends BaseIntegrationTest {
   @Autowired protected PostRepository postRepository;
   @Autowired protected NotificationRepository notificationRepository;
   @Autowired protected NotificationActorRepository notificationActorRepository;
+  @Autowired protected MentionRepository mentionRepository;
   @Autowired protected AuthHelpers authHelpers;
   @Autowired protected HttpGraphQlTester authenticatedTester;
   protected User authenticatedUser;
@@ -34,6 +36,7 @@ public class BaseGraphQLIntegrationTest extends BaseIntegrationTest {
   void wipeDBs() {
     notificationActorRepository.deleteAll();
     notificationRepository.deleteAll();
+    mentionRepository.deleteAll();
     likeRepository.deleteAll();
     if (postsIdsToDeleteFirst != null) {
       postRepository.deleteAllById(postsIdsToDeleteFirst);

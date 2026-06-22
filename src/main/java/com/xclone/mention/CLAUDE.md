@@ -30,6 +30,8 @@ every other trigger source (like, follow, share, reply) having its own domain an
 ## MentionRepository
 
 - `findPostMentions(List<UUID> postIds)` — JPQL with `join User u on m.mentionedUserId = u.id`;
+  filters `u.status = UserStatus.ACTIVE` (deleted/suspended users excluded from mention
+  results — mirrors X behaviour where deactivated profiles become unlinkable);
   returns `List<PostMention>` (flat projection, one row per mention).
 
 ## MentionService
@@ -58,4 +60,5 @@ every other trigger source (like, follow, share, reply) having its own domain an
 - `@handle` parsing from `messageContent`.
 - Write-side: creating mention rows on post/reply/quote creation and update.
 - `MENTION` notification trigger via `notificationService.upsertNotification`.
-- Integration tests (`MentionIT` scaffolded, extends `BaseGraphQLIntegrationTest`).
+- Integration tests for write-side mutations (`MentionIT` scaffolded, extends
+  `BaseGraphQLIntegrationTest`).

@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 public interface MentionRepository extends JpaRepository<Mention, UUID> {
   @Query(
       "select new com.xclone.mention.dto.PostMention(m.postId, u) from Mention m join User u "
-          + "on m.mentionedUserId = u.id where m.postId in :postIds")
+          + "on m.mentionedUserId = u.id where m.postId in :postIds"
+          + " and u.status = com.xclone.user.model.enums.UserStatus.ACTIVE")
   List<PostMention> findPostMentions(@Param("postIds") List<UUID> postIds);
 }

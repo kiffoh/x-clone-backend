@@ -67,6 +67,13 @@ Read-side scaffolded: `Mention` entity, `MentionRepository` with JPQL flat proje
 - `PostController` `@BatchMapping` for `mentions` field.
 - Schema updated: `mentions: [User!]!` (was `[User!]`).
 - `MentionIT` scaffolded, extends `BaseGraphQLIntegrationTest`.
+- `findPostMentions` filters `u.status = UserStatus.ACTIVE` — deleted/suspended users excluded
+  from mention results (mirrors X behaviour: deactivated profiles become unlinkable).
+- `MentionFixtures.createMention` + `PostHelpers.seedMention` — test fixtures for mention
+  seeding.
+- `BaseGraphQLIntegrationTest` — added `MentionRepository` autowiring and `@BeforeEach` cleanup.
+- `PostIT.mentionTests` — integration tests for `@BatchMapping` mentions: no mentions (empty
+  list), one mention, multiple mentions, deleted mentioned user (excluded by active filter).
 
 **Open:**
 - `MentionConstraintName` — FK constraint name constants.
@@ -76,7 +83,7 @@ Read-side scaffolded: `Mention` entity, `MentionRepository` with JPQL flat proje
 - Wire `mentionedUserIds` from `CreatePostInput`, `CreateReplyInput`, `CreateQuoteInput`,
   `UpdatePostInput` into mention creation.
 - Trigger `MENTION` notification via `notificationService.upsertNotification`.
-- Integration tests for mention creation, batch mapping, and notification triggers.
+- Integration tests for write-side mutations and notification triggers (`MentionIT`).
 
 ### Notification Slice 4 — Subscriptions
 - Real-time push via WebSocket — Spring GraphQL subscriptions

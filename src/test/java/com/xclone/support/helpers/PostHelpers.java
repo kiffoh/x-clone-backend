@@ -4,8 +4,11 @@ import static com.xclone.support.fixtures.PostFixtures.createQuote;
 import static com.xclone.support.fixtures.PostFixtures.createRepost;
 
 import com.xclone.common.enums.Status;
+import com.xclone.mention.model.entity.Mention;
+import com.xclone.mention.repository.MentionRepository;
 import com.xclone.post.model.entity.Post;
 import com.xclone.post.repository.PostRepository;
+import com.xclone.support.fixtures.MentionFixtures;
 import com.xclone.support.fixtures.PostFixtures;
 import com.xclone.user.model.entity.User;
 import java.time.Instant;
@@ -38,6 +41,11 @@ public class PostHelpers {
       posts.add(savedPost);
     }
     return posts;
+  }
+
+  public static Mention seedMention(Post post, User user, MentionRepository mentionRepository) {
+    Mention mention = MentionFixtures.createMention(post, user);
+    return mentionRepository.save(mention);
   }
 
   public static Post seedRepost(UUID sharedPostId, UUID authorId, PostRepository postRepository) {
