@@ -100,7 +100,7 @@ type Post {
     """
     sharedByMe: Boolean!
 
-    mentions: [User!] # Users tagged in post
+    mentions: [User!]! # Users tagged in post
 }
 # In a later iteration I will add media content
 

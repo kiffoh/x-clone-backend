@@ -6,6 +6,7 @@ import com.xclone.exception.custom.NotPostAuthorException;
 import com.xclone.exception.custom.PostNotFoundException;
 import com.xclone.like.dto.LikeCount;
 import com.xclone.like.service.LikeService;
+import com.xclone.mention.service.MentionService;
 import com.xclone.notification.model.enums.NotificationType;
 import com.xclone.notification.service.NotificationService;
 import com.xclone.post.dto.PostProfile;
@@ -49,6 +50,7 @@ public class PostController {
   private final ReplyService replyService;
   private final ShareService shareService;
   private final NotificationService notificationService;
+  private final MentionService mentionService;
 
   public PostController(
       PostService postService,
@@ -56,13 +58,15 @@ public class PostController {
       LikeService likeService,
       ReplyService replyService,
       ShareService shareService,
-      NotificationService notificationService) {
+      NotificationService notificationService,
+      MentionService mentionService) {
     this.postService = postService;
     this.userService = userService;
     this.likeService = likeService;
     this.replyService = replyService;
     this.shareService = shareService;
     this.notificationService = notificationService;
+    this.mentionService = mentionService;
   }
 
   /**
@@ -288,6 +292,22 @@ public class PostController {
         .collect(
             Collectors.toMap(
                 Function.identity(), post -> postIdsThatUserShared.contains(post.id())));
+  }
+
+  /**
+   * Fetches the users who are mentioned as part of the {@link PostProfile#messageContent()}.
+   *
+   * @param posts list of post entities
+   * @return each post mapped to the users mentioned in its message content
+   */
+  @BatchMapping(typeName = "Post", field = "mentions")
+  public Map<PostProfile, List<UserProfile>> mentions(List<PostProfile> posts) {
+    List<UUID> postIds = posts.stream().map(PostProfile::id).toList();
+    Map<UUID, List<UserProfile>> postMentions = mentionService.getPostMentions(postIds);
+    return posts.stream()
+        .collect(
+            Collectors.toMap(
+                Function.identity(), post -> postMentions.getOrDefault(post.id(), List.of())));
   }
 
   /**

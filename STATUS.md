@@ -53,10 +53,30 @@ Only concurrency hardening remains open.
 
 ## Upcoming Slices
 
-### Notification Slice 3 — Mentions
-- `post_mentions` table — own entity and repository
-- `@handle` parsing — extract mentions from `messageContent`
-- Trigger `MENTION` notification — independent of Slice 2
+### Notification Slice 3 — Mentions (Phase 17, in progress)
+
+Read-side scaffolded: `Mention` entity, `MentionRepository` with JPQL flat projection,
+`MentionService` grouping into `Map<UUID, List<UserProfile>>`, and `@BatchMapping` on
+`PostController`. Schema `mentions: [User!]!` live.
+
+**Done:**
+- `Mention` entity (`post_mentions` table) with FK-by-UUID pattern.
+- `PostMention` flat projection record for JPQL → service aggregation.
+- `MentionRepository.findPostMentions` — JPQL join to `User`.
+- `MentionService.getPostMentions` — groups flat rows into `Map<UUID, List<UserProfile>>`.
+- `PostController` `@BatchMapping` for `mentions` field.
+- Schema updated: `mentions: [User!]!` (was `[User!]`).
+- `MentionIT` scaffolded, extends `BaseGraphQLIntegrationTest`.
+
+**Open:**
+- `MentionConstraintName` — FK constraint name constants.
+- `@ManyToOne` entity references on `Mention` (User, Post) with named FK constraints.
+- `@handle` parsing from `messageContent`.
+- Write-side: creating mention rows on post/reply/quote creation and update.
+- Wire `mentionedUserIds` from `CreatePostInput`, `CreateReplyInput`, `CreateQuoteInput`,
+  `UpdatePostInput` into mention creation.
+- Trigger `MENTION` notification via `notificationService.upsertNotification`.
+- Integration tests for mention creation, batch mapping, and notification triggers.
 
 ### Notification Slice 4 — Subscriptions
 - Real-time push via WebSocket — Spring GraphQL subscriptions
