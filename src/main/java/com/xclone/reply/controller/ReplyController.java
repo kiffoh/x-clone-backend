@@ -75,7 +75,7 @@ public class ReplyController {
       @AuthenticationPrincipal CustomUserDetails userDetails, @Argument CreateReplyInput input) {
     try {
       PostProfile reply = postService.createReply(input, userDetails.getId());
-      if (!input.mentionedUserIds().isEmpty()) {
+      if (input.mentionedUserIds() != null && !input.mentionedUserIds().isEmpty()) {
         mentionService.createMentions(reply.id(), input.mentionedUserIds());
       }
       PostProfile parentPost = postService.getPost(input.parentId());

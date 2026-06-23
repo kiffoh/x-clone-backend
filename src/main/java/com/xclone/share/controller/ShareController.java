@@ -79,7 +79,7 @@ public class ShareController {
       @AuthenticationPrincipal CustomUserDetails userDetails, @Argument CreateQuoteInput input) {
     try {
       PostProfile quote = postService.createQuote(input, userDetails.getId());
-      if (!input.mentionedUserIds().isEmpty()) {
+      if (input.mentionedUserIds() != null && !input.mentionedUserIds().isEmpty()) {
         mentionService.createMentions(quote.id(), input.mentionedUserIds());
       }
       PostProfile sharedPost = postService.getPost(input.sharedPostId());

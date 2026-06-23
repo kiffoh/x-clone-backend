@@ -377,7 +377,7 @@ public class PostController {
       @AuthenticationPrincipal CustomUserDetails userDetails, @Argument UpdatePostInput input) {
     try {
       PostProfile updatedPost = postService.updatePost(input, userDetails.getId());
-      if (input.mentionedUserIds() != null && !input.mentionedUserIds().isEmpty()) {
+      if (input.mentionedUserIds() != null) {
         mentionService.updateMentions(updatedPost.id(), input.mentionedUserIds());
       }
       return new PostResponse("200", true, updatedPost, null);

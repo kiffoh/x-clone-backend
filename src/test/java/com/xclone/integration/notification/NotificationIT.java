@@ -563,7 +563,7 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
               messageContents,
               List.of(users.getFirst(), users.get(1), users.get(2)),
               postRepository);
-      postsIdsToDeleteFirst = new ArrayList<>();
+      postIdsToDeleteFirst = new ArrayList<>();
       originalPostId = posts.get(1).getId();
       originalPostAuthorId = posts.get(1).getAuthorId();
       user0AuthenticatedTester = authenticatedTester;
@@ -599,7 +599,7 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
               .path("createRepost.post.id")
               .entity(UUID.class)
               .get();
-      postsIdsToDeleteFirst.add(repostId);
+      postIdsToDeleteFirst.add(repostId);
       return repostId;
     }
 
@@ -668,7 +668,7 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
               .path("createQuote.post.id")
               .entity(UUID.class)
               .get();
-      postsIdsToDeleteFirst.add(quoteId);
+      postIdsToDeleteFirst.add(quoteId);
       return quoteId;
     }
 
@@ -696,7 +696,7 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
               .path("createReply.post.id")
               .entity(UUID.class)
               .get();
-      postsIdsToDeleteFirst.add(replyId);
+      postIdsToDeleteFirst.add(replyId);
       return replyId;
     }
 

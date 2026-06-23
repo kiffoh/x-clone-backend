@@ -31,15 +31,15 @@ public class BaseGraphQLIntegrationTest extends BaseIntegrationTest {
   @Autowired protected AuthHelpers authHelpers;
   @Autowired protected HttpGraphQlTester authenticatedTester;
   protected User authenticatedUser;
-  protected List<UUID> postsIdsToDeleteFirst;
+  protected List<UUID> postIdsToDeleteFirst;
 
   void wipeDBs() {
     notificationActorRepository.deleteAll();
     notificationRepository.deleteAll();
     mentionRepository.deleteAll();
     likeRepository.deleteAll();
-    if (postsIdsToDeleteFirst != null) {
-      postRepository.deleteAllById(postsIdsToDeleteFirst);
+    if (postIdsToDeleteFirst != null) {
+      postRepository.deleteAllById(postIdsToDeleteFirst);
     }
     postRepository.deleteAll();
     followRepository.deleteAll();
