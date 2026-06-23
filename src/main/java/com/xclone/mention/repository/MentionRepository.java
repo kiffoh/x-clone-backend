@@ -15,4 +15,8 @@ public interface MentionRepository extends JpaRepository<Mention, UUID> {
           + "on m.mentionedUserId = u.id where m.postId in :postIds"
           + " and u.status = com.xclone.user.model.enums.UserStatus.ACTIVE")
   List<PostMention> findPostMentions(@Param("postIds") List<UUID> postIds);
+
+  List<Mention> findAllByPostId(UUID postId);
+
+  void deleteByPostIdAndMentionedUserId(UUID postId, UUID mentionedUserId);
 }

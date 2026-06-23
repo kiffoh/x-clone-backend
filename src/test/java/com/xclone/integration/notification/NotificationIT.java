@@ -645,7 +645,8 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
     }
 
     private UUID createQuoteWithTester(HttpGraphQlTester authenticatedTester, UUID originalPostId) {
-      CreateQuoteInput input = new CreateQuoteInput(originalPostId, "this is the quote content");
+      CreateQuoteInput input =
+          new CreateQuoteInput(originalPostId, "this is the quote content", List.of());
       UUID quoteId =
           authenticatedTester
               .document(
@@ -672,7 +673,8 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
     }
 
     private UUID createReplyWithTester(HttpGraphQlTester authenticatedTester, UUID originalPostId) {
-      CreateReplyInput input = new CreateReplyInput(originalPostId, "this is the reply content");
+      CreateReplyInput input =
+          new CreateReplyInput(originalPostId, "this is the reply content", List.of());
       UUID replyId =
           authenticatedTester
               .document(

@@ -21,8 +21,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
   /**
    * Gets first page of feed.
    *
-   * <p>A null parent id corresponds to the first post in that post thread. TODO: Update comment
-   * when quotes are introduced.
+   * <p>A null parent id means that post is the original post in that post thread.
    *
    * @param userId excluded from results even if present in followingIds
    * @param followingIds IDs of users whose posts are included in the feed
@@ -44,8 +43,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
   /**
    * Gets next page of feed after the cursor.
    *
-   * <p>A null parent id corresponds to the first post in that post thread. TODO: Update comment
-   * when quotes are introduced.
+   * <p>A null parent id means that post is the original post in that post thread.
    *
    * @param userId excluded from results even if present in followingIds
    * @param followingIds IDs of users whose posts are included in the feed

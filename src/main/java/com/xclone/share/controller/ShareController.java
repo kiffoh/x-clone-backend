@@ -3,6 +3,7 @@ package com.xclone.share.controller;
 import com.xclone.exception.GraphQlErrorMapper;
 import com.xclone.exception.custom.DuplicateRepostException;
 import com.xclone.exception.custom.PostNotFoundException;
+import com.xclone.mention.service.MentionService;
 import com.xclone.notification.model.enums.NotificationType;
 import com.xclone.notification.service.NotificationService;
 import com.xclone.post.dto.PostProfile;
@@ -23,10 +24,15 @@ import org.springframework.stereotype.Controller;
 public class ShareController {
   private final PostService postService;
   private final NotificationService notificationService;
+  private final MentionService mentionService;
 
-  ShareController(PostService postService, NotificationService notificationService) {
+  ShareController(
+      PostService postService,
+      NotificationService notificationService,
+      MentionService mentionService) {
     this.postService = postService;
     this.notificationService = notificationService;
+    this.mentionService = mentionService;
   }
 
   /**
@@ -73,6 +79,9 @@ public class ShareController {
       @AuthenticationPrincipal CustomUserDetails userDetails, @Argument CreateQuoteInput input) {
     try {
       PostProfile quote = postService.createQuote(input, userDetails.getId());
+      if (!input.mentionedUserIds().isEmpty()) {
+        mentionService.createMentions(quote.id(), input.mentionedUserIds());
+      }
       PostProfile sharedPost = postService.getPost(input.sharedPostId());
       notificationService.upsertNotification(
           sharedPost.authorId(), userDetails.getId(), sharedPost.id(), NotificationType.QUOTE);

@@ -351,6 +351,9 @@ public class PostController {
       @AuthenticationPrincipal CustomUserDetails userDetails, @Argument CreatePostInput input) {
     try {
       PostProfile post = postService.createPost(input, userDetails.getId());
+      if (input.mentionedUserIds() != null && !input.mentionedUserIds().isEmpty()) {
+        mentionService.createMentions(post.id(), input.mentionedUserIds());
+      }
       return new PostResponse("200", true, post, null);
     } catch (ConstraintViolationException ex) {
       return new PostResponse("400", false, null, GraphQlErrorMapper.fromConstraintViolations(ex));
@@ -374,6 +377,9 @@ public class PostController {
       @AuthenticationPrincipal CustomUserDetails userDetails, @Argument UpdatePostInput input) {
     try {
       PostProfile updatedPost = postService.updatePost(input, userDetails.getId());
+      if (input.mentionedUserIds() != null && !input.mentionedUserIds().isEmpty()) {
+        mentionService.updateMentions(updatedPost.id(), input.mentionedUserIds());
+      }
       return new PostResponse("200", true, updatedPost, null);
     } catch (NotPostAuthorException ex) {
       return new PostResponse(
