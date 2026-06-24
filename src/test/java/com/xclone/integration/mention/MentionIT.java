@@ -1,7 +1,6 @@
 package com.xclone.integration.mention;
 
-import static com.xclone.support.helpers.PostHelpers.createPostContents;
-import static com.xclone.support.helpers.PostHelpers.seedPosts;
+import static com.xclone.support.helpers.PostHelpers.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.xclone.integration.base.BaseGraphQLIntegrationTest;
@@ -190,6 +189,36 @@ public class MentionIT extends BaseGraphQLIntegrationTest {
     }
 
     @Test
+    void createMention_inactiveUser_skippedSilently() {
+      UUID activeUserId = users.get(1).getId();
+      UUID nonExistentUserId = UUID.randomUUID();
+      CreatePostInput createPostInput =
+          new CreatePostInput("@user1 @ghost hello both", List.of(activeUserId, nonExistentUserId));
+
+      authenticatedTester
+          .document(
+              """
+            mutation CreatePost($input: CreatePostInput!) {
+                createPost(input: $input) {
+                    success
+                    post {
+                     id
+                    }
+                }
+            }
+            """)
+          .variable("input", createPostInput)
+          .execute()
+          .path("createPost.success")
+          .entity(Boolean.class)
+          .isEqualTo(true);
+
+      List<Mention> mentions = mentionRepository.findAll();
+      assertThat(mentions).hasSize(1);
+      assertThat(mentions.getFirst().getMentionedUserId()).isEqualTo(activeUserId);
+    }
+
+    @Test
     void createMention_multipleMentionedUsers() {
       UUID mentionedUserId1 = users.get(1).getId();
       UUID mentionedUserId2 = users.get(2).getId();
@@ -231,36 +260,42 @@ public class MentionIT extends BaseGraphQLIntegrationTest {
   @Nested
   @DisplayName("updateMention")
   class UpdateMention {
-    private UUID addPostWithMentions(List<UUID> mentionedUserIds) {
-      CreatePostInput createPostInput =
-          new CreatePostInput("this is the message content", mentionedUserIds);
 
-      return authenticatedTester
+    @Test
+    void updateMention_nullMentionedUserIds_skipsUpdate() {
+      List<UUID> mentionedUserId = List.of(users.get(1).getId());
+      UUID createdPostId = addPostWithMentions(authenticatedTester, mentionedUserId);
+      UpdatePostInput updatePostInput =
+          new UpdatePostInput(createdPostId, "new message content", null);
+      authenticatedTester
           .document(
               """
-                  mutation CreatePost($input: CreatePostInput!) {
-                      createPost(input: $input) {
-                          success
-                          post {
-                           id
-                          }
-                      }
-                  }
-                  """)
-          .variable("input", createPostInput)
+                mutation UpdatePost($input: UpdatePostInput!) {
+                    updatePostContent(input: $input) {
+                        success
+                        post {
+                         mentions {
+                            id
+                         }
+                        }
+                    }
+                }
+                """)
+          .variable("input", updatePostInput)
           .execute()
-          .path("createPost.success")
+          .path("updatePostContent.success")
           .entity(Boolean.class)
           .isEqualTo(true)
-          .path("createPost.post.id")
-          .entity(UUID.class)
-          .get();
+          .path("updatePostContent.post.mentions[*].id")
+          .entityList(UUID.class)
+          .hasSize(1)
+          .isEqualTo(mentionedUserId);
     }
 
     @Test
     void updateMention_sameMentionedUsers() {
       List<UUID> mentionedUserId = List.of(users.get(1).getId());
-      UUID createdPostId = addPostWithMentions(mentionedUserId);
+      UUID createdPostId = addPostWithMentions(authenticatedTester, mentionedUserId);
       UpdatePostInput updatePostInput =
           new UpdatePostInput(createdPostId, "new message content", mentionedUserId);
       authenticatedTester
@@ -290,7 +325,7 @@ public class MentionIT extends BaseGraphQLIntegrationTest {
 
     @Test
     void updateMention_addsMentionedUsers() {
-      UUID createdPostId = addPostWithMentions(List.of(users.get(1).getId()));
+      UUID createdPostId = addPostWithMentions(authenticatedTester, List.of(users.get(1).getId()));
       List<UUID> newMentions = List.of(users.get(1).getId(), users.get(2).getId());
       UpdatePostInput updatePostInput =
           new UpdatePostInput(createdPostId, "new message content", newMentions);
@@ -321,7 +356,9 @@ public class MentionIT extends BaseGraphQLIntegrationTest {
 
     @Test
     void updateMention_deletesMentionedUsers_lessMentionedUserIdsSent() {
-      UUID createdPostId = addPostWithMentions(List.of(users.get(1).getId(), users.get(2).getId()));
+      UUID createdPostId =
+          addPostWithMentions(
+              authenticatedTester, List.of(users.get(1).getId(), users.get(2).getId()));
       List<UUID> lessMentions = List.of(users.get(1).getId());
       UpdatePostInput updatePostInput =
           new UpdatePostInput(createdPostId, "new message content", lessMentions);
@@ -352,7 +389,9 @@ public class MentionIT extends BaseGraphQLIntegrationTest {
 
     @Test
     void updateMention_deletesMentionedUsers_emptyMentionedUserIdsSent() {
-      UUID createdPostId = addPostWithMentions(List.of(users.get(1).getId(), users.get(2).getId()));
+      UUID createdPostId =
+          addPostWithMentions(
+              authenticatedTester, List.of(users.get(1).getId(), users.get(2).getId()));
       List<UUID> emptyMentions = List.of();
       UpdatePostInput updatePostInput =
           new UpdatePostInput(createdPostId, "new message content", emptyMentions);
@@ -383,7 +422,9 @@ public class MentionIT extends BaseGraphQLIntegrationTest {
 
     @Test
     void updateMention_addsAndDeletesMentionedUsers() {
-      UUID createdPostId = addPostWithMentions(List.of(users.get(1).getId(), users.get(2).getId()));
+      UUID createdPostId =
+          addPostWithMentions(
+              authenticatedTester, List.of(users.get(1).getId(), users.get(2).getId()));
       List<UUID> updatedMentions = List.of(users.get(1).getId(), users.get(3).getId());
       UpdatePostInput updatePostInput =
           new UpdatePostInput(createdPostId, "new message content", updatedMentions);

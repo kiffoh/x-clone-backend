@@ -6,6 +6,8 @@ import com.xclone.exception.custom.NotPostAuthorException;
 import com.xclone.exception.custom.PostNotFoundException;
 import com.xclone.like.dto.LikeCount;
 import com.xclone.like.service.LikeService;
+import com.xclone.mention.dto.MentionDiff;
+import com.xclone.mention.model.entity.Mention;
 import com.xclone.mention.service.MentionService;
 import com.xclone.notification.model.enums.NotificationType;
 import com.xclone.notification.service.NotificationService;
@@ -351,8 +353,16 @@ public class PostController {
       @AuthenticationPrincipal CustomUserDetails userDetails, @Argument CreatePostInput input) {
     try {
       PostProfile post = postService.createPost(input, userDetails.getId());
-      if (input.mentionedUserIds() != null && !input.mentionedUserIds().isEmpty()) {
-        mentionService.createMentions(post.id(), input.mentionedUserIds());
+      List<UUID> mentionedUserIds = input.mentionedUserIds();
+      if (mentionedUserIds != null && !mentionedUserIds.isEmpty()) {
+        List<Mention> mentions = mentionService.createMentions(post.id(), mentionedUserIds);
+        mentions.forEach(
+            mention ->
+                notificationService.upsertNotification(
+                    mention.getMentionedUserId(),
+                    userDetails.getId(),
+                    post.id(),
+                    NotificationType.MENTION));
       }
       return new PostResponse("200", true, post, null);
     } catch (ConstraintViolationException ex) {
@@ -377,8 +387,21 @@ public class PostController {
       @AuthenticationPrincipal CustomUserDetails userDetails, @Argument UpdatePostInput input) {
     try {
       PostProfile updatedPost = postService.updatePost(input, userDetails.getId());
-      if (input.mentionedUserIds() != null) {
-        mentionService.updateMentions(updatedPost.id(), input.mentionedUserIds());
+      List<UUID> mentionedUserIds = input.mentionedUserIds();
+      if (mentionedUserIds != null) {
+        MentionDiff mentionDiff = mentionService.updateMentions(updatedPost.id(), mentionedUserIds);
+        // I need to delete a notification on a mention delete
+        if (mentionDiff.isChanged()) {
+          for (UUID addedMentionId : mentionDiff.added()) {
+            notificationService.upsertNotification(
+                addedMentionId, userDetails.getId(), updatedPost.id(), NotificationType.MENTION);
+          }
+          // TODO: match delete notification parameter order with upsert
+          for (UUID removedMentionId : mentionDiff.removed()) {
+            notificationService.deleteNotificationActorAndCleanupNotification(
+                userDetails.getId(), removedMentionId, NotificationType.MENTION, updatedPost.id());
+          }
+        }
       }
       return new PostResponse("200", true, updatedPost, null);
     } catch (NotPostAuthorException ex) {
@@ -411,6 +434,7 @@ public class PostController {
       PostProfile deletedPost = postService.deletePost(postId, userDetails.getId());
       PostType postType = discernPostType(deletedPost);
       if (postType != PostType.POST) {
+        // if the original post exists, remove the quote/repost/like/reply notification
         PostProfile originalPost = getOriginalPost(deletedPost, postType);
         if (originalPost != null) {
           notificationService.deleteNotificationActorAndCleanupNotification(
@@ -419,10 +443,8 @@ public class PostController {
               postType.toNotificationType(),
               originalPost.id());
         }
-      } else {
-        // delete all notifications related to post on post-deletion
-        notificationService.deletePostNotifications(deletedPost.id());
       }
+      notificationService.deletePostNotifications(deletedPost.id());
       return new DeleteResponse("200", true, null);
     } catch (NotPostAuthorException ex) {
       return new DeleteResponse(

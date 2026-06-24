@@ -3,6 +3,7 @@ package com.xclone.share.controller;
 import com.xclone.exception.GraphQlErrorMapper;
 import com.xclone.exception.custom.DuplicateRepostException;
 import com.xclone.exception.custom.PostNotFoundException;
+import com.xclone.mention.model.entity.Mention;
 import com.xclone.mention.service.MentionService;
 import com.xclone.notification.model.enums.NotificationType;
 import com.xclone.notification.service.NotificationService;
@@ -13,6 +14,7 @@ import com.xclone.security.jwt.JwtAuthenticationFilter;
 import com.xclone.security.user.CustomUserDetails;
 import com.xclone.share.dto.request.CreateQuoteInput;
 import jakarta.validation.ConstraintViolationException;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
@@ -79,8 +81,16 @@ public class ShareController {
       @AuthenticationPrincipal CustomUserDetails userDetails, @Argument CreateQuoteInput input) {
     try {
       PostProfile quote = postService.createQuote(input, userDetails.getId());
-      if (input.mentionedUserIds() != null && !input.mentionedUserIds().isEmpty()) {
-        mentionService.createMentions(quote.id(), input.mentionedUserIds());
+      List<UUID> mentionedUserIds = input.mentionedUserIds();
+      if (mentionedUserIds != null && !mentionedUserIds.isEmpty()) {
+        List<Mention> mentions = mentionService.createMentions(quote.id(), mentionedUserIds);
+        mentions.forEach(
+            mention ->
+                notificationService.upsertNotification(
+                    mention.getMentionedUserId(),
+                    userDetails.getId(),
+                    quote.id(),
+                    NotificationType.MENTION));
       }
       PostProfile sharedPost = postService.getPost(input.sharedPostId());
       notificationService.upsertNotification(

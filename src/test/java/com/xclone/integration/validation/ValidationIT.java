@@ -12,6 +12,8 @@ import com.xclone.exception.dto.FieldError;
 import com.xclone.exception.dto.ValidationErrorResponse;
 import com.xclone.integration.base.BaseAuthIntegrationTest;
 import com.xclone.mention.repository.MentionRepository;
+import com.xclone.notification.repository.NotificationActorRepository;
+import com.xclone.notification.repository.NotificationRepository;
 import com.xclone.post.dto.mutation.PostResponse;
 import com.xclone.post.model.entity.Post;
 import com.xclone.post.repository.PostRepository;
@@ -45,10 +47,14 @@ public class ValidationIT extends BaseAuthIntegrationTest {
   @Autowired HttpGraphQlTester graphQlTester;
   @Autowired TestRestTemplate testRestTemplate;
   @Autowired private MentionRepository mentionRepository;
+  @Autowired private NotificationActorRepository notificationActorRepository;
+  @Autowired private NotificationRepository notificationRepository;
 
   @BeforeEach
   void cleanupDBs() {
     mentionRepository.deleteAll();
+    notificationActorRepository.deleteAll();
+    notificationRepository.deleteAll();
     postRepository.deleteAll();
     userRepository.deleteAll();
   }

@@ -2,6 +2,7 @@ package com.xclone.reply.controller;
 
 import com.xclone.exception.GraphQlErrorMapper;
 import com.xclone.exception.custom.PostNotFoundException;
+import com.xclone.mention.model.entity.Mention;
 import com.xclone.mention.service.MentionService;
 import com.xclone.notification.model.enums.NotificationType;
 import com.xclone.notification.service.NotificationService;
@@ -75,8 +76,16 @@ public class ReplyController {
       @AuthenticationPrincipal CustomUserDetails userDetails, @Argument CreateReplyInput input) {
     try {
       PostProfile reply = postService.createReply(input, userDetails.getId());
-      if (input.mentionedUserIds() != null && !input.mentionedUserIds().isEmpty()) {
-        mentionService.createMentions(reply.id(), input.mentionedUserIds());
+      List<UUID> mentionedUserIds = input.mentionedUserIds();
+      if (mentionedUserIds != null && !mentionedUserIds.isEmpty()) {
+        List<Mention> mentions = mentionService.createMentions(reply.id(), mentionedUserIds);
+        mentions.forEach(
+            mention ->
+                notificationService.upsertNotification(
+                    mention.getMentionedUserId(),
+                    userDetails.getId(),
+                    reply.id(),
+                    NotificationType.MENTION));
       }
       PostProfile parentPost = postService.getPost(input.parentId());
       notificationService.upsertNotification(

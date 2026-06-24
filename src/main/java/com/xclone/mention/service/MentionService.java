@@ -1,5 +1,6 @@
 package com.xclone.mention.service;
 
+import com.xclone.mention.dto.MentionDiff;
 import com.xclone.mention.dto.PostMention;
 import com.xclone.mention.model.entity.Mention;
 import com.xclone.mention.repository.MentionRepository;
@@ -57,51 +58,34 @@ public class MentionService {
   }
 
   @Transactional
-  public List<Mention> updateMentions(UUID postId, List<UUID> updatedMentionedUserIds) {
-    // get
-    // delete ones which have been removed
-    // created ones which have been added
+  public MentionDiff updateMentions(UUID postId, List<UUID> updatedMentionedUserIds) {
     List<Mention> currentMentions = mentionRepository.findAllByPostId(postId);
     Set<UUID> currentMentionedUserIdsSet =
         currentMentions.stream().map(Mention::getMentionedUserId).collect(Collectors.toSet());
     Set<UUID> updatedMentionedUserIdsSet = new HashSet<>(updatedMentionedUserIds);
-    // no change in mentions
-    if (updatedMentionedUserIdsSet.equals(currentMentionedUserIdsSet)) {
-      return currentMentions;
-    }
-
-    List<Mention> updatedMentions = new ArrayList<>(currentMentions);
     MentionDiff mentionDiff =
         MentionDiff.of(updatedMentionedUserIdsSet, currentMentionedUserIdsSet);
+    // no change in mentions
+    if (!mentionDiff.isChanged()) {
+      return mentionDiff;
+    }
+
     // create mentions which have been added
     if (!mentionDiff.added().isEmpty()) {
-      List<Mention> addedMentions = createMentions(postId, mentionDiff.added());
-      updatedMentions.addAll(addedMentions);
+      createMentions(postId, mentionDiff.added());
     }
     // delete mentions which have been removed
     if (!mentionDiff.removed().isEmpty()) {
       deleteMentions(postId, mentionDiff.removed());
-      updatedMentions =
-          updatedMentions.stream()
-              .filter(mention -> !mentionDiff.removed().contains(mention.getMentionedUserId()))
-              .toList();
     }
 
-    return updatedMentions;
+    return mentionDiff;
   }
 
   @Transactional
   public void deleteMentions(UUID postId, List<UUID> mentionedUserIds) {
     for (UUID mentionedUserId : mentionedUserIds) {
       mentionRepository.deleteByPostIdAndMentionedUserId(postId, mentionedUserId);
-    }
-  }
-
-  private record MentionDiff(List<UUID> added, List<UUID> removed) {
-    public static MentionDiff of(Set<UUID> updated, Set<UUID> current) {
-      List<UUID> added = updated.stream().filter(id -> !current.contains(id)).toList();
-      List<UUID> removed = current.stream().filter(id -> !updated.contains(id)).toList();
-      return new MentionDiff(added, removed);
     }
   }
 }
