@@ -7,7 +7,6 @@ import com.xclone.exception.custom.PostNotFoundException;
 import com.xclone.like.dto.LikeCount;
 import com.xclone.like.service.LikeService;
 import com.xclone.mention.dto.MentionDiff;
-import com.xclone.mention.model.entity.Mention;
 import com.xclone.mention.service.MentionService;
 import com.xclone.notification.model.enums.NotificationType;
 import com.xclone.notification.service.NotificationService;
@@ -355,14 +354,12 @@ public class PostController {
       PostProfile post = postService.createPost(input, userDetails.getId());
       List<UUID> mentionedUserIds = input.mentionedUserIds();
       if (mentionedUserIds != null && !mentionedUserIds.isEmpty()) {
-        List<Mention> mentions = mentionService.createMentions(post.id(), mentionedUserIds);
-        mentions.forEach(
-            mention ->
+        List<UUID> createdMentionUserIds =
+            mentionService.createMentions(post.id(), mentionedUserIds);
+        createdMentionUserIds.forEach(
+            mentionedUserId ->
                 notificationService.upsertNotification(
-                    mention.getMentionedUserId(),
-                    userDetails.getId(),
-                    post.id(),
-                    NotificationType.MENTION));
+                    mentionedUserId, userDetails.getId(), post.id(), NotificationType.MENTION));
       }
       return new PostResponse("200", true, post, null);
     } catch (ConstraintViolationException ex) {

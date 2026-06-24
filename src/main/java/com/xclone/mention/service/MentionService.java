@@ -48,10 +48,10 @@ public class MentionService {
    *
    * @param postId unique identifier of the post
    * @param mentionedUserIds unique identifiers of each mentioned user
-   * @return the created mentions
+   * @return the user ids for which mentions were created
    */
   @Transactional
-  public List<Mention> createMentions(UUID postId, List<UUID> mentionedUserIds) {
+  public List<UUID> createMentions(UUID postId, List<UUID> mentionedUserIds) {
     List<Mention> mentionList = new ArrayList<>();
     mentionedUserIds.forEach(
         userId -> {
@@ -66,7 +66,7 @@ public class MentionService {
     if (!mentionList.isEmpty()) {
       mentionRepository.saveAll(mentionList);
     }
-    return mentionList;
+    return mentionList.stream().map(Mention::getMentionedUserId).toList();
   }
 
   /**

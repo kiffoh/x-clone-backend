@@ -3,7 +3,6 @@ package com.xclone.share.controller;
 import com.xclone.exception.GraphQlErrorMapper;
 import com.xclone.exception.custom.DuplicateRepostException;
 import com.xclone.exception.custom.PostNotFoundException;
-import com.xclone.mention.model.entity.Mention;
 import com.xclone.mention.service.MentionService;
 import com.xclone.notification.model.enums.NotificationType;
 import com.xclone.notification.service.NotificationService;
@@ -83,14 +82,12 @@ public class ShareController {
       PostProfile quote = postService.createQuote(input, userDetails.getId());
       List<UUID> mentionedUserIds = input.mentionedUserIds();
       if (mentionedUserIds != null && !mentionedUserIds.isEmpty()) {
-        List<Mention> mentions = mentionService.createMentions(quote.id(), mentionedUserIds);
-        mentions.forEach(
-            mention ->
+        List<UUID> createdMentionUserIds =
+            mentionService.createMentions(quote.id(), mentionedUserIds);
+        createdMentionUserIds.forEach(
+            mentionedUserId ->
                 notificationService.upsertNotification(
-                    mention.getMentionedUserId(),
-                    userDetails.getId(),
-                    quote.id(),
-                    NotificationType.MENTION));
+                    mentionedUserId, userDetails.getId(), quote.id(), NotificationType.MENTION));
       }
       PostProfile sharedPost = postService.getPost(input.sharedPostId());
       notificationService.upsertNotification(
