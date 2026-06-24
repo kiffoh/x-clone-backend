@@ -78,6 +78,7 @@ Cross-cutting reference lives in skills (invoke by intent). Project TODOs live i
 | Reply | Replies, reply-thread view (recursive CTE), createReply | `reply/CLAUDE.md` |
 | Share | Reposts + quotes ("share" umbrella), share counts | `share/CLAUDE.md` |
 | Notification | Notifications + actors, read side + triggers (in progress) | `notification/CLAUDE.md` |
+| Mention | Post mentions, @handle parsing, MENTION notification trigger (in progress) | `mention/CLAUDE.md` |
 | Like | Likes, like counts, NotPostAuthor authorization | `like/CLAUDE.md` |
 | Exception | REST + GraphQL error handling, error mapper | `exception/CLAUDE.md` |
 | Validation | `@ValidHandle` / `@ValidPassword` / `ValidationConstants` | `validation/CLAUDE.md` |

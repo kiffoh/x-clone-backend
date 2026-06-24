@@ -53,10 +53,45 @@ Only concurrency hardening remains open.
 
 ## Upcoming Slices
 
-### Notification Slice 3 — Mentions
-- `post_mentions` table — own entity and repository
-- `@handle` parsing — extract mentions from `messageContent`
-- Trigger `MENTION` notification — independent of Slice 2
+### Notification Slice 3 — Mentions (Phase 17, nearly complete)
+
+Read-side, write-side CRUD, MENTION notification triggers, and integration tests all complete.
+Only FK constraints and `@handle` parsing remain.
+
+**Done:**
+- `Mention` entity (`post_mentions` table) with FK-by-UUID pattern.
+- `PostMention` flat projection record for JPQL → service aggregation.
+- `MentionRepository.findPostMentions` — JPQL join to `User`.
+- `MentionRepository.deleteByPostIdAndMentionedUserIdIn` — batch delete.
+- `MentionService.getPostMentions` — groups flat rows into `Map<UUID, List<UserProfile>>`.
+- `MentionService.createMentions` — batch active-user check via `findAllActiveUsersByIdIn`;
+  returns filtered list of user IDs for which mentions were created.
+- `MentionService.updateMentions` — diffs mentions; reconstructs `MentionDiff` with filtered
+  `added()` so callers only trigger notifications for active users.
+- `MentionService.deleteMentions` — single bulk delete query.
+- `MentionDiff` record — immutable diff; uses `List.of()` (not null) for unchanged state.
+- `PostController` `@BatchMapping` for `mentions` field.
+- Schema updated: `mentions: [User!]!` with `"""` description.
+- `mentionedUserIds: [ID!]` wired on `CreatePostInput`, `UpdatePostInput`, `CreateReplyInput`,
+  `CreateQuoteInput` into mention creation + MENTION notification triggers.
+- MENTION notification triggers on create (post/reply/quote) and update (post).
+- MENTION notification cleanup on update (removed mentions) and delete (all post types).
+- `deletePostNotifications` now called unconditionally (not just for pure POST type).
+- `deleteNotificationActorAndCleanupNotification` parameter order refactored to match
+  `upsertNotification`: `(recipientId, authenticatedUserId, postId, type)`.
+- Javadoc updated on all mutation controller methods to document notification/mention side
+  effects.
+- `MentionFixtures.createMention` + `PostHelpers.seedMention` + `PostHelpers.addPostWithMentions`
+  — test fixtures and helpers.
+- `BaseGraphQLIntegrationTest` — added `MentionRepository` autowiring and `@BeforeEach` cleanup.
+- Full integration test coverage: `MentionIT` (create + update CRUD), `PostIT.mentionTests`
+  (`@BatchMapping` read-side), `NotificationIT` (MENTION creation + deletion triggers),
+  `ValidationIT` (`mentionedUserIds` on all input types).
+
+**Open:**
+- `MentionConstraintName` — FK constraint name constants.
+- `@ManyToOne` entity references on `Mention` (User, Post) with named FK constraints.
+- `@handle` parsing from `messageContent`.
 
 ### Notification Slice 4 — Subscriptions
 - Real-time push via WebSocket — Spring GraphQL subscriptions

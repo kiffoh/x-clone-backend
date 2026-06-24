@@ -2,6 +2,7 @@ package com.xclone.reply.controller;
 
 import com.xclone.exception.GraphQlErrorMapper;
 import com.xclone.exception.custom.PostNotFoundException;
+import com.xclone.mention.service.MentionService;
 import com.xclone.notification.model.enums.NotificationType;
 import com.xclone.notification.service.NotificationService;
 import com.xclone.post.dto.PostProfile;
@@ -27,12 +28,17 @@ public class ReplyController {
   private final ReplyService replyService;
   private final PostService postService;
   private final NotificationService notificationService;
+  private final MentionService mentionService;
 
   ReplyController(
-      ReplyService replyService, PostService postService, NotificationService notificationService) {
+      ReplyService replyService,
+      PostService postService,
+      NotificationService notificationService,
+      MentionService mentionService) {
     this.replyService = replyService;
     this.postService = postService;
     this.notificationService = notificationService;
+    this.mentionService = mentionService;
   }
 
   /**
@@ -59,6 +65,10 @@ public class ReplyController {
    * Triggers {@link PostService#createReply(CreateReplyInput, UUID)} with the authenticated user as
    * the author of the post.
    *
+   * <p>If {@code mentionedUserIds} is provided, creates mention rows for active users and triggers
+   * a {@link NotificationType#MENTION} notification for each. Also triggers a {@link
+   * NotificationType#REPLY} notification for the parent post's author.
+   *
    * @param userDetails authenticated user; populated as part of the security chain with {@link
    *     JwtAuthenticationFilter}
    * @param input DTO containing the content and parent id of the post
@@ -69,6 +79,15 @@ public class ReplyController {
       @AuthenticationPrincipal CustomUserDetails userDetails, @Argument CreateReplyInput input) {
     try {
       PostProfile reply = postService.createReply(input, userDetails.getId());
+      List<UUID> mentionedUserIds = input.mentionedUserIds();
+      if (mentionedUserIds != null && !mentionedUserIds.isEmpty()) {
+        List<UUID> createdMentionUserIds =
+            mentionService.createMentions(reply.id(), mentionedUserIds);
+        createdMentionUserIds.forEach(
+            mentionedUserId ->
+                notificationService.upsertNotification(
+                    mentionedUserId, userDetails.getId(), reply.id(), NotificationType.MENTION));
+      }
       PostProfile parentPost = postService.getPost(input.parentId());
       notificationService.upsertNotification(
           parentPost.authorId(), userDetails.getId(), parentPost.id(), NotificationType.REPLY);

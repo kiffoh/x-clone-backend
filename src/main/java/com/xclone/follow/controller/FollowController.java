@@ -81,7 +81,7 @@ public class FollowController {
     try {
       UserProfile updatedUser = followService.unfollowUser(followerId, userIdToUnfollow);
       notificationService.deleteNotificationActorAndCleanupNotification(
-          userDetails.getId(), userIdToUnfollow, NotificationType.FOLLOW, null);
+          userIdToUnfollow, userDetails.getId(), null, NotificationType.FOLLOW);
 
       return new UserResponse("200", true, updatedUser, null);
     } catch (UsernameNotFoundException ex) {

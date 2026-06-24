@@ -1,6 +1,7 @@
 package com.xclone.integration.notification;
 
 import static com.xclone.support.helpers.NotificationHelpers.seedNotifications;
+import static com.xclone.support.helpers.PostHelpers.addPostWithMentions;
 import static com.xclone.support.helpers.PostHelpers.seedPosts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.tuple;
@@ -20,6 +21,8 @@ import com.xclone.notification.model.NotificationConstants;
 import com.xclone.notification.model.entity.Notification;
 import com.xclone.notification.model.entity.NotificationActor;
 import com.xclone.notification.model.enums.NotificationType;
+import com.xclone.post.dto.request.CreatePostInput;
+import com.xclone.post.dto.request.UpdatePostInput;
 import com.xclone.post.model.entity.Post;
 import com.xclone.reply.dto.request.CreateReplyInput;
 import com.xclone.share.dto.request.CreateQuoteInput;
@@ -563,7 +566,7 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
               messageContents,
               List.of(users.getFirst(), users.get(1), users.get(2)),
               postRepository);
-      postsIdsToDeleteFirst = new ArrayList<>();
+      postIdsToDeleteFirst = new ArrayList<>();
       originalPostId = posts.get(1).getId();
       originalPostAuthorId = posts.get(1).getAuthorId();
       user0AuthenticatedTester = authenticatedTester;
@@ -599,7 +602,7 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
               .path("createRepost.post.id")
               .entity(UUID.class)
               .get();
-      postsIdsToDeleteFirst.add(repostId);
+      postIdsToDeleteFirst.add(repostId);
       return repostId;
     }
 
@@ -645,7 +648,8 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
     }
 
     private UUID createQuoteWithTester(HttpGraphQlTester authenticatedTester, UUID originalPostId) {
-      CreateQuoteInput input = new CreateQuoteInput(originalPostId, "this is the quote content");
+      CreateQuoteInput input =
+          new CreateQuoteInput(originalPostId, "this is the quote content", List.of());
       UUID quoteId =
           authenticatedTester
               .document(
@@ -667,12 +671,13 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
               .path("createQuote.post.id")
               .entity(UUID.class)
               .get();
-      postsIdsToDeleteFirst.add(quoteId);
+      postIdsToDeleteFirst.add(quoteId);
       return quoteId;
     }
 
     private UUID createReplyWithTester(HttpGraphQlTester authenticatedTester, UUID originalPostId) {
-      CreateReplyInput input = new CreateReplyInput(originalPostId, "this is the reply content");
+      CreateReplyInput input =
+          new CreateReplyInput(originalPostId, "this is the reply content", List.of());
       UUID replyId =
           authenticatedTester
               .document(
@@ -694,7 +699,7 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
               .path("createReply.post.id")
               .entity(UUID.class)
               .get();
-      postsIdsToDeleteFirst.add(replyId);
+      postIdsToDeleteFirst.add(replyId);
       return replyId;
     }
 
@@ -952,6 +957,217 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
           NotificationActor secondActor = notificationActors.getLast();
           assertThat(secondActor.getActorUserId()).isEqualTo(users.get(2).getId());
           assertThat(secondActor.getNotificationId()).isEqualTo(secondNotification.getId());
+        }
+      }
+
+      @Nested
+      class mentionNotification {
+        @Test
+        void createPost_createsMentionNotification() {
+          UUID mentionedUserId = users.get(1).getId();
+          CreatePostInput createPostInput =
+              new CreatePostInput("@user1 this is the message content", List.of(mentionedUserId));
+
+          UUID postId =
+              authenticatedTester
+                  .document(
+                      """
+                            mutation CreatePost($input: CreatePostInput!) {
+                                createPost(input: $input) {
+                                    success
+                                    post {
+                                     id
+                                    }
+                                }
+                            }
+                            """)
+                  .variable("input", createPostInput)
+                  .execute()
+                  .path("createPost.success")
+                  .entity(Boolean.class)
+                  .isEqualTo(true)
+                  .path("createPost.post.id")
+                  .entity(UUID.class)
+                  .get();
+
+          List<Notification> notifications = notificationRepository.findAll();
+          List<NotificationActor> notificationActors = notificationActorRepository.findAll();
+
+          assertThat(notifications).hasSize(1);
+          assertThat(notificationActors).hasSize(1);
+          Notification notification = notifications.getFirst();
+          NotificationActor notificationActor = notificationActors.getFirst();
+
+          assertThat(notification.getPostId()).isEqualTo(postId);
+          assertThat(notification.getRecipientUserId()).isEqualTo(mentionedUserId);
+          assertThat(notification.getType()).isEqualTo(NotificationType.MENTION);
+
+          assertThat(notificationActor.getNotificationId()).isEqualTo(notification.getId());
+          assertThat(notificationActor.getActorUserId()).isEqualTo(authenticatedUser.getId());
+        }
+
+        @Test
+        void updatePost_createsNewMentionNotifications() {
+          UUID initialMentionedUserId = users.get(1).getId();
+          UUID createdPostId =
+              addPostWithMentions(authenticatedTester, List.of(initialMentionedUserId));
+          Long initialNotificationCount = notificationRepository.count();
+
+          UUID newMentionedUserId = users.get(2).getId();
+          UpdatePostInput updatePostInput =
+              new UpdatePostInput(
+                  createdPostId,
+                  "new message content",
+                  List.of(initialMentionedUserId, newMentionedUserId));
+          authenticatedTester
+              .document(
+                  """
+                              mutation UpdatePost($input: UpdatePostInput!) {
+                                  updatePostContent(input: $input) {
+                                      success
+                                      post {
+                                       mentions {
+                                          id
+                                       }
+                                      }
+                                  }
+                              }
+                              """)
+              .variable("input", updatePostInput)
+              .execute()
+              .path("updatePostContent.success")
+              .entity(Boolean.class);
+
+          List<Notification> notifications = notificationRepository.findAll();
+          List<NotificationActor> notificationActors = notificationActorRepository.findAll();
+
+          assertThat(initialNotificationCount).isEqualTo(1);
+          assertThat(notifications).hasSize(2);
+          assertThat(notificationActors).hasSize(2);
+
+          Notification initialNotification = notifications.getFirst();
+          Notification newNotification = notifications.getLast();
+          assertThat(initialNotification.getPostId()).isEqualTo(createdPostId);
+          assertThat(newNotification.getPostId()).isEqualTo(createdPostId);
+          assertThat(initialNotification.getType()).isEqualTo(NotificationType.MENTION);
+          assertThat(newNotification.getType()).isEqualTo(NotificationType.MENTION);
+          assertThat(initialNotification.getRecipientUserId()).isEqualTo(initialMentionedUserId);
+          assertThat(newNotification.getRecipientUserId()).isEqualTo(newMentionedUserId);
+
+          NotificationActor initialNotificationActor = notificationActors.getFirst();
+          NotificationActor newNotificationActor = notificationActors.getLast();
+          assertThat(initialNotificationActor.getNotificationId())
+              .isEqualTo(initialNotification.getId());
+          assertThat(initialNotificationActor.getActorUserId())
+              .isEqualTo(authenticatedUser.getId());
+          assertThat(newNotificationActor.getNotificationId()).isEqualTo(newNotification.getId());
+          assertThat(newNotificationActor.getActorUserId()).isEqualTo(authenticatedUser.getId());
+        }
+
+        @Test
+        void createQuote_createsMentionNotification() {
+          UUID mentionedUserId = users.get(2).getId();
+          CreateQuoteInput input =
+              new CreateQuoteInput(
+                  originalPostId, "@example3 quoting this", List.of(mentionedUserId));
+
+          UUID quoteId =
+              authenticatedTester
+                  .document(
+                      """
+                          mutation CreateQuote($input: CreateQuoteInput!) {
+                              createQuote(input: $input) {
+                                  success
+                                  post {
+                                   id
+                                  }
+                              }
+                          }
+                          """)
+                  .variable("input", input)
+                  .execute()
+                  .path("createQuote.success")
+                  .entity(Boolean.class)
+                  .isEqualTo(true)
+                  .path("createQuote.post.id")
+                  .entity(UUID.class)
+                  .get();
+          postIdsToDeleteFirst.add(quoteId);
+
+          List<Notification> notifications = notificationRepository.findAll();
+          List<NotificationActor> notificationActors = notificationActorRepository.findAll();
+
+          // createQuote triggers both a QUOTE notification and a MENTION notification
+          assertThat(notifications).hasSize(2);
+          assertThat(notificationActors).hasSize(2);
+
+          Notification mentionNotification =
+              notifications.stream()
+                  .filter(n -> n.getType() == NotificationType.MENTION)
+                  .findFirst()
+                  .orElseThrow();
+          assertThat(mentionNotification.getPostId()).isEqualTo(quoteId);
+          assertThat(mentionNotification.getRecipientUserId()).isEqualTo(mentionedUserId);
+
+          NotificationActor mentionActor =
+              notificationActors.stream()
+                  .filter(a -> a.getNotificationId().equals(mentionNotification.getId()))
+                  .findFirst()
+                  .orElseThrow();
+          assertThat(mentionActor.getActorUserId()).isEqualTo(authenticatedUser.getId());
+        }
+
+        @Test
+        void createReply_createsMentionNotification() {
+          UUID mentionedUserId = users.get(2).getId();
+          CreateReplyInput input =
+              new CreateReplyInput(
+                  originalPostId, "@example3 replying to you", List.of(mentionedUserId));
+
+          UUID replyId =
+              authenticatedTester
+                  .document(
+                      """
+                          mutation CreateReply($input: CreateReplyInput!) {
+                              createReply(input: $input) {
+                                  success
+                                  post {
+                                   id
+                                  }
+                              }
+                          }
+                          """)
+                  .variable("input", input)
+                  .execute()
+                  .path("createReply.success")
+                  .entity(Boolean.class)
+                  .isEqualTo(true)
+                  .path("createReply.post.id")
+                  .entity(UUID.class)
+                  .get();
+          postIdsToDeleteFirst.add(replyId);
+
+          List<Notification> notifications = notificationRepository.findAll();
+          List<NotificationActor> notificationActors = notificationActorRepository.findAll();
+
+          // createReply triggers both a REPLY notification and a MENTION notification
+          assertThat(notifications).hasSize(2);
+          assertThat(notificationActors).hasSize(2);
+
+          Notification mentionNotification =
+              notifications.stream()
+                  .filter(n -> n.getType() == NotificationType.MENTION)
+                  .findFirst()
+                  .orElseThrow();
+          assertThat(mentionNotification.getPostId()).isEqualTo(replyId);
+          assertThat(mentionNotification.getRecipientUserId()).isEqualTo(mentionedUserId);
+
+          NotificationActor mentionActor =
+              notificationActors.stream()
+                  .filter(a -> a.getNotificationId().equals(mentionNotification.getId()))
+                  .findFirst()
+                  .orElseThrow();
+          assertThat(mentionActor.getActorUserId()).isEqualTo(authenticatedUser.getId());
         }
       }
     }
@@ -1294,6 +1510,139 @@ public class NotificationIT extends BaseGraphQLIntegrationTest {
           assertThat(actorCountBeforeDelete).isEqualTo(2);
           assertThat(notifications).hasSize(1);
           assertThat(notificationActors).hasSize(1);
+        }
+      }
+
+      @Nested
+      class mentionNotification {
+        @Test
+        void updatePost_deletesRemovedMentionNotifications() {
+          UUID mentionedUserId1 = users.get(2).getId();
+          UUID mentionedUserId2 = users.get(3).getId();
+          UUID createdPostId =
+              addPostWithMentions(authenticatedTester, List.of(mentionedUserId1, mentionedUserId2));
+          int notificationCountBeforeDelete = notificationRepository.findAll().size();
+          int actorCountBeforeDelete = notificationActorRepository.findAll().size();
+
+          UpdatePostInput updatePostInput =
+              new UpdatePostInput(createdPostId, "updated content", List.of(mentionedUserId1));
+          authenticatedTester
+              .document(
+                  """
+                      mutation UpdatePost($input: UpdatePostInput!) {
+                          updatePostContent(input: $input) {
+                              success
+                          }
+                      }
+                      """)
+              .variable("input", updatePostInput)
+              .execute()
+              .path("updatePostContent.success")
+              .entity(Boolean.class)
+              .isEqualTo(true);
+
+          List<Notification> notifications = notificationRepository.findAll();
+          List<NotificationActor> notificationActors = notificationActorRepository.findAll();
+
+          assertThat(notificationCountBeforeDelete).isEqualTo(2);
+          assertThat(actorCountBeforeDelete).isEqualTo(2);
+          assertThat(notifications).hasSize(1);
+          assertThat(notificationActors).hasSize(1);
+
+          Notification notification = notifications.getFirst();
+          assertThat(notification.getPostId()).isEqualTo(createdPostId);
+          assertThat(notification.getRecipientUserId()).isEqualTo(mentionedUserId1);
+          assertThat(notification.getType()).isEqualTo(NotificationType.MENTION);
+        }
+
+        @Test
+        void deletePost_deletesMentionNotification() {
+          UUID mentionedUserId = users.get(2).getId();
+          UUID createdPostId = addPostWithMentions(authenticatedTester, List.of(mentionedUserId));
+          int notificationCountBeforeDelete = notificationRepository.findAll().size();
+          int actorCountBeforeDelete = notificationActorRepository.findAll().size();
+
+          authenticatedTester
+              .document(
+                  """
+                      mutation DeletePost($postId: ID!) {
+                          deletePost(postId: $postId) {
+                              success
+                          }
+                      }
+                      """)
+              .variable("postId", createdPostId)
+              .execute()
+              .path("deletePost.success")
+              .entity(Boolean.class)
+              .isEqualTo(true);
+
+          List<Notification> notifications = notificationRepository.findAll();
+          List<NotificationActor> notificationActors = notificationActorRepository.findAll();
+
+          assertThat(notificationCountBeforeDelete).isEqualTo(1);
+          assertThat(actorCountBeforeDelete).isEqualTo(1);
+          assertThat(notifications).hasSize(0);
+          assertThat(notificationActors).hasSize(0);
+        }
+
+        @Test
+        void deleteReply_deletesMentionNotification() {
+          UUID mentionedUserId = users.get(2).getId();
+          CreateReplyInput input =
+              new CreateReplyInput(
+                  originalPostId, "@example3 replying with mention", List.of(mentionedUserId));
+
+          UUID replyId =
+              authenticatedTester
+                  .document(
+                      """
+                          mutation CreateReply($input: CreateReplyInput!) {
+                              createReply(input: $input) {
+                                  success
+                                  post {
+                                   id
+                                  }
+                              }
+                          }
+                          """)
+                  .variable("input", input)
+                  .execute()
+                  .path("createReply.success")
+                  .entity(Boolean.class)
+                  .isEqualTo(true)
+                  .path("createReply.post.id")
+                  .entity(UUID.class)
+                  .get();
+          postIdsToDeleteFirst.add(replyId);
+
+          // createReply triggers both a REPLY and a MENTION notification
+          int notificationCountBeforeDelete = notificationRepository.findAll().size();
+          int actorCountBeforeDelete = notificationActorRepository.findAll().size();
+          assertThat(notificationCountBeforeDelete).isEqualTo(2);
+          assertThat(actorCountBeforeDelete).isEqualTo(2);
+
+          authenticatedTester
+              .document(
+                  """
+                      mutation DeleteReply($postId: ID!) {
+                          deletePost(postId: $postId) {
+                              success
+                          }
+                      }
+                      """)
+              .variable("postId", replyId)
+              .execute()
+              .path("deletePost.success")
+              .entity(Boolean.class)
+              .isEqualTo(true);
+
+          List<Notification> notifications = notificationRepository.findAll();
+          List<NotificationActor> notificationActors = notificationActorRepository.findAll();
+
+          // Both the REPLY notification and the MENTION notification should be cleaned up
+          assertThat(notifications).hasSize(0);
+          assertThat(notificationActors).hasSize(0);
         }
       }
     }

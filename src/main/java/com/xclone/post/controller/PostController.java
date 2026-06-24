@@ -6,6 +6,8 @@ import com.xclone.exception.custom.NotPostAuthorException;
 import com.xclone.exception.custom.PostNotFoundException;
 import com.xclone.like.dto.LikeCount;
 import com.xclone.like.service.LikeService;
+import com.xclone.mention.dto.MentionDiff;
+import com.xclone.mention.service.MentionService;
 import com.xclone.notification.model.enums.NotificationType;
 import com.xclone.notification.service.NotificationService;
 import com.xclone.post.dto.PostProfile;
@@ -49,6 +51,7 @@ public class PostController {
   private final ReplyService replyService;
   private final ShareService shareService;
   private final NotificationService notificationService;
+  private final MentionService mentionService;
 
   public PostController(
       PostService postService,
@@ -56,13 +59,15 @@ public class PostController {
       LikeService likeService,
       ReplyService replyService,
       ShareService shareService,
-      NotificationService notificationService) {
+      NotificationService notificationService,
+      MentionService mentionService) {
     this.postService = postService;
     this.userService = userService;
     this.likeService = likeService;
     this.replyService = replyService;
     this.shareService = shareService;
     this.notificationService = notificationService;
+    this.mentionService = mentionService;
   }
 
   /**
@@ -291,6 +296,22 @@ public class PostController {
   }
 
   /**
+   * Fetches the users who are mentioned as part of the {@link PostProfile#messageContent()}.
+   *
+   * @param posts list of post entities
+   * @return each post mapped to the users mentioned in its message content
+   */
+  @BatchMapping(typeName = "Post", field = "mentions")
+  public Map<PostProfile, List<UserProfile>> mentions(List<PostProfile> posts) {
+    List<UUID> postIds = posts.stream().map(PostProfile::id).toList();
+    Map<UUID, List<UserProfile>> postMentions = mentionService.getPostMentions(postIds);
+    return posts.stream()
+        .collect(
+            Collectors.toMap(
+                Function.identity(), post -> postMentions.getOrDefault(post.id(), List.of())));
+  }
+
+  /**
    * Resolves the graphql getPost query.
    *
    * @param postId unique identifier of the post
@@ -321,6 +342,9 @@ public class PostController {
    * Triggers {@link PostService#createPost(CreatePostInput, UUID)} with the authenticated user as
    * the author of the post.
    *
+   * <p>If {@code mentionedUserIds} is provided, creates mention rows for active users and triggers
+   * a {@link NotificationType#MENTION} notification for each.
+   *
    * @param userDetails authenticated user; populated as part of the security chain with {@link
    *     JwtAuthenticationFilter}
    * @param input DTO containing the content of the post
@@ -331,6 +355,15 @@ public class PostController {
       @AuthenticationPrincipal CustomUserDetails userDetails, @Argument CreatePostInput input) {
     try {
       PostProfile post = postService.createPost(input, userDetails.getId());
+      List<UUID> mentionedUserIds = input.mentionedUserIds();
+      if (mentionedUserIds != null && !mentionedUserIds.isEmpty()) {
+        List<UUID> createdMentionUserIds =
+            mentionService.createMentions(post.id(), mentionedUserIds);
+        createdMentionUserIds.forEach(
+            mentionedUserId ->
+                notificationService.upsertNotification(
+                    mentionedUserId, userDetails.getId(), post.id(), NotificationType.MENTION));
+      }
       return new PostResponse("200", true, post, null);
     } catch (ConstraintViolationException ex) {
       return new PostResponse("400", false, null, GraphQlErrorMapper.fromConstraintViolations(ex));
@@ -340,6 +373,11 @@ public class PostController {
   /**
    * Triggers {@link PostService#updatePost(UpdatePostInput, UUID)} with the authenticated user as
    * the author of the post.
+   *
+   * <p>If {@code mentionedUserIds} is provided, diffs against current mentions: creates {@link
+   * NotificationType#MENTION} notifications for added users and deletes notifications for removed
+   * users. A {@code null} list skips mention processing; an empty list removes all existing
+   * mentions.
    *
    * <p>Business exceptions are mapped with {@link GraphQlErrorMapper} in the style of
    * "errors-as-data".
@@ -354,6 +392,20 @@ public class PostController {
       @AuthenticationPrincipal CustomUserDetails userDetails, @Argument UpdatePostInput input) {
     try {
       PostProfile updatedPost = postService.updatePost(input, userDetails.getId());
+      List<UUID> mentionedUserIds = input.mentionedUserIds();
+      if (mentionedUserIds != null) {
+        MentionDiff mentionDiff = mentionService.updateMentions(updatedPost.id(), mentionedUserIds);
+        if (mentionDiff.isChanged()) {
+          for (UUID addedMentionId : mentionDiff.added()) {
+            notificationService.upsertNotification(
+                addedMentionId, userDetails.getId(), updatedPost.id(), NotificationType.MENTION);
+          }
+          for (UUID removedMentionId : mentionDiff.removed()) {
+            notificationService.deleteNotificationActorAndCleanupNotification(
+                removedMentionId, userDetails.getId(), updatedPost.id(), NotificationType.MENTION);
+          }
+        }
+      }
       return new PostResponse("200", true, updatedPost, null);
     } catch (NotPostAuthorException ex) {
       return new PostResponse(
@@ -370,6 +422,10 @@ public class PostController {
    * Triggers {@link PostService#deletePost(UUID, UUID)}} with the post id and the authenticated
    * user as the author of the post.
    *
+   * <p>For non-post types (reply, quote, repost), removes the actor from the corresponding
+   * notification on the original post if it still exists. For all post types, deletes any
+   * notifications referencing the deleted post (e.g. mention notifications).
+   *
    * <p>Business exceptions are mapped with {@link GraphQlErrorMapper} in the style of
    * "errors-as-data".
    *
@@ -385,18 +441,17 @@ public class PostController {
       PostProfile deletedPost = postService.deletePost(postId, userDetails.getId());
       PostType postType = discernPostType(deletedPost);
       if (postType != PostType.POST) {
+        // if the original post exists, remove the quote/repost/reply notification
         PostProfile originalPost = getOriginalPost(deletedPost, postType);
         if (originalPost != null) {
           notificationService.deleteNotificationActorAndCleanupNotification(
-              userDetails.getId(),
               originalPost.authorId(),
-              postType.toNotificationType(),
-              originalPost.id());
+              userDetails.getId(),
+              originalPost.id(),
+              postType.toNotificationType());
         }
-      } else {
-        // delete all notifications related to post on post-deletion
-        notificationService.deletePostNotifications(deletedPost.id());
       }
+      notificationService.deletePostNotifications(deletedPost.id());
       return new DeleteResponse("200", true, null);
     } catch (NotPostAuthorException ex) {
       return new DeleteResponse(

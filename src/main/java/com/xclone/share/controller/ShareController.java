@@ -3,6 +3,7 @@ package com.xclone.share.controller;
 import com.xclone.exception.GraphQlErrorMapper;
 import com.xclone.exception.custom.DuplicateRepostException;
 import com.xclone.exception.custom.PostNotFoundException;
+import com.xclone.mention.service.MentionService;
 import com.xclone.notification.model.enums.NotificationType;
 import com.xclone.notification.service.NotificationService;
 import com.xclone.post.dto.PostProfile;
@@ -12,6 +13,7 @@ import com.xclone.security.jwt.JwtAuthenticationFilter;
 import com.xclone.security.user.CustomUserDetails;
 import com.xclone.share.dto.request.CreateQuoteInput;
 import jakarta.validation.ConstraintViolationException;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
@@ -23,10 +25,15 @@ import org.springframework.stereotype.Controller;
 public class ShareController {
   private final PostService postService;
   private final NotificationService notificationService;
+  private final MentionService mentionService;
 
-  ShareController(PostService postService, NotificationService notificationService) {
+  ShareController(
+      PostService postService,
+      NotificationService notificationService,
+      MentionService mentionService) {
     this.postService = postService;
     this.notificationService = notificationService;
+    this.mentionService = mentionService;
   }
 
   /**
@@ -61,7 +68,10 @@ public class ShareController {
    * Triggers {@link PostService#createQuote(CreateQuoteInput, UUID)} with the authenticated user as
    * the author of the post.
    *
-   * <p>Method used to create a quote i.e. a repost with message content.
+   * <p>Method used to create a quote i.e. a repost with message content. If {@code
+   * mentionedUserIds} is provided, creates mention rows for active users and triggers a {@link
+   * NotificationType#MENTION} notification for each. Also triggers a {@link NotificationType#QUOTE}
+   * notification for the shared post's author.
    *
    * @param userDetails authenticated user; populated as part of the security chain with {@link
    *     JwtAuthenticationFilter}
@@ -73,6 +83,15 @@ public class ShareController {
       @AuthenticationPrincipal CustomUserDetails userDetails, @Argument CreateQuoteInput input) {
     try {
       PostProfile quote = postService.createQuote(input, userDetails.getId());
+      List<UUID> mentionedUserIds = input.mentionedUserIds();
+      if (mentionedUserIds != null && !mentionedUserIds.isEmpty()) {
+        List<UUID> createdMentionUserIds =
+            mentionService.createMentions(quote.id(), mentionedUserIds);
+        createdMentionUserIds.forEach(
+            mentionedUserId ->
+                notificationService.upsertNotification(
+                    mentionedUserId, userDetails.getId(), quote.id(), NotificationType.MENTION));
+      }
       PostProfile sharedPost = postService.getPost(input.sharedPostId());
       notificationService.upsertNotification(
           sharedPost.authorId(), userDetails.getId(), sharedPost.id(), NotificationType.QUOTE);

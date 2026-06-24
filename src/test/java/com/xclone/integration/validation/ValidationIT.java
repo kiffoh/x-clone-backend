@@ -11,6 +11,9 @@ import com.xclone.auth.dto.SignupRequest;
 import com.xclone.exception.dto.FieldError;
 import com.xclone.exception.dto.ValidationErrorResponse;
 import com.xclone.integration.base.BaseAuthIntegrationTest;
+import com.xclone.mention.repository.MentionRepository;
+import com.xclone.notification.repository.NotificationActorRepository;
+import com.xclone.notification.repository.NotificationRepository;
 import com.xclone.post.dto.mutation.PostResponse;
 import com.xclone.post.model.entity.Post;
 import com.xclone.post.repository.PostRepository;
@@ -43,9 +46,15 @@ public class ValidationIT extends BaseAuthIntegrationTest {
   @Autowired AuthHelpers authHelpers;
   @Autowired HttpGraphQlTester graphQlTester;
   @Autowired TestRestTemplate testRestTemplate;
+  @Autowired private MentionRepository mentionRepository;
+  @Autowired private NotificationActorRepository notificationActorRepository;
+  @Autowired private NotificationRepository notificationRepository;
 
   @BeforeEach
   void cleanupDBs() {
+    mentionRepository.deleteAll();
+    notificationActorRepository.deleteAll();
+    notificationRepository.deleteAll();
     postRepository.deleteAll();
     userRepository.deleteAll();
   }
@@ -314,9 +323,17 @@ public class ValidationIT extends BaseAuthIntegrationTest {
     }
   }
 
+  List<User> createUsers(List<String> handles) {
+    return handles.stream()
+        .map(UserFixtures::createUserWithHandle)
+        .map(userRepository::save)
+        .toList();
+  }
+
   @Nested
   class CreatePostInputTests {
     User authenticatedUser;
+    List<User> users;
     String accessToken;
     HttpGraphQlTester authenticatedTester;
 
@@ -442,6 +459,29 @@ public class ValidationIT extends BaseAuthIntegrationTest {
           .filter(error -> "BAD_REQUEST".equals(error.getExtensions().get("classification")))
           .expect(error -> error.getMessage().contains("Field 'messageContent' has coerced Null"));
     }
+
+    @Test
+    void mentionedUserIdsPresent() {
+      List<User> users = createUsers(List.of("user1", "user2"));
+      Map<String, Object> createPostInput = new HashMap<>();
+      createPostInput.put("messageContent", "@user1, @user2, this is the message content");
+      createPostInput.put("mentionedUserIds", List.of(users.get(0).getId(), users.get(1).getId()));
+
+      authenticatedTester
+          .document(
+              """
+              mutation CreatePost($input: CreatePostInput!) {
+                createPost(input: $input) {
+                  success
+                }
+              }
+              """)
+          .variable("input", createPostInput)
+          .execute()
+          .path("createPost.success")
+          .entity(Boolean.class)
+          .isEqualTo(true);
+    }
   }
 
   @Nested
@@ -449,6 +489,7 @@ public class ValidationIT extends BaseAuthIntegrationTest {
     User authenticatedUser;
     String accessToken;
     HttpGraphQlTester authenticatedTester;
+    List<Post> posts;
 
     @BeforeEach
     void setup() {
@@ -457,6 +498,7 @@ public class ValidationIT extends BaseAuthIntegrationTest {
       accessToken = authHelpers.getUserAccessToken(authenticatedUser.getId().toString());
       authenticatedTester =
           graphQlTester.mutate().headers(headers -> headers.setBearerAuth(accessToken)).build();
+      posts = seedPosts(List.of("original post"), List.of(authenticatedUser), postRepository);
     }
 
     @Test
@@ -464,7 +506,7 @@ public class ValidationIT extends BaseAuthIntegrationTest {
       String longMessage = "this message will be over 280 characters".repeat(20);
       Map<String, Object> updatePostInput = new HashMap<>();
       updatePostInput.put("messageContent", longMessage);
-      updatePostInput.put("postId", UUID.randomUUID());
+      updatePostInput.put("postId", posts.getFirst().getId());
 
       PostResponse response =
           authenticatedTester
@@ -503,7 +545,7 @@ public class ValidationIT extends BaseAuthIntegrationTest {
     void invalidMessageContent_empty_returns400() {
       Map<String, Object> updatePostInput = new HashMap<>();
       updatePostInput.put("messageContent", "");
-      updatePostInput.put("postId", UUID.randomUUID());
+      updatePostInput.put("postId", posts.getFirst().getId());
 
       PostResponse response =
           authenticatedTester
@@ -541,7 +583,7 @@ public class ValidationIT extends BaseAuthIntegrationTest {
     void nullMessageContent_returns400() {
       Map<String, Object> updatePostInput = new HashMap<>();
       updatePostInput.put("messageContent", null);
-      updatePostInput.put("postId", UUID.randomUUID());
+      updatePostInput.put("postId", posts.getFirst().getId());
 
       authenticatedTester
           .document(
@@ -568,7 +610,7 @@ public class ValidationIT extends BaseAuthIntegrationTest {
     }
 
     @Test
-    void nullParentId_returns400() {
+    void nullPostId_returns400() {
       Map<String, Object> updatePostInput = new HashMap<>();
       updatePostInput.put("messageContent", "valid message");
       updatePostInput.put("postId", null);
@@ -595,6 +637,30 @@ public class ValidationIT extends BaseAuthIntegrationTest {
           .errors()
           .filter(error -> "BAD_REQUEST".equals(error.getExtensions().get("classification")))
           .expect(error -> error.getMessage().contains("Field 'postId' has coerced Null"));
+    }
+
+    @Test
+    void mentionedUserIdsPresent() {
+      List<User> users = createUsers(List.of("user1", "user2"));
+      Map<String, Object> updatePostInput = new HashMap<>();
+      updatePostInput.put("messageContent", "@user1, @user2, this is the message content");
+      updatePostInput.put("postId", posts.getFirst().getId());
+      updatePostInput.put("mentionedUserIds", List.of(users.get(0).getId(), users.get(1).getId()));
+
+      authenticatedTester
+          .document(
+              """
+                      mutation UpdatePost($input: UpdatePostInput!) {
+                        updatePostContent(input: $input) {
+                          success
+                        }
+                      }
+                      """)
+          .variable("input", updatePostInput)
+          .execute()
+          .path("updatePostContent.success")
+          .entity(Boolean.class)
+          .isEqualTo(true);
     }
   }
 
@@ -776,6 +842,39 @@ public class ValidationIT extends BaseAuthIntegrationTest {
           .filter(error -> "BAD_REQUEST".equals(error.getExtensions().get("classification")))
           .expect(error -> error.getMessage().contains("Field 'parentId' has coerced Null"));
     }
+
+    @Test
+    void mentionedUserIdsPresent() {
+      List<User> users = createUsers(List.of("user1", "user2"));
+      Map<String, Object> createReplyInput = new HashMap<>();
+      createReplyInput.put("messageContent", "@user1, @user2, this is the message content");
+      createReplyInput.put("parentId", posts.getFirst().getId());
+      createReplyInput.put("mentionedUserIds", List.of(users.get(0).getId(), users.get(1).getId()));
+
+      UUID replyId =
+          authenticatedTester
+              .document(
+                  """
+                      mutation CreateReply($input: CreateReplyInput!) {
+                        createReply(input: $input) {
+                          success
+                          post {
+                            id
+                          }
+                        }
+                      }
+                      """)
+              .variable("input", createReplyInput)
+              .execute()
+              .path("createReply.success")
+              .entity(Boolean.class)
+              .isEqualTo(true)
+              .path("createReply.post.id")
+              .entity(UUID.class)
+              .get();
+
+      postRepository.deleteById(replyId);
+    }
   }
 
   @Nested
@@ -955,6 +1054,39 @@ public class ValidationIT extends BaseAuthIntegrationTest {
           .errors()
           .filter(error -> "BAD_REQUEST".equals(error.getExtensions().get("classification")))
           .expect(error -> error.getMessage().contains("Field 'sharedPostId' has coerced Null"));
+    }
+
+    @Test
+    void mentionedUserIdsPresent() {
+      List<User> users = createUsers(List.of("user1", "user2"));
+      Map<String, Object> createQuoteInput = new HashMap<>();
+      createQuoteInput.put("messageContent", "@user1, @user2, this is the message content");
+      createQuoteInput.put("sharedPostId", posts.getFirst().getId());
+      createQuoteInput.put("mentionedUserIds", List.of(users.get(0).getId(), users.get(1).getId()));
+
+      UUID quoteId =
+          authenticatedTester
+              .document(
+                  """
+                      mutation CreateQuote($input: CreateQuoteInput!) {
+                        createQuote(input: $input) {
+                          success
+                          post {
+                            id
+                          }
+                        }
+                      }
+                      """)
+              .variable("input", createQuoteInput)
+              .execute()
+              .path("createQuote.success")
+              .entity(Boolean.class)
+              .isEqualTo(true)
+              .path("createQuote.post.id")
+              .entity(UUID.class)
+              .get();
+
+      postRepository.deleteById(quoteId);
     }
   }
 }

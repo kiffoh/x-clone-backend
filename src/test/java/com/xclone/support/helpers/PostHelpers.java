@@ -4,14 +4,19 @@ import static com.xclone.support.fixtures.PostFixtures.createQuote;
 import static com.xclone.support.fixtures.PostFixtures.createRepost;
 
 import com.xclone.common.enums.Status;
+import com.xclone.mention.model.entity.Mention;
+import com.xclone.mention.repository.MentionRepository;
+import com.xclone.post.dto.request.CreatePostInput;
 import com.xclone.post.model.entity.Post;
 import com.xclone.post.repository.PostRepository;
+import com.xclone.support.fixtures.MentionFixtures;
 import com.xclone.support.fixtures.PostFixtures;
 import com.xclone.user.model.entity.User;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.graphql.test.tester.HttpGraphQlTester;
 
 public class PostHelpers {
   /**
@@ -38,6 +43,11 @@ public class PostHelpers {
       posts.add(savedPost);
     }
     return posts;
+  }
+
+  public static Mention seedMention(Post post, User user, MentionRepository mentionRepository) {
+    Mention mention = MentionFixtures.createMention(post, user);
+    return mentionRepository.save(mention);
   }
 
   public static Post seedRepost(UUID sharedPostId, UUID authorId, PostRepository postRepository) {
@@ -116,5 +126,32 @@ public class PostHelpers {
     for (int i = posts.size() - 1; i >= 0; i--) {
       postRepository.delete(posts.get(i));
     }
+  }
+
+  public static UUID addPostWithMentions(
+      HttpGraphQlTester authenticatedTester, List<UUID> mentionedUserIds) {
+    CreatePostInput createPostInput =
+        new CreatePostInput("this is the message content", mentionedUserIds);
+
+    return authenticatedTester
+        .document(
+            """
+                        mutation CreatePost($input: CreatePostInput!) {
+                            createPost(input: $input) {
+                                success
+                                post {
+                                 id
+                                }
+                            }
+                        }
+                        """)
+        .variable("input", createPostInput)
+        .execute()
+        .path("createPost.success")
+        .entity(Boolean.class)
+        .isEqualTo(true)
+        .path("createPost.post.id")
+        .entity(UUID.class)
+        .get();
   }
 }

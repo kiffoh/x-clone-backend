@@ -247,14 +247,14 @@ public class NotificationService {
    * Deletes the actor corresponding to the input parameters and consequently deletes the
    * corresponding notification if there are no associated actors.
    *
-   * @param authenticatedUserId unique identifier of the actor of the notification
    * @param recipientId unique identifier of the recipient of the notification
-   * @param type type of notification (e.g. which domain it was triggered from)
+   * @param authenticatedUserId unique identifier of the actor of the notification
    * @param postId optional unique identifier of the post the notification is associated with
+   * @param type type of notification (e.g. which domain it was triggered from)
    */
   @Transactional
   public void deleteNotificationActorAndCleanupNotification(
-      UUID authenticatedUserId, UUID recipientId, NotificationType type, UUID postId) {
+      UUID recipientId, UUID authenticatedUserId, UUID postId, NotificationType type) {
     Optional<Notification> notification;
     if (type == NotificationType.FOLLOW) {
       // postId is only null for a follow

@@ -114,7 +114,7 @@ line to update `updatedAt`, but write efficiency preserved. Consistent with `Fol
 
 ### deleteNotificationActorAndCleanupNotification
 
-- Signature: `(UUID authenticatedUserId, UUID recipientId, NotificationType type, UUID postId)`.
+- Signature: `(UUID recipientId, UUID authenticatedUserId, UUID postId, NotificationType type)`.
 - `@Transactional`.
 - Looks up notification: `findSpecificFollowNotification` for FOLLOW (joins on actor),
   otherwise `findDiscreteNotification`.
@@ -149,8 +149,13 @@ line to update `updatedAt`, but write efficiency preserved. Consistent with `Fol
 ### Post-deletion cascade
 
 - `deletePostNotifications(UUID postId)` — deletes all notifications + actors referencing
-  a post. Called when a post is soft-deleted. Mirrors X's behaviour: notifications about
-  deleted posts are removed.
+  a post. Called unconditionally when any post type is deleted (not just pure POST type).
+  Ensures mention notifications are cleaned up for replies, quotes, and reposts too.
+  For non-POST types, the specific actor cleanup (via
+  `deleteNotificationActorAndCleanupNotification`) still runs first for the original post's
+  notification; `deletePostNotifications` then catches any notifications referencing the
+  deleted post's own ID (e.g. mention notifications). No double-delete risk because the two
+  calls reference different post IDs.
 
 ### Concurrency limitations (accepted)
 
