@@ -114,7 +114,7 @@ line to update `updatedAt`, but write efficiency preserved. Consistent with `Fol
 
 ### deleteNotificationActorAndCleanupNotification
 
-- Signature: `(UUID authenticatedUserId, UUID recipientId, NotificationType type, UUID postId)`.
+- Signature: `(UUID recipientId, UUID authenticatedUserId, UUID postId, NotificationType type)`.
 - `@Transactional`.
 - Looks up notification: `findSpecificFollowNotification` for FOLLOW (joins on actor),
   otherwise `findDiscreteNotification`.

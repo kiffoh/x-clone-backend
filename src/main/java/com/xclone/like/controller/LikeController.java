@@ -72,7 +72,7 @@ public class LikeController {
     PostProfile updatedPost = postService.getPost(postId);
     if (updatedPost != null) {
       notificationService.deleteNotificationActorAndCleanupNotification(
-          userDetails.getId(), updatedPost.authorId(), NotificationType.LIKE, updatedPost.id());
+          updatedPost.authorId(), userDetails.getId(), updatedPost.id(), NotificationType.LIKE);
       return new PostResponse("200", true, updatedPost, null);
     } else {
       FieldError postNotFound = new FieldError("postId", "Post does not exist");

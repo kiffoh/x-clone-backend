@@ -400,10 +400,9 @@ public class PostController {
             notificationService.upsertNotification(
                 addedMentionId, userDetails.getId(), updatedPost.id(), NotificationType.MENTION);
           }
-          // TODO: match delete notification parameter order with upsert
           for (UUID removedMentionId : mentionDiff.removed()) {
             notificationService.deleteNotificationActorAndCleanupNotification(
-                userDetails.getId(), removedMentionId, NotificationType.MENTION, updatedPost.id());
+                removedMentionId, userDetails.getId(), updatedPost.id(), NotificationType.MENTION);
           }
         }
       }
@@ -446,10 +445,10 @@ public class PostController {
         PostProfile originalPost = getOriginalPost(deletedPost, postType);
         if (originalPost != null) {
           notificationService.deleteNotificationActorAndCleanupNotification(
-              userDetails.getId(),
               originalPost.authorId(),
-              postType.toNotificationType(),
-              originalPost.id());
+              userDetails.getId(),
+              originalPost.id(),
+              postType.toNotificationType());
         }
       }
       notificationService.deletePostNotifications(deletedPost.id());
