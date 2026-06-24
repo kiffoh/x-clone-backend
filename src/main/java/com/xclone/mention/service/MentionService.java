@@ -6,7 +6,12 @@ import com.xclone.mention.model.entity.Mention;
 import com.xclone.mention.repository.MentionRepository;
 import com.xclone.user.dto.UserProfile;
 import com.xclone.user.repository.UserRepository;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,7 +31,7 @@ public class MentionService {
    * Fetches the post mentions for each post id.
    *
    * @param postIds unique identifier for each queried post
-   * @return maps each post id to the users mentioned in that posts message content.
+   * @return maps each post id to the users mentioned in that post's message content
    */
   public Map<UUID, List<UserProfile>> getPostMentions(List<UUID> postIds) {
     List<PostMention> individualMentions = mentionRepository.findPostMentions(postIds);
@@ -38,6 +43,13 @@ public class MentionService {
                     mention -> mention.user().toUserProfile(), Collectors.toList())));
   }
 
+  /**
+   * Creates a mention for each mentioned user, provided the user's account is active.
+   *
+   * @param postId unique identifier of the post
+   * @param mentionedUserIds unique identifiers of each mentioned user
+   * @return the created mentions
+   */
   @Transactional
   public List<Mention> createMentions(UUID postId, List<UUID> mentionedUserIds) {
     List<Mention> mentionList = new ArrayList<>();
@@ -57,6 +69,14 @@ public class MentionService {
     return mentionList;
   }
 
+  /**
+   * Compares the updated mentioned user ids to the current state and adds or removes mentions
+   * accordingly.
+   *
+   * @param postId unique identifier of the post
+   * @param updatedMentionedUserIds unique identifiers of each mentioned user
+   * @return the diff between the updated and current mentions
+   */
   @Transactional
   public MentionDiff updateMentions(UUID postId, List<UUID> updatedMentionedUserIds) {
     List<Mention> currentMentions = mentionRepository.findAllByPostId(postId);
@@ -82,6 +102,12 @@ public class MentionService {
     return mentionDiff;
   }
 
+  /**
+   * Deletes mentions for the given users on the specified post.
+   *
+   * @param postId unique identifier of the post
+   * @param mentionedUserIds unique identifiers of each mentioned user
+   */
   @Transactional
   public void deleteMentions(UUID postId, List<UUID> mentionedUserIds) {
     for (UUID mentionedUserId : mentionedUserIds) {

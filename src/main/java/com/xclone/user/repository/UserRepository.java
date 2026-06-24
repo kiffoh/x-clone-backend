@@ -48,7 +48,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
   boolean existsByHandleAndIdNot(String handle, UUID id);
 
   @Query(
-      "SELECT COUNT(u) = 1 FROM User u WHERE u.id = :id AND u.status = com.xclone.user.model.enums.UserStatus.ACTIVE")
+      "SELECT COUNT(u) = 1 FROM User u WHERE u.id = :id"
+          + " AND u.status = com.xclone.user.model.enums.UserStatus.ACTIVE")
   boolean existsByIdAndUserStatusActive(@Param("id") UUID id);
 
   @Query(
