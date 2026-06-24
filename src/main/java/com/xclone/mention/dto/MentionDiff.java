@@ -23,7 +23,7 @@ public record MentionDiff(boolean isChanged, List<UUID> added, List<UUID> remove
    */
   public static MentionDiff of(Set<UUID> updated, Set<UUID> current) {
     if (updated.equals(current)) {
-      return new MentionDiff(false, null, null);
+      return new MentionDiff(false, List.of(), List.of());
     }
     List<UUID> added = updated.stream().filter(id -> !current.contains(id)).toList();
     List<UUID> removed = current.stream().filter(id -> !updated.contains(id)).toList();

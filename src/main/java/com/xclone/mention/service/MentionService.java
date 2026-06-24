@@ -5,8 +5,8 @@ import com.xclone.mention.dto.PostMention;
 import com.xclone.mention.model.entity.Mention;
 import com.xclone.mention.repository.MentionRepository;
 import com.xclone.user.dto.UserProfile;
+import com.xclone.user.model.entity.User;
 import com.xclone.user.repository.UserRepository;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -52,21 +52,24 @@ public class MentionService {
    */
   @Transactional
   public List<UUID> createMentions(UUID postId, List<UUID> mentionedUserIds) {
-    List<Mention> mentionList = new ArrayList<>();
-    mentionedUserIds.forEach(
-        userId -> {
-          boolean activeUserExists = userRepository.existsByIdAndUserStatusActive(userId);
-          if (activeUserExists) {
-            Mention mention = new Mention();
-            mention.setPostId(postId);
-            mention.setMentionedUserId(userId);
-            mentionList.add(mention);
-          }
-        });
+    List<UUID> activeUserIds =
+        userRepository.findAllActiveUsersByIdIn(mentionedUserIds).stream()
+            .map(User::getId)
+            .toList();
+    List<Mention> mentionList =
+        activeUserIds.stream()
+            .map(
+                userId -> {
+                  Mention mention = new Mention();
+                  mention.setPostId(postId);
+                  mention.setMentionedUserId(userId);
+                  return mention;
+                })
+            .toList();
     if (!mentionList.isEmpty()) {
       mentionRepository.saveAll(mentionList);
     }
-    return mentionList.stream().map(Mention::getMentionedUserId).toList();
+    return activeUserIds;
   }
 
   /**
@@ -92,7 +95,9 @@ public class MentionService {
 
     // create mentions which have been added
     if (!mentionDiff.added().isEmpty()) {
-      createMentions(postId, mentionDiff.added());
+      // reassigning mentionDiff to accurately reflect the DB state
+      List<UUID> mentionsWithActiveAccounts = createMentions(postId, mentionDiff.added());
+      mentionDiff = new MentionDiff(true, mentionsWithActiveAccounts, mentionDiff.removed());
     }
     // delete mentions which have been removed
     if (!mentionDiff.removed().isEmpty()) {
@@ -110,8 +115,6 @@ public class MentionService {
    */
   @Transactional
   public void deleteMentions(UUID postId, List<UUID> mentionedUserIds) {
-    for (UUID mentionedUserId : mentionedUserIds) {
-      mentionRepository.deleteByPostIdAndMentionedUserId(postId, mentionedUserId);
-    }
+    mentionRepository.deleteByPostIdAndMentionedUserIdIn(postId, mentionedUserIds);
   }
 }

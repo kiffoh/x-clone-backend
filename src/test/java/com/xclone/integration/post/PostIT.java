@@ -1,6 +1,11 @@
 package com.xclone.integration.post;
 
-import static com.xclone.support.helpers.PostHelpers.*;
+import static com.xclone.support.helpers.PostHelpers.createPostContents;
+import static com.xclone.support.helpers.PostHelpers.deletePostsInDescendingOrder;
+import static com.xclone.support.helpers.PostHelpers.seedMention;
+import static com.xclone.support.helpers.PostHelpers.seedPosts;
+import static com.xclone.support.helpers.PostHelpers.seedQuotes;
+import static com.xclone.support.helpers.PostHelpers.setPostStatusDeleted;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.junit.jupiter.api.Assertions.assertFalse;

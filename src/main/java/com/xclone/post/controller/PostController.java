@@ -342,6 +342,9 @@ public class PostController {
    * Triggers {@link PostService#createPost(CreatePostInput, UUID)} with the authenticated user as
    * the author of the post.
    *
+   * <p>If {@code mentionedUserIds} is provided, creates mention rows for active users and triggers
+   * a {@link NotificationType#MENTION} notification for each.
+   *
    * @param userDetails authenticated user; populated as part of the security chain with {@link
    *     JwtAuthenticationFilter}
    * @param input DTO containing the content of the post
@@ -371,6 +374,11 @@ public class PostController {
    * Triggers {@link PostService#updatePost(UpdatePostInput, UUID)} with the authenticated user as
    * the author of the post.
    *
+   * <p>If {@code mentionedUserIds} is provided, diffs against current mentions: creates {@link
+   * NotificationType#MENTION} notifications for added users and deletes notifications for removed
+   * users. A {@code null} list skips mention processing; an empty list removes all existing
+   * mentions.
+   *
    * <p>Business exceptions are mapped with {@link GraphQlErrorMapper} in the style of
    * "errors-as-data".
    *
@@ -387,7 +395,6 @@ public class PostController {
       List<UUID> mentionedUserIds = input.mentionedUserIds();
       if (mentionedUserIds != null) {
         MentionDiff mentionDiff = mentionService.updateMentions(updatedPost.id(), mentionedUserIds);
-        // I need to delete a notification on a mention delete
         if (mentionDiff.isChanged()) {
           for (UUID addedMentionId : mentionDiff.added()) {
             notificationService.upsertNotification(
@@ -416,6 +423,10 @@ public class PostController {
    * Triggers {@link PostService#deletePost(UUID, UUID)}} with the post id and the authenticated
    * user as the author of the post.
    *
+   * <p>For non-post types (reply, quote, repost), removes the actor from the corresponding
+   * notification on the original post if it still exists. For all post types, deletes any
+   * notifications referencing the deleted post (e.g. mention notifications).
+   *
    * <p>Business exceptions are mapped with {@link GraphQlErrorMapper} in the style of
    * "errors-as-data".
    *
@@ -431,7 +442,7 @@ public class PostController {
       PostProfile deletedPost = postService.deletePost(postId, userDetails.getId());
       PostType postType = discernPostType(deletedPost);
       if (postType != PostType.POST) {
-        // if the original post exists, remove the quote/repost/like/reply notification
+        // if the original post exists, remove the quote/repost/reply notification
         PostProfile originalPost = getOriginalPost(deletedPost, postType);
         if (originalPost != null) {
           notificationService.deleteNotificationActorAndCleanupNotification(

@@ -2,6 +2,7 @@ package com.xclone.mention.repository;
 
 import com.xclone.mention.dto.PostMention;
 import com.xclone.mention.model.entity.Mention;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -18,5 +19,5 @@ public interface MentionRepository extends JpaRepository<Mention, UUID> {
 
   List<Mention> findAllByPostId(UUID postId);
 
-  void deleteByPostIdAndMentionedUserId(UUID postId, UUID mentionedUserId);
+  void deleteByPostIdAndMentionedUserIdIn(UUID postId, Collection<UUID> mentionedUserIds);
 }

@@ -421,6 +421,44 @@ public class MentionIT extends BaseGraphQLIntegrationTest {
     }
 
     @Test
+    void updateMention_addsInactiveUser_skippedSilently_noNotificationCreated() {
+      UUID activeUserId = users.get(1).getId();
+      UUID createdPostId = addPostWithMentions(authenticatedTester, List.of(activeUserId));
+      long notificationCountAfterCreate = notificationRepository.count();
+
+      UUID nonExistentUserId = UUID.randomUUID();
+      UpdatePostInput updatePostInput =
+          new UpdatePostInput(
+              createdPostId, "new message content", List.of(activeUserId, nonExistentUserId));
+      authenticatedTester
+          .document(
+              """
+                mutation UpdatePost($input: UpdatePostInput!) {
+                    updatePostContent(input: $input) {
+                        success
+                        post {
+                         mentions {
+                            id
+                         }
+                        }
+                    }
+                }
+                """)
+          .variable("input", updatePostInput)
+          .execute()
+          .path("updatePostContent.success")
+          .entity(Boolean.class)
+          .isEqualTo(true)
+          .path("updatePostContent.post.mentions[*].id")
+          .entityList(UUID.class)
+          .hasSize(1)
+          .isEqualTo(List.of(activeUserId));
+
+      assertThat(mentionRepository.findAll()).hasSize(1);
+      assertThat(notificationRepository.count()).isEqualTo(notificationCountAfterCreate);
+    }
+
+    @Test
     void updateMention_addsAndDeletesMentionedUsers() {
       UUID createdPostId =
           addPostWithMentions(

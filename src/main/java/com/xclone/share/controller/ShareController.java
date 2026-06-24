@@ -68,7 +68,10 @@ public class ShareController {
    * Triggers {@link PostService#createQuote(CreateQuoteInput, UUID)} with the authenticated user as
    * the author of the post.
    *
-   * <p>Method used to create a quote i.e. a repost with message content.
+   * <p>Method used to create a quote i.e. a repost with message content. If {@code
+   * mentionedUserIds} is provided, creates mention rows for active users and triggers a {@link
+   * NotificationType#MENTION} notification for each. Also triggers a {@link NotificationType#QUOTE}
+   * notification for the shared post's author.
    *
    * @param userDetails authenticated user; populated as part of the security chain with {@link
    *     JwtAuthenticationFilter}

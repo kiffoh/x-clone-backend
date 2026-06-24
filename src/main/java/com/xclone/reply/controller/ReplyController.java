@@ -65,6 +65,10 @@ public class ReplyController {
    * Triggers {@link PostService#createReply(CreateReplyInput, UUID)} with the authenticated user as
    * the author of the post.
    *
+   * <p>If {@code mentionedUserIds} is provided, creates mention rows for active users and triggers
+   * a {@link NotificationType#MENTION} notification for each. Also triggers a {@link
+   * NotificationType#REPLY} notification for the parent post's author.
+   *
    * @param userDetails authenticated user; populated as part of the security chain with {@link
    *     JwtAuthenticationFilter}
    * @param input DTO containing the content and parent id of the post
