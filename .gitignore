@@ -60,3 +60,6 @@ replay_pid*
 
 # Local development
 .env
+
+# macOS
+.DS_Store

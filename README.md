@@ -1,5 +1,7 @@
 # X-Clone Backend
 
+[![Backend CI](https://github.com/kiffoh/x-clone-backend/actions/workflows/ci.yml/badge.svg)](https://github.com/kiffoh/x-clone-backend/actions/workflows/ci.yml)
+
 A social media platform backend inspired by X/Twitter, built with Spring Boot and GraphQL.
 
 ## Tech Stack
@@ -46,6 +48,26 @@ src/main/java/com/xclone/
 
 Each feature is a **vertical slice** with explicit `Controller → Service → Repository` layering. JPA entities are never exposed in API responses — each entity projects to an immutable `record` via a `toXProfile()` method.
 
+## Design decisions
+
+### Keyset (cursor) pagination instead of offset
+
+Every paginated list (feed, replies, followers/following, quotes, reposts, search, notifications) uses keyset pagination rather than `OFFSET`/`LIMIT`. Each repository exposes a `findFirstPageOfX` / `findNextPageOfX` pair; the next-page query filters on `(createdAt < :cursorTimestamp) OR (createdAt = :cursorTimestamp AND id > :cursorId)`, ordered by `createdAt desc, id asc` (notifications order on `updatedAt` instead, so items with new activity bubble to the top). The cursor itself is a `timestamp_id` pair, base64-encoded in `Cursor.encode()`/`Cursor.toCursor()` (`src/main/java/com/xclone/common/connection/Cursor.java`). Keyset avoids the performance cliff of `OFFSET` on large tables and stays stable when rows are inserted or deleted between page requests, which offset pagination does not.
+
+### `@BatchMapping` resolvers to avoid N+1 queries
+
+Twelve `@BatchMapping` resolvers batch-load associated data for a page of results in one query instead of once per row: eight on `Post` (`author`, `likeCount`, `likedByMe`, `replyCount`, `sharedPost`, `shareCount`, `sharedByMe`, `mentions`, in `src/main/java/com/xclone/post/controller/PostController.java`), three on `Notification` (`post`, `actors`, `actorCount`, in `src/main/java/com/xclone/notification/controller/NotificationController.java`), and one on `User` (`isFollowing`, in `src/main/java/com/xclone/user/controller/UserController.java`).
+
+### Recursive CTE for reply-thread ancestors
+
+`PostRepository.findAllAncestors` (`src/main/java/com/xclone/post/repository/PostRepository.java`) uses a native `WITH RECURSIVE post_tree AS (...)` query that walks up from a post through `parent_id` to the root, returning the full ancestor chain in one round trip. `ReplyService.getReplyThread` combines this with a sibling lookup (`findAllSiblings`) to build the `ReplyThread` (ancestors, siblings, focused post) shown when a reply is opened.
+
+### Partial unique indexes for notification and repost invariants
+
+`src/main/resources/db/schema.sql` defines three partial unique indexes: `one_like_notification_per_recipient` and `one_repost_notification_per_recipient` on `notifications(post_id, recipient_user_id)` filtered by `type`, and `one_repost_per_user` on `posts(shared_post_id, author_id)` filtered to active pure reposts. These enforce "at most one aggregate notification per post/recipient/type" and "at most one active repost per user per post" at the database level rather than relying solely on application checks.
+
+Under PostgreSQL's default READ COMMITTED isolation (no isolation override is set in the codebase), two concurrent requests can both read "no existing notification" and both attempt an insert. `NotificationService.upsertNotification` (`src/main/java/com/xclone/notification/service/NotificationService.java`) handles this by catching the resulting `DataIntegrityViolationException`, inspecting the underlying `PSQLException`'s constraint name via `NotificationConstraintName`, and swallowing the exception when it matches one of the two aggregate-notification constraints, treating the loser of the race as a no-op rather than an error.
+
 ## Prerequisites
 
 - Java 21+
@@ -82,7 +104,7 @@ Each feature is a **vertical slice** with explicit `Controller → Service → R
 
 ## Testing
 
-The project has 22 test files across unit tests, slice tests, and integration tests (Testcontainers).
+The project has 20 test files across unit tests, slice tests, and integration tests (Testcontainers).
 
 ```bash
 # Run all tests
